@@ -121,25 +121,29 @@ func TestUint128Add(t *testing.T) {
 	}
 }
 
-func TestUint128Add1(t *testing.T) {
+func TestUint128Add64(t *testing.T) {
 	t.Parallel()
 
 	initUintValues()
 
-	bigval := new(big.Int)
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
 	tmpsum := new(big.Int)
 
-	for _, val := range uint128Values {
-		sum := val.add1()
+	for _, lhs := range uint128Values {
+		for _, rhs := range uint64Values {
+			sum := lhs.add64(rhs)
 
-		uint128ToBig(val, bigval)
-		bigsum := bigval.Add(bigval, big.NewInt(1))
-		if bigsum.BitLen() > 128 {
-			bigsum.SetBytes(bigsum.Bytes()[1:])
-		}
+			uint128ToBig(lhs, biglhs)
+			bigrhs.SetUint64(rhs)
+			bigsum := biglhs.Add(biglhs, bigrhs)
+			if bigsum.BitLen() > 128 {
+				bigsum.SetBytes(bigsum.Bytes()[1:])
+			}
 
-		if uint128ToBig(sum, tmpsum).Cmp(bigsum) != 0 {
-			t.Errorf("%v.add1() = %v, want %v", val, sum, bigsum)
+			if uint128ToBig(sum, tmpsum).Cmp(bigsum) != 0 {
+				t.Errorf("%v.add64(%v) = %v, want %v", lhs, rhs, sum, bigsum)
+			}
 		}
 	}
 }
@@ -472,6 +476,8 @@ func TestUint128Sub(t *testing.T) {
 
 	initUintValues()
 
+	one := big.NewInt(1)
+
 	biglhs := new(big.Int)
 	bigrhs := new(big.Int)
 	tmpdif := new(big.Int)
@@ -496,7 +502,7 @@ func TestUint128Sub(t *testing.T) {
 				}
 
 				bigdif.SetBytes(b)
-				bigdif.Add(bigdif, big.NewInt(1))
+				bigdif.Add(bigdif, one)
 			}
 
 			if uint128ToBig(dif, tmpdif).Cmp(bigdif) != 0 || brw != bigbrw {

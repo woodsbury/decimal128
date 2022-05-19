@@ -12,26 +12,31 @@ type Decimal struct {
 }
 
 func New(sig int64, exp int) Decimal {
+	if sig == 0 {
+		return zero(false)
+	}
+
 	neg := false
 	if sig < 0 {
 		neg = true
 		sig *= -1
 	}
 
-	exp += exponentBias
-
-	if exp < minBiasedExponent {
-		panic("not implemented")
-	} else if exp > maxBiasedExponent {
-		panic("not implemented")
-	} else {
-		hi := uint64(exp) << 49
-		if neg {
-			hi |= 0x8000_0000_0000_0000
-		}
-
-		return Decimal{uint64(sig), hi}
+	if exp < minBiasedExponent-exponentBias+19 {
+		return zero(neg)
 	}
+
+	if exp > maxBiasedExponent-exponentBias+39 {
+		return inf(neg)
+	}
+
+	sig128, exp16 := DefaultRoundingMode.reduce64(neg, uint64(sig), int16(exp+exponentBias))
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
+
+	return compose(neg, sig128, exp16)
 }
 
 func compose(neg bool, sig uint128, exp int16) Decimal {

@@ -29,8 +29,8 @@ func (n uint128) add(o uint128) uint192 {
 	return uint192{r0, r1, r2}
 }
 
-func (n uint128) add1() uint128 {
-	r0, carry := bits.Add64(n[0], 1, 0)
+func (n uint128) add64(o uint64) uint128 {
+	r0, carry := bits.Add64(n[0], o, 0)
 	r1 := n[1] + carry
 
 	return uint128{r0, r1}
@@ -82,7 +82,7 @@ func (n uint128) div(o uint128) (uint128, uint128) {
 	rem, _ := n.sub(o.mul64(r0))
 
 	if rem.cmp(o) >= 0 {
-		r = r.add1()
+		r = r.add64(1)
 		rem, _ = rem.sub(o)
 	}
 

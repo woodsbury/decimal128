@@ -167,13 +167,6 @@ func (d Decimal) String() string {
 	return string(digs.fmtF(prec, false, false, false))
 }
 
-type digits struct {
-	neg  bool
-	dig  [39]byte
-	exp  int
-	ndig int
-}
-
 func (d Decimal) digits() *digits {
 	digs := &digits{
 		neg: d.isNeg(),
@@ -220,6 +213,59 @@ func (d Decimal) digits() *digits {
 	}
 
 	return digs
+}
+
+func (d Decimal) fmtSpecial(pad int, printSign, padSign, padRight bool) []byte {
+	var buf []byte
+
+	if d.isNaN() {
+		if printSign {
+			buf = posNaNText
+		} else if padSign {
+			buf = padNaNText
+		} else {
+			buf = nanText
+		}
+	} else {
+		if d.isNeg() {
+			buf = negInfText
+		} else {
+			if padSign && !printSign {
+				buf = padInfText
+			} else {
+				buf = posInfText
+			}
+		}
+	}
+
+	if p := pad - len(buf); p > 0 {
+		tmp := make([]byte, pad)
+
+		if padRight {
+			n := copy(tmp, buf)
+
+			for i := n; i < pad; i++ {
+				tmp[i] = ' '
+			}
+		} else {
+			for i := 0; i < p; i++ {
+				tmp[i] = ' '
+			}
+
+			copy(tmp[p:], buf)
+		}
+
+		buf = tmp
+	}
+
+	return buf
+}
+
+type digits struct {
+	neg  bool
+	dig  [39]byte
+	exp  int
+	ndig int
 }
 
 func (d *digits) fmtE(prec int, forceDP, printSign, padSign bool, e byte) []byte {
@@ -382,50 +428,4 @@ func (d *digits) round(prec int) {
 		d.exp += d.ndig - prec
 		d.ndig = prec
 	}
-}
-
-func (d Decimal) fmtSpecial(pad int, printSign, padSign, padRight bool) []byte {
-	var buf []byte
-
-	if d.isNaN() {
-		if printSign {
-			buf = posNaNText
-		} else if padSign {
-			buf = padNaNText
-		} else {
-			buf = nanText
-		}
-	} else {
-		if d.isNeg() {
-			buf = negInfText
-		} else {
-			if padSign && !printSign {
-				buf = padInfText
-			} else {
-				buf = posInfText
-			}
-		}
-	}
-
-	if p := pad - len(buf); p > 0 {
-		tmp := make([]byte, pad)
-
-		if padRight {
-			n := copy(tmp, buf)
-
-			for i := n; i < pad; i++ {
-				tmp[i] = ' '
-			}
-		} else {
-			for i := 0; i < p; i++ {
-				tmp[i] = ' '
-			}
-
-			copy(tmp[p:], buf)
-		}
-
-		buf = tmp
-	}
-
-	return buf
 }

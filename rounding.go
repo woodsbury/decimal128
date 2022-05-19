@@ -60,6 +60,7 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, 
 	sig := uint128{sig192[0], sig192[1]}
 
 	var digit uint64
+
 	for sig[1] > 0x0002_7fff_ffff_ffff {
 		if digit != 0 {
 			trunc = true
@@ -131,7 +132,7 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, 
 		}
 
 		if incr {
-			tsig := sig.add1()
+			tsig := sig.add64(1)
 			if tsig[1] > 0x0002_7fff_ffff_ffff {
 				sig, digit = sig.div10()
 				exp++
@@ -160,6 +161,7 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc bool
 	sig := uint128{sig192[0], sig192[1]}
 
 	var digit uint64
+
 	for sig[1] > 0x0002_7fff_ffff_ffff {
 		if digit != 0 {
 			trunc = true
@@ -231,7 +233,7 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc bool
 		}
 
 		if incr {
-			tsig := sig.add1()
+			tsig := sig.add64(1)
 			if tsig[1] > 0x0002_7fff_ffff_ffff {
 				sig, digit = sig.div10()
 				exp++
@@ -248,6 +250,7 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc bool
 
 func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (uint128, int16) {
 	var digit uint64
+
 	for sig[1] > 0x0002_7fff_ffff_ffff {
 		if digit != 0 {
 			trunc = 1
@@ -323,10 +326,97 @@ func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (
 		}
 
 		if incr {
-			tsig := sig.add1()
+			tsig := sig.add64(1)
 			if tsig[1] > 0x0002_7fff_ffff_ffff {
 				if trunc == 0 && digit != 0 {
 					trunc = 1
+				}
+
+				sig, digit = sig.div10()
+				exp++
+				continue
+			}
+
+			sig = tsig
+		}
+
+		return sig, exp
+	}
+}
+
+func (rm RoundingMode) reduce64(neg bool, sig64 uint64, exp int16) (uint128, int16) {
+	var trunc bool
+	var digit uint64
+
+	for exp < minBiasedExponent {
+		if sig64 == 0 {
+			digit = 0
+			exp = 0
+			break
+		}
+
+		if digit != 0 {
+			trunc = true
+		}
+
+		digit = sig64 % 10
+		sig64 = sig64 / 10
+		exp++
+	}
+
+	sig := uint128{sig64, 0}
+
+	for exp > maxBiasedExponent && sig[1] < 0x0002_7fff_ffff_ffff {
+		tmp := sig.mul64(10)
+
+		if tmp[1] <= 0x0002_7fff_ffff_ffff {
+			sig = tmp
+			exp--
+		} else {
+			break
+		}
+	}
+
+	for {
+		incr := false
+		switch rm {
+		case ToNearestEven:
+			if trunc {
+				if digit >= 5 {
+					incr = true
+				}
+			} else {
+				if digit > 5 {
+					incr = true
+				} else if digit == 5 {
+					if sig[0]%2 != 0 {
+						incr = true
+					}
+				}
+			}
+		case ToNearestAway:
+			if digit >= 5 {
+				incr = true
+			}
+		case AwayFromZero:
+			if trunc || digit != 0 {
+				incr = true
+			}
+		case ToPositiveInf:
+			if (trunc || digit != 0) && !neg {
+				incr = true
+			}
+		case ToNegativeInf:
+			if (trunc || digit != 0) && neg {
+				incr = true
+			}
+		}
+
+		if incr {
+			tsig := sig.add64(1)
+			if tsig[1] > 0x0002_7fff_ffff_ffff {
+				if digit != 0 {
+					trunc = true
 				}
 
 				sig, digit = sig.div10()
