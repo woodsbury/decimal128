@@ -14,11 +14,11 @@ var textValues = map[string]Decimal{
 	"-1_23e1_0":      compose(true, uint128{123, 0}, exponentBias+10),
 	"00123.45600e10": compose(false, uint128{123456, 0}, exponentBias+7),
 	"123.456e-10":    compose(false, uint128{123456, 0}, exponentBias-13),
-	"nan":            nan(),
-	"NaN":            nan(),
 	"inf":            inf(false),
 	"+Inf":           inf(false),
 	"-Infinity":      inf(true),
+	"nan":            nan(),
+	"NaN":            nan(),
 }
 
 func TestDecimalScan(t *testing.T) {

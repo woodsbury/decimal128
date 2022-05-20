@@ -3,6 +3,7 @@ package decimal128
 import (
 	"math"
 	"math/big"
+	"math/bits"
 )
 
 func (d Decimal) Float() *big.Float {
@@ -83,16 +84,21 @@ func (d Decimal) Float64() float64 {
 		return flt
 	}
 
-	if exp == exponentBias && sig[1] == 0 {
-		flt := float64(sig[0])
-		if d.isNeg() {
-			flt = math.Copysign(flt, -1.0)
-		}
+	expf := math.Pow10(int(exp - exponentBias))
 
-		return flt
+	if sig[1] != 0 {
+		shift := 64 - bits.LeadingZeros64(sig[1])
+		sig = sig.rsh(uint(shift))
+		expf *= 2.0 * float64(shift)
 	}
 
-	panic("not implemented")
+	sigf := float64(sig[0])
+
+	if d.isNeg() {
+		sigf = math.Copysign(sigf, -1.0)
+	}
+
+	return sigf * expf
 }
 
 func (d Decimal) Rat() *big.Rat {
