@@ -1,5 +1,15 @@
 package decimal128
 
+// CmpResult represents the result from comparing two Decimals. When the values
+// being compared aren't NaNs, the integer value of the CmpResult will be:
+//
+//   -1 if x < y
+//    0 if x == y
+//   +1 if x > y
+//
+// The Equal, Greater, and Less methods can also be used to determine the
+// result. If either value is a NaN, then these methods will still behave
+// correctly.
 type CmpResult int8
 
 const (
@@ -9,18 +19,32 @@ const (
 	cmpNaN     CmpResult = 2
 )
 
+// Equal returns whether this CmpResult represents that the two Decimals were
+// equal to each other. This method will handle when one of the values being
+// compared was a NaN.
 func (cr CmpResult) Equal() bool {
 	return cr == cmpEqual
 }
 
+// Greater returns whether this CmpResult represents that the value on the
+// left-hand side of the comparison was greater than the value on the
+// right-hand side. This method will handle when one of the values being
+// compared was a NaN.
 func (cr CmpResult) Greater() bool {
 	return cr == cmpGreater
 }
 
+// Less returns whether this CmpResult represents that the value on the
+// left-hand side of the comparison was less than the value on the
+// right-hand side. This method will handle when one of the values being
+// compared was a NaN.
 func (cr CmpResult) Less() bool {
 	return cr == cmpLess
 }
 
+// Cmp compares two Decimals and returns a CmpResult representing whether the
+// two values were equal, the left-hand side was greater than the right-hand
+// side, or the left-hand side was less than the right-hand side.
 func (d Decimal) Cmp(o Decimal) CmpResult {
 	if d.isSpecial() || o.isSpecial() {
 		if d.isNaN() || o.isNaN() {
@@ -195,6 +219,10 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 	return CmpResult(sres)
 }
 
+// CmpAbs compares the absolute value of two Decimals and returns a CmpResult
+// representing whether the two values were equal, the left-hand side was
+// greater than the right-hand side, or the left-hand side was less than the
+// right-hand side.
 func (d Decimal) CmpAbs(o Decimal) CmpResult {
 	if d.isSpecial() || o.isSpecial() {
 		if d.isNaN() || o.isNaN() {
@@ -335,6 +363,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 	return CmpResult(sres)
 }
 
+// Equal compares two Decimals and reports whether they are equal.
 func (d Decimal) Equal(o Decimal) bool {
 	if d.isSpecial() || o.isSpecial() {
 		if d.isNaN() || o.isNaN() {
@@ -435,6 +464,8 @@ func (d Decimal) Equal(o Decimal) bool {
 	return dSig == oSig
 }
 
+// IsZero reports whether the Decimal is equal to zero. This method will return
+// true for both positive and negative zero.
 func (d Decimal) IsZero() bool {
 	if d == (Decimal{}) {
 		return true

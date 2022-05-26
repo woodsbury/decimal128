@@ -1,3 +1,4 @@
+// Package decimal128 provides a 128-bit decimal floating point type.
 package decimal128
 
 const (
@@ -7,10 +8,13 @@ const (
 	maxDigits         = 35
 )
 
+// Decimal represents a 128-bit decimal floating point value. The zero value
+// for Decimal is the number +0.0.
 type Decimal struct {
 	lo, hi uint64
 }
 
+// New returns a new Decimal with the provided significand and exponent.
 func New(sig int64, exp int) Decimal {
 	if sig == 0 {
 		return zero(false)

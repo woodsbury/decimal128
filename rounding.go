@@ -2,15 +2,17 @@ package decimal128
 
 import "fmt"
 
+// RoundingMode determines how a Decimal value is rounded when the result of an
+// operation is greater than the format can hold.
 type RoundingMode uint8
 
 const (
-	ToNearestEven RoundingMode = iota
-	ToNearestAway
-	ToZero
-	AwayFromZero
-	ToNegativeInf
-	ToPositiveInf
+	ToNearestEven RoundingMode = iota // == IEEE 754 roundTiesToEven
+	ToNearestAway                     // == IEEE 754 roundTiesToAway
+	ToZero                            // == IEEE 754 roundTowardZero
+	AwayFromZero                      // no IEEE 754 equivalent
+	ToNegativeInf                     // == IEEE 754 roundTowardNegative
+	ToPositiveInf                     // == IEEE 754 roundTowardPostive
 )
 
 func (rm RoundingMode) String() string {
@@ -431,6 +433,6 @@ func (rm RoundingMode) reduce64(neg bool, sig64 uint64, exp int16) (uint128, int
 	}
 }
 
-var (
-	DefaultRoundingMode RoundingMode = ToNearestEven
-)
+// DefaultRoundingMode is the rounding mode used by any methods where an
+// alternate rounding mode isn't provided.
+var DefaultRoundingMode RoundingMode = ToNearestEven

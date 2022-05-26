@@ -2,6 +2,8 @@ package decimal128
 
 import "errors"
 
+// MarshalBinary implements the encoding.BinaryMarshaler interface. It will
+// marshal the Decimal into IEEE 754 format.
 func (d Decimal) MarshalBinary() ([]byte, error) {
 	data := make([]byte, 16)
 
@@ -26,6 +28,8 @@ func (d Decimal) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface. It will
+// unmarshal a Decimal in IEEE 754 format.
 func (d *Decimal) UnmarshalBinary(data []byte) error {
 	if len(data) != 16 {
 		return errors.New("Decimal.UnmarshalBinary: invalid length")
