@@ -11,6 +11,8 @@ func Parse(s string) (Decimal, error) {
 	return parse(s)
 }
 
+// Scan implements the fmt.Scanner interface. It supports the verbs 'e', 'E',
+// 'f', 'F', 'g', 'G', and 'v'.
 func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 	switch verb {
 	case 'e', 'E', 'f', 'F', 'g', 'G', 'v':
@@ -177,14 +179,6 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			cansep = false
 			cansgn = true
 			sawexp = true
-		case r == '+':
-			if !cansgn {
-				return &scanError{}
-			}
-
-			caneof = false
-			cansep = false
-			cansgn = false
 		case r == '-':
 			if !cansgn {
 				return &scanError{}
@@ -202,6 +196,16 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			caneof = false
 			cansep = false
 			cansgn = false
+		case r == '+':
+			if !cansgn {
+				return &scanError{}
+			}
+
+			caneof = false
+			cansep = false
+			cansgn = false
+		default:
+			return &scanError{}
 		}
 	}
 
@@ -236,6 +240,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 	return nil
 }
 
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (d *Decimal) UnmarshalText(data []byte) error {
 	tmp, err := parse(data)
 	if err != nil {
@@ -333,14 +338,6 @@ func parse[D []byte | string](d D) (Decimal, error) {
 			cansep = false
 			cansgn = true
 			sawexp = true
-		case c == '+':
-			if !cansgn {
-				return Decimal{}, &parseError{string(d)}
-			}
-
-			caneof = false
-			cansep = false
-			cansgn = false
 		case c == '-':
 			if !cansgn {
 				return Decimal{}, &parseError{string(d)}
@@ -352,6 +349,14 @@ func parse[D []byte | string](d D) (Decimal, error) {
 			eneg = true
 		case c == '_':
 			if !cansep {
+				return Decimal{}, &parseError{string(d)}
+			}
+
+			caneof = false
+			cansep = false
+			cansgn = false
+		case c == '+':
+			if !cansgn {
 				return Decimal{}, &parseError{string(d)}
 			}
 

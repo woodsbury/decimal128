@@ -66,7 +66,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 		}
 
 		digs.round(prec + 1)
-		f.Write(digs.fmtE(prec, f.Flag('#'), f.Flag('+'), f.Flag(' '), byte(verb)))
+		f.Write(digs.fmtE(prec, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, byte(verb)))
 	case 'f', 'F':
 		if !hasPrec {
 			prec = 6
@@ -95,7 +95,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 				e = byte('E')
 			}
 
-			f.Write(digs.fmtE(prec, f.Flag('#'), f.Flag('+'), f.Flag(' '), e))
+			f.Write(digs.fmtE(prec, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, e))
 		} else {
 			if digs.ndig == 0 {
 				prec--
@@ -110,7 +110,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 		exp := digs.exp + prec
 
 		if exp < -4 || exp > prec {
-			f.Write(digs.fmtE(prec, false, false, false, 'e'))
+			f.Write(digs.fmtE(prec, false, false, false, true, 'e'))
 		} else {
 			prec = 0
 			if digs.exp < 0 {
@@ -124,10 +124,10 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 	}
 }
 
+// MarshalText implements the encoding.TextMarshaler interface.
 func (d Decimal) MarshalText() ([]byte, error) {
-	var b []byte
 	if d.isSpecial() {
-		return append(b, d.fmtSpecial(0, false, false, false)...), nil
+		return append([]byte(nil), d.fmtSpecial(0, false, false, false)...), nil
 	}
 
 	digs := d.digits()
@@ -135,7 +135,7 @@ func (d Decimal) MarshalText() ([]byte, error) {
 	exp := digs.exp + prec
 
 	if exp < -4 || exp > prec {
-		return append(b, digs.fmtE(prec, false, false, false, 'e')...), nil
+		return digs.fmtE(prec, false, false, false, true, 'e'), nil
 	}
 
 	prec = 0
@@ -143,7 +143,7 @@ func (d Decimal) MarshalText() ([]byte, error) {
 		prec = -digs.exp
 	}
 
-	return append(b, digs.fmtF(prec, false, false, false)...), nil
+	return digs.fmtF(prec, false, false, false), nil
 }
 
 func (d Decimal) String() string {
@@ -156,7 +156,7 @@ func (d Decimal) String() string {
 	exp := digs.exp + prec
 
 	if exp < -4 || exp > prec {
-		return string(digs.fmtE(prec, false, false, false, 'e'))
+		return string(digs.fmtE(prec, false, false, false, true, 'e'))
 	}
 
 	prec = 0
@@ -268,7 +268,7 @@ type digits struct {
 	ndig int
 }
 
-func (d *digits) fmtE(prec int, forceDP, printSign, padSign bool, e byte) []byte {
+func (d *digits) fmtE(prec int, forceDP, printSign, padSign, padExp bool, e byte) []byte {
 	var buf []byte
 
 	if d.neg {
@@ -316,7 +316,11 @@ func (d *digits) fmtE(prec int, forceDP, printSign, padSign bool, e byte) []byte
 	}
 
 	if exp < 10 {
-		buf = append(buf, '0', '0'+byte(exp))
+		if padExp {
+			buf = append(buf, '0', '0'+byte(exp))
+		} else {
+			buf = append(buf, '0'+byte(exp))
+		}
 	} else if exp < 100 {
 		buf = append(buf, '0'+byte(exp/10), '0'+byte(exp%10))
 	} else if exp < 1000 {
