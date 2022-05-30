@@ -134,7 +134,7 @@ func (d Decimal) QuoWithRounding(o Decimal, mode RoundingMode) Decimal {
 
 	sig, rem := dSig.div(oSig)
 	exp := (dExp - exponentBias) - (oExp - exponentBias) + exponentBias
-	trunc := int8(1)
+	trunc := int8(0)
 
 	for rem != (uint128{}) && sig[1] <= 0x0002_7fff_ffff_ffff {
 		for rem[1] <= 0x0002_7fff_ffff_ffff && sig[1] <= 0x0002_7fff_ffff_ffff {
@@ -238,14 +238,6 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 	trunc := int8(0)
 
 	if exp < 0 {
-		if exp < -maxDigits {
-			if subtract {
-				return compose(!o.isNeg(), oSig, oExp)
-			}
-
-			return o
-		}
-
 		if exp <= -19 && oSig[1] == 0 {
 			oSig = oSig.mul64(10_000_000_000_000_000_000)
 			oExp -= 19
@@ -262,6 +254,16 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 			oSig = oSig.mul64(10)
 			oExp--
 			exp++
+		}
+
+		if exp < -maxDigits {
+			if dSig != (uint128{}) {
+				dSig = uint128{}
+				trunc = 1
+			}
+
+			dExp = oExp
+			exp = 0
 		}
 
 		if exp <= -3 {
@@ -297,10 +299,6 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 			exp++
 		}
 	} else if exp > 0 {
-		if exp > maxDigits {
-			return d
-		}
-
 		if exp >= 19 && dSig[1] == 0 {
 			dSig = dSig.mul64(10_000_000_000_000_000_000)
 			dExp -= 19
@@ -317,6 +315,15 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 			dSig = dSig.mul64(10)
 			dExp--
 			exp--
+		}
+
+		if exp > maxDigits {
+			if oSig != (uint128{}) {
+				oSig = uint128{}
+				trunc = -1
+			}
+
+			exp = 0
 		}
 
 		if exp >= 3 {
@@ -365,13 +372,18 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 			return zero(mode == ToNegativeInf)
 		}
 
-		sig, exp = mode.reduce192(neg, sig192, dExp, trunc != 0)
+		if trunc == -1 {
+			trunc = 1
+		}
+
+		sig, exp = mode.reduce192(neg, sig192, dExp, trunc)
 	} else {
 		var brw uint
 		sig, brw = dSig.sub(oSig)
 		if brw != 0 {
 			sig = sig.twos()
 			neg = !neg
+			trunc *= -1
 		} else if sig == (uint128{}) {
 			return zero(mode == ToNegativeInf)
 		}

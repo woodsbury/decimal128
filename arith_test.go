@@ -173,30 +173,3 @@ func TestDecimalSub(t *testing.T) {
 		})
 	}
 }
-
-func TestQuoE(t *testing.T) {
-	lhs := testDec{regularForm, true, uint128{0x0001_7fff_ffff_ffff, 0x0002_7fff_ffff_ffff}, exponentBias - 6176}
-	rhs := testDec{regularForm, false, uint128{0x0002_7fff_ffff_ffff, 0x0002_7fff_ffff_ffff}, exponentBias - 19}
-
-	declhs := lhs.Decimal()
-	decrhs := rhs.Decimal()
-	declhs = declhs.Quo(decrhs)
-
-	biglhs := lhs.Big(new(apd.Decimal))
-	bigrhs := rhs.Big(new(apd.Decimal))
-
-	t.Error(lhs, "+", rhs, "=")
-	t.Error(declhs)
-
-	bigctx := apd.Context{
-		Precision:   38,
-		MaxExponent: 6145,
-		MinExponent: -6176,
-		Rounding:    roundingModeToBig(DefaultRoundingMode),
-	}
-
-	bigctx.Quo(biglhs, biglhs, bigrhs)
-	t.Error(biglhs)
-
-	t.Error(decimalsEqual(declhs, biglhs, roundingModeToBig(DefaultRoundingMode)))
-}

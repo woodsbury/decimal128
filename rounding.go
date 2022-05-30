@@ -35,7 +35,7 @@ func (rm RoundingMode) String() string {
 }
 
 func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, int16) {
-	var trunc bool
+	var trunc int8
 
 	for sig256[3] > 0 {
 		var rem uint64
@@ -43,7 +43,7 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, 
 		exp += 19
 
 		if rem != 0 {
-			trunc = true
+			trunc = 1
 		}
 	}
 
@@ -55,7 +55,7 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, 
 		exp += 4
 
 		if rem != 0 {
-			trunc = true
+			trunc = 1
 		}
 	}
 
@@ -65,7 +65,7 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, 
 
 	for sig[1] > 0x0002_7fff_ffff_ffff {
 		if digit != 0 {
-			trunc = true
+			trunc = 1
 		}
 
 		sig, digit = sig.div10()
@@ -73,17 +73,19 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, 
 	}
 
 	for exp < minBiasedExponent {
+		if digit != 0 {
+			trunc = 1
+		}
+
+		sig, digit = sig.div10()
+
 		if sig == (uint128{}) {
+			trunc = 0
 			digit = 0
 			exp = 0
 			break
 		}
 
-		if digit != 0 {
-			trunc = true
-		}
-
-		sig, digit = sig.div10()
 		exp++
 	}
 
@@ -98,65 +100,17 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, 
 		}
 	}
 
-	for {
-		incr := false
-		switch rm {
-		case ToNearestEven:
-			if trunc {
-				if digit >= 5 {
-					incr = true
-				}
-			} else {
-				if digit > 5 {
-					incr = true
-				} else if digit == 5 {
-					if sig[0]%2 != 0 {
-						incr = true
-					}
-				}
-			}
-		case ToNearestAway:
-			if digit >= 5 {
-				incr = true
-			}
-		case AwayFromZero:
-			if trunc || digit != 0 {
-				incr = true
-			}
-		case ToPositiveInf:
-			if (trunc || digit != 0) && !neg {
-				incr = true
-			}
-		case ToNegativeInf:
-			if (trunc || digit != 0) && neg {
-				incr = true
-			}
-		}
-
-		if incr {
-			tsig := sig.add64(1)
-			if tsig[1] > 0x0002_7fff_ffff_ffff {
-				sig, digit = sig.div10()
-				exp++
-				trunc = true
-				continue
-			}
-
-			sig = tsig
-		}
-
-		return sig, exp
-	}
+	return rm.round(neg, sig, exp, trunc, digit)
 }
 
-func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc bool) (uint128, int16) {
+func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8) (uint128, int16) {
 	for sig192[2] > 0 {
 		var rem uint64
 		sig192, rem = sig192.div10000()
 		exp += 4
 
 		if rem != 0 {
-			trunc = true
+			trunc = 1
 		}
 	}
 
@@ -166,7 +120,7 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc bool
 
 	for sig[1] > 0x0002_7fff_ffff_ffff {
 		if digit != 0 {
-			trunc = true
+			trunc = 1
 		}
 
 		sig, digit = sig.div10()
@@ -174,17 +128,19 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc bool
 	}
 
 	for exp < minBiasedExponent {
+		if digit != 0 {
+			trunc = 1
+		}
+
+		sig, digit = sig.div10()
+
 		if sig == (uint128{}) {
+			trunc = 0
 			digit = 0
 			exp = 0
 			break
 		}
 
-		if digit != 0 {
-			trunc = true
-		}
-
-		sig, digit = sig.div10()
 		exp++
 	}
 
@@ -199,55 +155,7 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc bool
 		}
 	}
 
-	for {
-		incr := false
-		switch rm {
-		case ToNearestEven:
-			if trunc {
-				if digit >= 5 {
-					incr = true
-				}
-			} else {
-				if digit > 5 {
-					incr = true
-				} else if digit == 5 {
-					if sig[0]%2 != 0 {
-						incr = true
-					}
-				}
-			}
-		case ToNearestAway:
-			if digit >= 5 {
-				incr = true
-			}
-		case AwayFromZero:
-			if trunc || digit != 0 {
-				incr = true
-			}
-		case ToPositiveInf:
-			if (trunc || digit != 0) && !neg {
-				incr = true
-			}
-		case ToNegativeInf:
-			if (trunc || digit != 0) && neg {
-				incr = true
-			}
-		}
-
-		if incr {
-			tsig := sig.add64(1)
-			if tsig[1] > 0x0002_7fff_ffff_ffff {
-				sig, digit = sig.div10()
-				exp++
-				trunc = true
-				continue
-			}
-
-			sig = tsig
-		}
-
-		return sig, exp
-	}
+	return rm.round(neg, sig, exp, trunc, digit)
 }
 
 func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (uint128, int16) {
@@ -263,17 +171,19 @@ func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (
 	}
 
 	for exp < minBiasedExponent {
-		if sig == (uint128{}) {
-			digit = 0
-			exp = 0
-			break
-		}
-
 		if digit != 0 {
 			trunc = 1
 		}
 
 		sig, digit = sig.div10()
+
+		if sig == (uint128{}) {
+			trunc = 0
+			digit = 0
+			exp = 0
+			break
+		}
+
 		exp++
 	}
 
@@ -288,81 +198,28 @@ func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (
 		}
 	}
 
-	for {
-		incr := false
-		switch rm {
-		case ToNearestEven:
-			if trunc == 1 {
-				if digit >= 5 {
-					incr = true
-				}
-			} else if trunc == -1 {
-				if digit > 5 {
-					incr = true
-				}
-			} else {
-				if digit > 5 {
-					incr = true
-				} else if digit == 5 {
-					if sig[0]%2 != 0 {
-						incr = true
-					}
-				}
-			}
-		case ToNearestAway:
-			if digit >= 5 {
-				incr = true
-			}
-		case AwayFromZero:
-			if trunc == 1 || digit != 0 {
-				incr = true
-			}
-		case ToPositiveInf:
-			if (trunc == 1 || digit != 0) && !neg {
-				incr = true
-			}
-		case ToNegativeInf:
-			if (trunc == 1 || digit != 0) && neg {
-				incr = true
-			}
-		}
-
-		if incr {
-			tsig := sig.add64(1)
-			if tsig[1] > 0x0002_7fff_ffff_ffff {
-				if trunc == 0 && digit != 0 {
-					trunc = 1
-				}
-
-				sig, digit = sig.div10()
-				exp++
-				continue
-			}
-
-			sig = tsig
-		}
-
-		return sig, exp
-	}
+	return rm.round(neg, sig, exp, trunc, digit)
 }
 
 func (rm RoundingMode) reduce64(neg bool, sig64 uint64, exp int16) (uint128, int16) {
-	var trunc bool
+	var trunc int8
 	var digit uint64
 
 	for exp < minBiasedExponent {
+		if digit != 0 {
+			trunc = 1
+		}
+
+		digit = sig64 % 10
+		sig64 = sig64 / 10
+
 		if sig64 == 0 {
+			trunc = 0
 			digit = 0
 			exp = 0
 			break
 		}
 
-		if digit != 0 {
-			trunc = true
-		}
-
-		digit = sig64 % 10
-		sig64 = sig64 / 10
 		exp++
 	}
 
@@ -379,46 +236,72 @@ func (rm RoundingMode) reduce64(neg bool, sig64 uint64, exp int16) (uint128, int
 		}
 	}
 
+	return rm.round(neg, sig, exp, trunc, digit)
+}
+
+func (rm RoundingMode) round(neg bool, sig uint128, exp int16, trunc int8, digit uint64) (uint128, int16) {
 	for {
-		incr := false
+		var adjust int
 		switch rm {
 		case ToNearestEven:
-			if trunc {
+			if trunc == 1 {
 				if digit >= 5 {
-					incr = true
+					adjust = 1
+				}
+			} else if trunc == -1 {
+				if digit > 5 {
+					adjust = 1
 				}
 			} else {
 				if digit > 5 {
-					incr = true
+					adjust = 1
 				} else if digit == 5 {
 					if sig[0]%2 != 0 {
-						incr = true
+						adjust = 1
 					}
 				}
 			}
 		case ToNearestAway:
 			if digit >= 5 {
-				incr = true
+				adjust = 1
+			}
+		case ToZero:
+			if trunc == -1 && digit == 0 {
+				adjust = -1
 			}
 		case AwayFromZero:
-			if trunc || digit != 0 {
-				incr = true
+			if trunc == 1 || digit != 0 {
+				adjust = 1
 			}
 		case ToPositiveInf:
-			if (trunc || digit != 0) && !neg {
-				incr = true
+			if neg {
+				if trunc == -1 && digit == 0 {
+					adjust = -1
+				}
+			} else if trunc == 1 || digit != 0 {
+				adjust = 1
 			}
 		case ToNegativeInf:
-			if (trunc || digit != 0) && neg {
-				incr = true
+			if neg {
+				if trunc == 1 || digit != 0 {
+					adjust = 1
+				}
+			} else if trunc == -1 && digit == 0 {
+				adjust = -1
 			}
 		}
 
-		if incr {
-			tsig := sig.add64(1)
+		if adjust != 0 {
+			var tsig uint128
+			if adjust == 1 {
+				tsig = sig.add64(1)
+			} else {
+				tsig = sig.sub64(1)
+			}
+
 			if tsig[1] > 0x0002_7fff_ffff_ffff {
 				if digit != 0 {
-					trunc = true
+					trunc = 1
 				}
 
 				sig, digit = sig.div10()

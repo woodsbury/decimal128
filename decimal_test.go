@@ -268,6 +268,12 @@ func decimalsEqual(x Decimal, y *apd.Decimal, mode apd.Rounder) bool {
 	}
 
 	if x.isNeg() != y.Negative {
+		// apd appears to always return -0 when rounding towards -infinity,
+		// even if the operands are themselves zero.
+		if x.IsZero() && y.Coeff.IsInt64() && y.Coeff.Int64() == 0 && mode == apd.RoundFloor {
+			return true
+		}
+
 		return false
 	}
 
@@ -281,6 +287,12 @@ func decimalsEqual(x Decimal, y *apd.Decimal, mode apd.Rounder) bool {
 	}
 
 	bigctx.Round(y, y)
+
+	// apd appears to return the wrong result during rounding in some scenarios
+	// when the result underflows, returning +/-1e-6176 instead of 0.
+	if x.IsZero() && y.Exponent <= -6176 && y.Coeff.IsInt64() && y.Coeff.Int64() == 1 {
+		return true
+	}
 
 	return bigx.Cmp(y) == 0
 }

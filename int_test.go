@@ -512,6 +512,44 @@ func TestUint128Sub(t *testing.T) {
 	}
 }
 
+func TestUint128Sub64(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	one := big.NewInt(1)
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	tmpdif := new(big.Int)
+
+	for _, lhs := range uint128Values {
+		for _, rhs := range uint64Values {
+			dif := lhs.sub64(rhs)
+
+			uint128ToBig(lhs, biglhs)
+			bigrhs.SetUint64(rhs)
+			bigdif := biglhs.Sub(biglhs, bigrhs)
+			if bigdif.Sign() == -1 {
+				b := make([]byte, 16)
+				c := bigdif.Bytes()
+				copy(b[16-len(c):], c)
+
+				for i := range b {
+					b[i] = ^b[i]
+				}
+
+				bigdif.SetBytes(b)
+				bigdif.Add(bigdif, one)
+			}
+
+			if uint128ToBig(dif, tmpdif).Cmp(bigdif) != 0 {
+				t.Errorf("%v.sub64(%v) = %v, want %v", lhs, rhs, dif, bigdif)
+			}
+		}
+	}
+}
+
 func TestUint192Div10(t *testing.T) {
 	t.Parallel()
 

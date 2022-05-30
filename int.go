@@ -206,6 +206,13 @@ func (n uint128) sub(o uint128) (uint128, uint) {
 	return uint128{r0, r1}, uint(borrow)
 }
 
+func (n uint128) sub64(o uint64) uint128 {
+	r0, borrow := bits.Sub64(n[0], o, 0)
+	r1 := n[1] - borrow
+
+	return uint128{r0, r1}
+}
+
 func (n uint128) twos() uint128 {
 	r0, carry := bits.Add64(^n[0], 1, 0)
 	r1 := ^n[1] + carry

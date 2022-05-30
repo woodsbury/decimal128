@@ -52,7 +52,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 			}
 		}
 
-		f.Write(d.fmtSpecial(pad, printSign, padSign, f.Flag('-')))
+		f.Write(d.fmtSpecial(pad, printSign, padSign, f.Flag('-'), false))
 		return
 	}
 
@@ -127,7 +127,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 // MarshalText implements the encoding.TextMarshaler interface.
 func (d Decimal) MarshalText() ([]byte, error) {
 	if d.isSpecial() {
-		return append([]byte(nil), d.fmtSpecial(0, false, false, false)...), nil
+		return d.fmtSpecial(0, false, false, false, true), nil
 	}
 
 	digs := d.digits()
@@ -148,7 +148,7 @@ func (d Decimal) MarshalText() ([]byte, error) {
 
 func (d Decimal) String() string {
 	if d.isSpecial() {
-		return string(d.fmtSpecial(0, false, false, false))
+		return string(d.fmtSpecial(0, false, false, false, false))
 	}
 
 	digs := d.digits()
@@ -215,7 +215,7 @@ func (d Decimal) digits() *digits {
 	return digs
 }
 
-func (d Decimal) fmtSpecial(pad int, printSign, padSign, padRight bool) []byte {
+func (d Decimal) fmtSpecial(pad int, printSign, padSign, padRight, copyBuf bool) []byte {
 	var buf []byte
 
 	if d.isNaN() {
@@ -255,6 +255,13 @@ func (d Decimal) fmtSpecial(pad int, printSign, padSign, padRight bool) []byte {
 			copy(tmp[p:], buf)
 		}
 
+		buf = tmp
+		copyBuf = false
+	}
+
+	if copyBuf {
+		tmp := make([]byte, len(buf))
+		copy(tmp, buf)
 		buf = tmp
 	}
 

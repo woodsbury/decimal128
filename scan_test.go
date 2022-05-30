@@ -27,7 +27,7 @@ func TestDecimalScan(t *testing.T) {
 	for val, num := range textValues {
 		var res Decimal
 		_, err := fmt.Sscan(val, &res)
-		if err != nil || !(res.Equal(num) || res.isNaN() && num.isNaN()) || res.isNeg() != num.isNeg() {
+		if !(res.Equal(num) || res.isNaN() && num.isNaN()) || res.isNeg() != num.isNeg() || err != nil {
 			t.Errorf("fmt.Sscan(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 	}
@@ -39,7 +39,7 @@ func TestDecimalUnmarshalText(t *testing.T) {
 	for val, num := range textValues {
 		var res Decimal
 		err := res.UnmarshalText([]byte(val))
-		if err != nil || !(res.Equal(num) || res.isNaN() && num.isNaN()) || res.isNeg() != num.isNeg() {
+		if !(res.Equal(num) || res.isNaN() && num.isNaN()) || res.isNeg() != num.isNeg() || err != nil {
 			t.Errorf("Decimal.UnmarshalText(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 	}
@@ -50,7 +50,7 @@ func TestParse(t *testing.T) {
 
 	for val, num := range textValues {
 		res, err := Parse(val)
-		if err != nil || !(res.Equal(num) || res.isNaN() && num.isNaN()) || res.isNeg() != num.isNeg() {
+		if !(res.Equal(num) || res.isNaN() && num.isNaN()) || res.isNeg() != num.isNeg() || err != nil {
 			t.Errorf("Parse(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 	}

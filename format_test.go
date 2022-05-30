@@ -120,6 +120,28 @@ func TestDecimalFormat(t *testing.T) {
 	}
 }
 
+func TestDecimalMarshalText(t *testing.T) {
+	t.Parallel()
+
+	initDecimalValues()
+
+	for _, val := range decimalValues {
+		decval := val.Decimal()
+		res, err := decval.MarshalText()
+
+		if err != nil {
+			t.Errorf("%v.MarshalText() = (%s, %v), want (%s, <nil>)", val, res, err, res)
+		}
+
+		var resval Decimal
+		err = resval.UnmarshalText(res)
+
+		if !(resval.Equal(decval) || resval.isNaN() && decval.isNaN()) || err != nil {
+			t.Errorf("Decimal.UnmarshalText(%s) = (%v, %v), want (%v, <nil>)", res, resval, err, decval)
+		}
+	}
+}
+
 func TestDecimalString(t *testing.T) {
 	t.Parallel()
 
