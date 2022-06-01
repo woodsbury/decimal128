@@ -65,8 +65,13 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 			prec = 6
 		}
 
+		pad := 0
+		if hasWidth {
+			pad = width
+		}
+
 		digs.round(prec + 1)
-		f.Write(digs.fmtE(prec, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, byte(verb)))
+		f.Write(digs.fmtE(prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, f.Flag('-'), f.Flag('0'), byte(verb)))
 	case 'f', 'F':
 		if !hasPrec {
 			prec = 6
@@ -76,18 +81,29 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 			digs.round(digs.ndig + digs.exp + prec)
 		}
 
-		f.Write(digs.fmtF(prec, f.Flag('#'), f.Flag('+'), f.Flag(' ')))
-	case 'g', 'G':
-		if !hasPrec {
-			if f.Flag('#') {
-				prec = 6
-			} else {
-				prec = digs.ndig - 1
-			}
+		pad := 0
+		if hasWidth {
+			pad = width
 		}
 
-		digs.round(prec)
+		f.Write(digs.fmtF(prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), f.Flag('-'), f.Flag('0')))
+	case 'g', 'G':
+		if f.Flag('#') {
+			if !hasPrec {
+				prec = 6
+			}
+
+			digs.round(prec)
+		} else {
+			prec = digs.ndig - 1
+		}
+
 		exp := digs.exp + prec
+
+		pad := 0
+		if hasWidth {
+			pad = width
+		}
 
 		if exp < -4 || exp > prec {
 			e := byte('e')
@@ -95,7 +111,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 				e = byte('E')
 			}
 
-			f.Write(digs.fmtE(prec, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, e))
+			f.Write(digs.fmtE(prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, f.Flag('-'), f.Flag('0'), e))
 		} else {
 			if digs.ndig == 0 {
 				prec--
@@ -103,21 +119,21 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 				prec -= digs.ndig
 			}
 
-			f.Write(digs.fmtF(prec, f.Flag('#'), f.Flag('+'), f.Flag(' ')))
+			f.Write(digs.fmtF(prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), f.Flag('-'), f.Flag('0')))
 		}
 	case 'v':
 		prec = digs.ndig - 1
 		exp := digs.exp + prec
 
 		if exp < -4 || exp > prec {
-			f.Write(digs.fmtE(prec, false, false, false, true, 'e'))
+			f.Write(digs.fmtE(prec, 0, false, false, false, true, false, false, 'e'))
 		} else {
 			prec = 0
 			if digs.exp < 0 {
 				prec = -digs.exp
 			}
 
-			f.Write(digs.fmtF(prec, false, false, false))
+			f.Write(digs.fmtF(prec, 0, false, false, false, false, false))
 		}
 	default:
 		fmt.Fprintf(f, "%%!%c(decimal128.Decimal=%s)", verb, d.String())
@@ -135,7 +151,7 @@ func (d Decimal) MarshalText() ([]byte, error) {
 	exp := digs.exp + prec
 
 	if exp < -4 || exp > prec {
-		return digs.fmtE(prec, false, false, false, true, 'e'), nil
+		return digs.fmtE(prec, 0, false, false, false, true, false, false, 'e'), nil
 	}
 
 	prec = 0
@@ -143,7 +159,7 @@ func (d Decimal) MarshalText() ([]byte, error) {
 		prec = -digs.exp
 	}
 
-	return digs.fmtF(prec, false, false, false), nil
+	return digs.fmtF(prec, 0, false, false, false, false, false), nil
 }
 
 func (d Decimal) String() string {
@@ -156,7 +172,7 @@ func (d Decimal) String() string {
 	exp := digs.exp + prec
 
 	if exp < -4 || exp > prec {
-		return string(digs.fmtE(prec, false, false, false, true, 'e'))
+		return string(digs.fmtE(prec, 0, false, false, false, true, false, false, 'e'))
 	}
 
 	prec = 0
@@ -164,7 +180,7 @@ func (d Decimal) String() string {
 		prec = -digs.exp
 	}
 
-	return string(digs.fmtF(prec, false, false, false))
+	return string(digs.fmtF(prec, 0, false, false, false, false, false))
 }
 
 func (d Decimal) digits() *digits {
@@ -275,7 +291,7 @@ type digits struct {
 	ndig int
 }
 
-func (d *digits) fmtE(prec int, forceDP, printSign, padSign, padExp bool, e byte) []byte {
+func (d *digits) fmtE(prec, pad int, forceDP, printSign, padSign, padExp, padRight, padZero bool, e byte) []byte {
 	var buf []byte
 
 	if d.neg {
@@ -336,10 +352,40 @@ func (d *digits) fmtE(prec int, forceDP, printSign, padSign, padExp bool, e byte
 		buf = append(buf, '0'+byte(exp/1000), '0'+byte(exp/100%10), '0'+byte(exp/10%10), '0'+byte(exp%10))
 	}
 
+	if p := pad - len(buf); p > 0 {
+		padChar := byte(' ')
+		if padZero {
+			padChar = byte('0')
+		}
+
+		if padRight {
+			for i := 0; i < p; i++ {
+				buf = append(buf, padChar)
+			}
+		} else {
+			tmp := make([]byte, pad)
+			i := 0
+
+			if padZero && (d.neg || printSign || padSign) {
+				tmp[0] = buf[0]
+				buf = buf[1:]
+				i = 1
+				p++
+			}
+
+			for ; i < p; i++ {
+				tmp[i] = padChar
+			}
+
+			copy(tmp[p:], buf)
+			buf = tmp
+		}
+	}
+
 	return buf
 }
 
-func (d *digits) fmtF(prec int, forceDP, printSign, padSign bool) []byte {
+func (d *digits) fmtF(prec, pad int, forceDP, printSign, padSign, padRight, padZero bool) []byte {
 	var buf []byte
 
 	if d.neg {
@@ -390,6 +436,36 @@ func (d *digits) fmtF(prec int, forceDP, printSign, padSign bool) []byte {
 		}
 	} else if forceDP {
 		buf = append(buf, '.')
+	}
+
+	if p := pad - len(buf); p > 0 {
+		padChar := byte(' ')
+		if padZero {
+			padChar = byte('0')
+		}
+
+		if padRight {
+			for i := 0; i < p; i++ {
+				buf = append(buf, padChar)
+			}
+		} else {
+			tmp := make([]byte, pad)
+			i := 0
+
+			if padZero && (d.neg || printSign || padSign) {
+				tmp[0] = buf[0]
+				buf = buf[1:]
+				i = 1
+				p++
+			}
+
+			for ; i < p; i++ {
+				tmp[i] = padChar
+			}
+
+			copy(tmp[p:], buf)
+			buf = tmp
+		}
 	}
 
 	return buf
