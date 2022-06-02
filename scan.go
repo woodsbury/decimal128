@@ -7,6 +7,14 @@ import (
 	"strconv"
 )
 
+// Parse parses a Decimal value from the string provided. Parse accepts decimal
+// floating point syntax. An underscore character '_' may appear between digits
+// as a separator. Parse also recognises the string "NaN", and the (possibly
+// signed) strings "Inf" and "Infinity", as their respective special floating
+// point values. It ignores case when matching.
+//
+// If the value is too precise to fit in a Decimal the result is rounded using
+// the DefaultRoundingMode.
 func Parse(s string) (Decimal, error) {
 	return parse(s)
 }

@@ -36,6 +36,10 @@ var (
 	}
 )
 
+// Format implements the fmt.Formatter interface. It supports the verbs 'e',
+// 'E', 'f', 'F', 'g', 'G', and 'v', along with the format flags '+', '-', '#',
+// ' ', and '0' and custom width and precision values. Decimal values interpret
+// the format value the same way float32 and float64 does.
 func (d Decimal) Format(f fmt.State, verb rune) {
 	width, hasWidth := f.Width()
 

@@ -6,6 +6,7 @@ import (
 	"math/bits"
 )
 
+// Float converts d into a big.Float. It panics if d is NaN.
 func (d Decimal) Float() *big.Float {
 	if d.isSpecial() {
 		if d.isNaN() {
@@ -56,10 +57,12 @@ func (d Decimal) Float() *big.Float {
 	return flt
 }
 
+// Float32 converts d into a float32.
 func (d Decimal) Float32() float32 {
 	return float32(d.Float64())
 }
 
+// Float64 converts d into a float64.
 func (d Decimal) Float64() float64 {
 	if d.isSpecial() {
 		if d.isNaN() {
@@ -101,6 +104,7 @@ func (d Decimal) Float64() float64 {
 	return sigf * expf
 }
 
+// Rat converts d into a big.Rat. It panics if d is NaN or infinite.
 func (d Decimal) Rat() *big.Rat {
 	if d.isSpecial() {
 		if d.isNaN() {

@@ -1,10 +1,14 @@
 package decimal128
 
+// Add adds d and o, rounded using the DefaultRoundingMode, and returns the
+// result.
 func (d Decimal) Add(o Decimal) Decimal {
-	return d.AddWithRounding(o, DefaultRoundingMode)
+	return d.AddWithMode(o, DefaultRoundingMode)
 }
 
-func (d Decimal) AddWithRounding(o Decimal, mode RoundingMode) Decimal {
+// AddWithMode adds d and o, rounding using the provided rounding mode, and
+// returns the result.
+func (d Decimal) AddWithMode(o Decimal, mode RoundingMode) Decimal {
 	if d.isSpecial() || o.isSpecial() {
 		if d.isNaN() {
 			return d
@@ -30,11 +34,15 @@ func (d Decimal) AddWithRounding(o Decimal, mode RoundingMode) Decimal {
 	return d.add(o, mode, false)
 }
 
+// Mul multiplies d and o, rounding using the DefaultRoundingMode, and returns
+// the result.
 func (d Decimal) Mul(o Decimal) Decimal {
-	return d.MulWithRounding(o, DefaultRoundingMode)
+	return d.MulWithMode(o, DefaultRoundingMode)
 }
 
-func (d Decimal) MulWithRounding(o Decimal, mode RoundingMode) Decimal {
+// MulWithMode multiplies d and o, rounding using the provided rounding mode,
+// and returns the result.
+func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 	if d.isSpecial() || o.isSpecial() {
 		if d.isNaN() {
 			return d
@@ -80,11 +88,15 @@ func (d Decimal) MulWithRounding(o Decimal, mode RoundingMode) Decimal {
 	return compose(neg, sig, exp)
 }
 
+// Quo divides d by o, rounding using the DefaultRoundingMode, and returns the
+// result.
 func (d Decimal) Quo(o Decimal) Decimal {
-	return d.QuoWithRounding(o, DefaultRoundingMode)
+	return d.QuoWithMode(o, DefaultRoundingMode)
 }
 
-func (d Decimal) QuoWithRounding(o Decimal, mode RoundingMode) Decimal {
+// QuoWithMode divides d by o, rounding using the provided rounding mode, and
+// returns the result.
+func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 	if d.isSpecial() || o.isSpecial() {
 		if d.isNaN() {
 			return d
@@ -180,11 +192,15 @@ func (d Decimal) QuoWithRounding(o Decimal, mode RoundingMode) Decimal {
 	return compose(neg, sig, exp)
 }
 
+// Sub subtracts o from d, rounding using the DefaultRoundingMode, and returns
+// the result.
 func (d Decimal) Sub(o Decimal) Decimal {
-	return d.SubWithRounding(o, DefaultRoundingMode)
+	return d.SubWithMode(o, DefaultRoundingMode)
 }
 
-func (d Decimal) SubWithRounding(o Decimal, mode RoundingMode) Decimal {
+// SubWithMode subtracts o from d, rounding using the provided rounding mode,
+// and returns the result.
+func (d Decimal) SubWithMode(o Decimal, mode RoundingMode) Decimal {
 	if d.isSpecial() || o.isSpecial() {
 		if d.isNaN() {
 			return d

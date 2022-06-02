@@ -25,7 +25,7 @@ func TestDecimalAdd(t *testing.T) {
 				for _, rhs := range decimalValues {
 					declhs := lhs.Decimal()
 					decrhs := rhs.Decimal()
-					sum := declhs.AddWithRounding(decrhs, mode)
+					sum := declhs.AddWithMode(decrhs, mode)
 
 					lhs.Big(biglhs)
 					rhs.Big(bigrhs)
@@ -40,7 +40,7 @@ func TestDecimalAdd(t *testing.T) {
 					bigctx.Add(biglhs, biglhs, bigrhs)
 
 					if !decimalsEqual(sum, biglhs, bigmode) {
-						t.Errorf("%v.AddWithRounding(%v, %v) = %v, want %v", lhs, rhs, mode, sum, biglhs)
+						t.Errorf("%v.AddWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, sum, biglhs)
 					}
 				}
 			}
@@ -67,7 +67,7 @@ func TestDecimalMul(t *testing.T) {
 				for _, rhs := range decimalValues {
 					declhs := lhs.Decimal()
 					decrhs := rhs.Decimal()
-					prd := declhs.MulWithRounding(decrhs, mode)
+					prd := declhs.MulWithMode(decrhs, mode)
 
 					lhs.Big(biglhs)
 					rhs.Big(bigrhs)
@@ -82,7 +82,7 @@ func TestDecimalMul(t *testing.T) {
 					bigctx.Mul(biglhs, biglhs, bigrhs)
 
 					if !decimalsEqual(prd, biglhs, bigmode) {
-						t.Errorf("%v.MulWithRounding(%v, %v) = %v, want %v", lhs, rhs, mode, prd, biglhs)
+						t.Errorf("%v.MulWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, prd, biglhs)
 					}
 				}
 			}
@@ -109,7 +109,7 @@ func TestDecimalQuo(t *testing.T) {
 				for _, rhs := range decimalValues {
 					declhs := lhs.Decimal()
 					decrhs := rhs.Decimal()
-					sum := declhs.QuoWithRounding(decrhs, mode)
+					sum := declhs.QuoWithMode(decrhs, mode)
 
 					lhs.Big(biglhs)
 					rhs.Big(bigrhs)
@@ -124,7 +124,7 @@ func TestDecimalQuo(t *testing.T) {
 					bigctx.Quo(biglhs, biglhs, bigrhs)
 
 					if !decimalsEqual(sum, biglhs, bigmode) {
-						t.Errorf("%v.QuoWithRounding(%v, %v) = %v, want %v", lhs, rhs, mode, sum, biglhs)
+						t.Errorf("%v.QuoWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, sum, biglhs)
 					}
 				}
 			}
@@ -151,7 +151,7 @@ func TestDecimalSub(t *testing.T) {
 				for _, rhs := range decimalValues {
 					declhs := lhs.Decimal()
 					decrhs := rhs.Decimal()
-					sum := declhs.SubWithRounding(decrhs, mode)
+					sum := declhs.SubWithMode(decrhs, mode)
 
 					lhs.Big(biglhs)
 					rhs.Big(bigrhs)
@@ -166,7 +166,7 @@ func TestDecimalSub(t *testing.T) {
 					bigctx.Sub(biglhs, biglhs, bigrhs)
 
 					if !decimalsEqual(sum, biglhs, bigmode) {
-						t.Errorf("%v.SubWithRounding(%v, %v) = %v, want %v", lhs, rhs, mode, sum, biglhs)
+						t.Errorf("%v.SubWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, sum, biglhs)
 					}
 				}
 			}
