@@ -2,6 +2,65 @@ package decimal128
 
 import "fmt"
 
+// Round rounds a Decimal value to the specified number of decimal places
+// using the rounding mode provided.
+//
+// The value of dp affects how many digits after the decimal point the Decimal
+// would have if it were printed in decimal notation (for example, by the '%f'
+// verb in Format). It can be zero to round off all digits after the decimal
+// point and return an integer, and can also be negative to round off digits
+// before the decimal point.
+//
+// NaN and infinity values are left untouched.
+func (d Decimal) Round(dp int, mode RoundingMode) Decimal {
+	if d.isSpecial() {
+		return d
+	}
+
+	sig, exp := d.decompose()
+
+	if sig == (uint128{}) {
+		return zero(d.isNeg())
+	}
+
+	dp = dp*-1 + exponentBias
+	iexp := int(exp)
+
+	if iexp >= dp {
+		return d
+	}
+
+	if iexp < dp-maxDigits {
+		return zero(d.isNeg())
+	}
+
+	var trunc int8
+	var digit uint64
+
+	for iexp < dp {
+		if digit != 0 {
+			trunc = 1
+		}
+
+		sig, digit = sig.div10()
+
+		if sig == (uint128{}) && digit == 0 {
+			return zero(d.isNeg())
+		}
+
+		iexp++
+	}
+
+	neg := d.isNeg()
+	sig, exp = mode.round(neg, sig, int16(iexp), trunc, digit)
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
+
+	return compose(neg, sig, exp)
+}
+
 // RoundingMode determines how a Decimal value is rounded when the result of an
 // operation is greater than the format can hold.
 type RoundingMode uint8
@@ -15,6 +74,7 @@ const (
 	ToPositiveInf                     // == IEEE 754 roundTowardPostive
 )
 
+// String returns a string representation of the rounding mode.
 func (rm RoundingMode) String() string {
 	switch rm {
 	case ToNearestEven:

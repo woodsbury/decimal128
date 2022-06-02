@@ -166,6 +166,7 @@ func (d Decimal) MarshalText() ([]byte, error) {
 	return digs.fmtF(prec, 0, false, false, false, false, false), nil
 }
 
+// String returns a string representation of the Decimal value.
 func (d Decimal) String() string {
 	if d.isSpecial() {
 		return string(d.fmtSpecial(0, false, false, false, false))
