@@ -10,11 +10,11 @@ func (d Decimal) Add(o Decimal) Decimal {
 // returns the result.
 func (d Decimal) AddWithMode(o Decimal, mode RoundingMode) Decimal {
 	if d.isSpecial() || o.isSpecial() {
-		if d.isNaN() {
+		if d.IsNaN() {
 			return d
 		}
 
-		if o.isNaN() {
+		if o.IsNaN() {
 			return o
 		}
 
@@ -22,7 +22,14 @@ func (d Decimal) AddWithMode(o Decimal, mode RoundingMode) Decimal {
 			neg := d.isNeg()
 
 			if o.isInf() && neg != o.isNeg() {
-				return nan()
+				lhs := payloadValPosInfinite
+				rhs := payloadValNegInfinite
+				if neg {
+					lhs = payloadValNegInfinite
+					rhs = payloadValPosInfinite
+				}
+
+				return nan(payloadOpAdd, lhs, rhs)
 			}
 
 			return inf(neg)
@@ -44,23 +51,43 @@ func (d Decimal) Mul(o Decimal) Decimal {
 // and returns the result.
 func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 	if d.isSpecial() || o.isSpecial() {
-		if d.isNaN() {
+		if d.IsNaN() {
 			return d
 		}
 
-		if o.isNaN() {
+		if o.IsNaN() {
 			return o
 		}
 
 		if !d.isSpecial() {
 			sig, _ := d.decompose()
 			if sig == (uint128{}) {
-				return nan()
+				lhs := payloadValPosZero
+				if d.isNeg() {
+					lhs = payloadValNegZero
+				}
+
+				rhs := payloadValPosInfinite
+				if o.isNeg() {
+					rhs = payloadValNegInfinite
+				}
+
+				return nan(payloadOpMul, lhs, rhs)
 			}
 		} else if !o.isSpecial() {
 			sig, _ := o.decompose()
 			if sig == (uint128{}) {
-				return nan()
+				lhs := payloadValPosInfinite
+				if d.isNeg() {
+					lhs = payloadValNegInfinite
+				}
+
+				rhs := payloadValPosZero
+				if o.isNeg() {
+					rhs = payloadValNegZero
+				}
+
+				return nan(payloadOpMul, lhs, rhs)
 			}
 		}
 
@@ -98,17 +125,27 @@ func (d Decimal) Quo(o Decimal) Decimal {
 // returns the result.
 func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 	if d.isSpecial() || o.isSpecial() {
-		if d.isNaN() {
+		if d.IsNaN() {
 			return d
 		}
 
-		if o.isNaN() {
+		if o.IsNaN() {
 			return o
 		}
 
 		if d.isInf() {
 			if o.isInf() {
-				return nan()
+				lhs := payloadValPosInfinite
+				if d.isNeg() {
+					lhs = payloadValNegInfinite
+				}
+
+				rhs := payloadValPosInfinite
+				if o.isNeg() {
+					rhs = payloadValNegInfinite
+				}
+
+				return nan(payloadOpQuo, lhs, rhs)
 			}
 
 			return inf(d.isNeg() != o.isNeg())
@@ -124,7 +161,17 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 
 	if oSig == (uint128{}) {
 		if dSig == (uint128{}) {
-			return nan()
+			lhs := payloadValPosZero
+			if d.isNeg() {
+				lhs = payloadValNegZero
+			}
+
+			rhs := payloadValPosZero
+			if o.isNeg() {
+				rhs = payloadValNegZero
+			}
+
+			return nan(payloadOpQuo, lhs, rhs)
 		}
 
 		return inf(d.isNeg() != o.isNeg())
@@ -202,11 +249,11 @@ func (d Decimal) Sub(o Decimal) Decimal {
 // and returns the result.
 func (d Decimal) SubWithMode(o Decimal, mode RoundingMode) Decimal {
 	if d.isSpecial() || o.isSpecial() {
-		if d.isNaN() {
+		if d.IsNaN() {
 			return d
 		}
 
-		if o.isNaN() {
+		if o.IsNaN() {
 			return o
 		}
 
@@ -214,7 +261,14 @@ func (d Decimal) SubWithMode(o Decimal, mode RoundingMode) Decimal {
 			neg := d.isNeg()
 
 			if o.isInf() && neg == o.isNeg() {
-				return nan()
+				lhs := payloadValPosInfinite
+				rhs := payloadValPosInfinite
+				if neg {
+					lhs = payloadValNegInfinite
+					rhs = payloadValNegInfinite
+				}
+
+				return nan(payloadOpSub, lhs, rhs)
 			}
 
 			return inf(neg)

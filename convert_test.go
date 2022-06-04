@@ -15,7 +15,7 @@ var floatValues = map[Decimal]float64{
 	compose(true, uint128{0, 1}, exponentBias):  math.Copysign(float64(uint64(1<<63))*2.0, -1.0),
 	inf(false): math.Inf(1),
 	inf(true):  math.Inf(-1),
-	nan():      math.NaN(),
+	NaN():      math.NaN(),
 }
 
 func TestDecimalFloat(t *testing.T) {
@@ -24,7 +24,7 @@ func TestDecimalFloat(t *testing.T) {
 	bignum := new(big.Float)
 
 	for val, num := range floatValues {
-		if val.isNaN() {
+		if val.IsNaN() {
 			continue
 		}
 

@@ -136,7 +136,7 @@ func TestDecimalMarshalText(t *testing.T) {
 		var resval Decimal
 		err = resval.UnmarshalText(res)
 
-		if !(resval.Equal(decval) || resval.isNaN() && decval.isNaN()) || err != nil {
+		if !(resval.Equal(decval) || resval.IsNaN() && decval.IsNaN()) || err != nil {
 			t.Errorf("Decimal.UnmarshalText(%s) = (%v, %v), want (%v, <nil>)", res, resval, err, decval)
 		}
 	}

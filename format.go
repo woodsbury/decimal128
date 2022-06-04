@@ -239,7 +239,7 @@ func (d Decimal) digits() *digits {
 func (d Decimal) fmtSpecial(pad int, printSign, padSign, padRight, copyBuf bool) []byte {
 	var buf []byte
 
-	if d.isNaN() {
+	if d.IsNaN() {
 		if printSign {
 			buf = posNaNText
 		} else if padSign {

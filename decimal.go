@@ -14,6 +14,17 @@ type Decimal struct {
 	lo, hi uint64
 }
 
+// Inf returns a new Decimal set to positive infinity if sign >= 0, or negative
+// infinity if sign < 0.
+func Inf(sign int) Decimal {
+	return inf(sign < 0)
+}
+
+// NaN returns a new Decimal set to the "not-a-number" value.
+func NaN() Decimal {
+	return nan(payloadOpNaN, 0, 0)
+}
+
 // New returns a new Decimal with the provided significand and exponent.
 func New(sig int64, exp int) Decimal {
 	if sig == 0 {
@@ -66,8 +77,8 @@ func inf(neg bool) Decimal {
 	return Decimal{0, 0x7800_0000_0000_0000}
 }
 
-func nan() Decimal {
-	return Decimal{0, 0x7c00_0000_0000_0000}
+func nan(op, lhs, rhs Payload) Decimal {
+	return Decimal{uint64(op | lhs<<8 | rhs<<16), 0x7c00_0000_0000_0000}
 }
 
 func zero(neg bool) Decimal {
@@ -76,6 +87,30 @@ func zero(neg bool) Decimal {
 	}
 
 	return Decimal{}
+}
+
+// IsInf reports whether d is an infinity. If sign > 0, IsInf reports whether
+// d is positive infinity. If sign < 0, IsInf reports whether d is negative
+// infinity. If sign == 0, IsInf reports whether d is either infinity.
+func (d Decimal) IsInf(sign int) bool {
+	if !d.isInf() {
+		return false
+	}
+
+	if sign == 0 {
+		return true
+	}
+
+	if sign > 0 {
+		return !d.isNeg()
+	}
+
+	return d.isNeg()
+}
+
+// IsNaN reports whether d is a "not-a-number" value.
+func (d Decimal) IsNaN() bool {
+	return d.hi&0x7c00_0000_0000_0000 == 0x7c00_0000_0000_0000
 }
 
 func (d Decimal) decompose() (uint128, int16) {
@@ -95,10 +130,6 @@ func (d Decimal) decompose() (uint128, int16) {
 
 func (d Decimal) isInf() bool {
 	return d.hi&0x7c00_0000_0000_0000 == 0x7800_0000_0000_0000
-}
-
-func (d Decimal) isNaN() bool {
-	return d.hi&0x7c00_0000_0000_0000 == 0x7c00_0000_0000_0000
 }
 
 func (d Decimal) isNeg() bool {

@@ -16,7 +16,7 @@ import (
 // If the value is too precise to fit in a Decimal the result is rounded using
 // the DefaultRoundingMode.
 func Parse(s string) (Decimal, error) {
-	return parse(s)
+	return parse(s, payloadOpParse)
 }
 
 // Scan implements the fmt.Scanner interface. It supports the verbs 'e', 'E',
@@ -113,7 +113,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			return &scanError{}
 		}
 
-		*d = nan()
+		*d = nan(payloadOpScan, 0, 0)
 		return nil
 	}
 
@@ -250,7 +250,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (d *Decimal) UnmarshalText(data []byte) error {
-	tmp, err := parse(data)
+	tmp, err := parse(data, payloadOpUnmarshalText)
 	if err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func (d *Decimal) UnmarshalText(data []byte) error {
 	return nil
 }
 
-func parse[D []byte | string](d D) (Decimal, error) {
+func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	if len(d) == 0 {
 		return Decimal{}, &parseError{string(d)}
 	}
@@ -283,7 +283,7 @@ func parse[D []byte | string](d D) (Decimal, error) {
 		}
 
 		if (d[0] == 'N' || d[0] == 'n') && (d[1] == 'A' || d[1] == 'a') && (d[2] == 'N' || d[2] == 'n') {
-			return nan(), nil
+			return nan(op, 0, 0), nil
 		}
 	} else if l == 8 {
 		if (d[0] == 'I' || d[0] == 'i') && (d[1] == 'N' || d[1] == 'n') && (d[2] == 'F' || d[2] == 'f') && (d[3] == 'I' || d[3] == 'i') && (d[4] == 'N' || d[4] == 'n') && (d[5] == 'I' || d[5] == 'i') && (d[6] == 'T' || d[6] == 't') && (d[7] == 'Y' || d[7] == 'y') {

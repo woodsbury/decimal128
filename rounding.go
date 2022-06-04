@@ -2,8 +2,8 @@ package decimal128
 
 import "fmt"
 
-// Round rounds a Decimal value to the specified number of decimal places
-// using the rounding mode provided.
+// Round rounds (or quantises) a Decimal value to the specified number of
+// decimal places using the rounding mode provided.
 //
 // The value of dp affects how many digits after the decimal point the Decimal
 // would have if it were printed in decimal notation (for example, by the '%f'

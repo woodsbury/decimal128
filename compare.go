@@ -47,7 +47,7 @@ func (cr CmpResult) Less() bool {
 // side, or the left-hand side was less than the right-hand side.
 func (d Decimal) Cmp(o Decimal) CmpResult {
 	if d.isSpecial() || o.isSpecial() {
-		if d.isNaN() || o.isNaN() {
+		if d.IsNaN() || o.IsNaN() {
 			return cmpNaN
 		}
 
@@ -225,7 +225,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 // right-hand side.
 func (d Decimal) CmpAbs(o Decimal) CmpResult {
 	if d.isSpecial() || o.isSpecial() {
-		if d.isNaN() || o.isNaN() {
+		if d.IsNaN() || o.IsNaN() {
 			return cmpNaN
 		}
 
@@ -366,7 +366,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 // Equal compares two Decimals and reports whether they are equal.
 func (d Decimal) Equal(o Decimal) bool {
 	if d.isSpecial() || o.isSpecial() {
-		if d.isNaN() || o.isNaN() {
+		if d.IsNaN() || o.IsNaN() {
 			return false
 		}
 

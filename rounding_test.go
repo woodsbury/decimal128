@@ -54,7 +54,7 @@ func TestDecimalRound(t *testing.T) {
 					res := decval.Round(dp, mode)
 
 					if decval.isSpecial() {
-						if !(decval.Equal(res) || decval.isNaN() && res.isNaN()) {
+						if !(decval.Equal(res) || decval.IsNaN() && res.IsNaN()) {
 							t.Errorf("%v.Round(%d) = %v, want %v", val, dp, res, decval)
 						}
 

@@ -76,7 +76,7 @@ func (td testDec) Decimal() Decimal {
 	case infForm:
 		return inf(td.neg)
 	case nanForm:
-		return nan()
+		return NaN()
 	default:
 		panic("unhandled test decimal form")
 	}
@@ -217,7 +217,7 @@ func decimalToBig(v Decimal) *apd.Decimal {
 		return r
 	}
 
-	if v.isNaN() {
+	if v.IsNaN() {
 		r.Form = apd.NaN
 		return r
 	}
@@ -243,7 +243,7 @@ func decimalToBig(v Decimal) *apd.Decimal {
 
 func decimalsEqual(x Decimal, y *apd.Decimal, mode apd.Rounder) bool {
 	if x.isSpecial() {
-		if x.isNaN() {
+		if x.IsNaN() {
 			return y.Form == apd.NaN || y.Form == apd.NaNSignaling
 		}
 
@@ -317,7 +317,7 @@ func TestCompose(t *testing.T) {
 			t.Errorf("%v.isInf() = true, want false", val)
 		}
 
-		if dec.isNaN() {
+		if dec.IsNaN() {
 			t.Errorf("%v.isNaN() = true, want false", val)
 		}
 
@@ -336,7 +336,7 @@ func TestCompose(t *testing.T) {
 func TestInf(t *testing.T) {
 	t.Parallel()
 
-	dec := inf(false)
+	dec := Inf(1)
 
 	if !dec.isSpecial() {
 		t.Errorf("%v.isSpecial() = false, want true", dec)
@@ -346,7 +346,7 @@ func TestInf(t *testing.T) {
 		t.Errorf("%v.isInf() = false, want true", dec)
 	}
 
-	if dec.isNaN() {
+	if dec.IsNaN() {
 		t.Errorf("%v.isNaN() = true, want false", dec)
 	}
 
@@ -354,7 +354,7 @@ func TestInf(t *testing.T) {
 		t.Errorf("%v.isNeg() = true, want false", dec)
 	}
 
-	dec = inf(true)
+	dec = Inf(-1)
 
 	if !dec.isSpecial() {
 		t.Errorf("%v.isSpecial() = false, want true", dec)
@@ -364,7 +364,7 @@ func TestInf(t *testing.T) {
 		t.Errorf("%v.isInf() = false, want true", dec)
 	}
 
-	if dec.isNaN() {
+	if dec.IsNaN() {
 		t.Errorf("%v.isNaN() = true, want false", dec)
 	}
 
@@ -376,7 +376,7 @@ func TestInf(t *testing.T) {
 func TestNaN(t *testing.T) {
 	t.Parallel()
 
-	dec := nan()
+	dec := NaN()
 
 	if !dec.isSpecial() {
 		t.Errorf("%v.isSpecial() = false, want true", dec)
@@ -386,7 +386,7 @@ func TestNaN(t *testing.T) {
 		t.Errorf("%v.isInf() = true, want false", dec)
 	}
 
-	if !dec.isNaN() {
+	if !dec.IsNaN() {
 		t.Errorf("%v.isNaN() = false, want true", dec)
 	}
 }
@@ -411,11 +411,11 @@ func FuzzDecimal(f *testing.F) {
 		dec := Decimal{hi, lo}
 
 		if dec.isSpecial() {
-			if dec.isInf() == dec.isNaN() {
+			if dec.isInf() == dec.IsNaN() {
 				t.Fail()
 			}
 		} else {
-			if dec.isInf() || dec.isNaN() {
+			if dec.isInf() || dec.IsNaN() {
 				t.Fail()
 			}
 
