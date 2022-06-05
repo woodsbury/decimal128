@@ -294,6 +294,13 @@ func decimalsEqual(x Decimal, y *apd.Decimal, mode apd.Rounder) bool {
 		return true
 	}
 
+	// apd appears to return the wrong result during rounding in some scenarios
+	// when the result is just under the allowed exponent range, returning 0
+	// instead of +/-1e-6176.
+	if bigx.Coeff.IsInt64() && bigx.Coeff.Int64() == 1 && bigx.Exponent == -6176 && y.Coeff.IsInt64() && y.Coeff.Int64() == 0 {
+		return true
+	}
+
 	return bigx.Cmp(y) == 0
 }
 

@@ -139,7 +139,7 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, 
 
 		sig, digit = sig.div10()
 
-		if sig == (uint128{}) {
+		if sig == (uint128{}) && digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
@@ -194,7 +194,7 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8
 
 		sig, digit = sig.div10()
 
-		if sig == (uint128{}) {
+		if sig == (uint128{}) && digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
@@ -237,7 +237,7 @@ func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (
 
 		sig, digit = sig.div10()
 
-		if sig == (uint128{}) {
+		if sig == (uint128{}) && digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
@@ -273,7 +273,7 @@ func (rm RoundingMode) reduce64(neg bool, sig64 uint64, exp int16) (uint128, int
 		digit = sig64 % 10
 		sig64 = sig64 / 10
 
-		if sig64 == 0 {
+		if sig64 == 0 && digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
