@@ -304,6 +304,25 @@ func decimalsEqual(x Decimal, y *apd.Decimal, mode apd.Rounder) bool {
 	return bigx.Cmp(y) == 0
 }
 
+func TestAbs(t *testing.T) {
+	t.Parallel()
+
+	initDecimalValues()
+
+	for _, val := range decimalValues {
+		decval := val.Decimal()
+		res := Abs(decval)
+
+		absval := val
+		absval.neg = false
+		absres := absval.Decimal()
+
+		if !(res.Equal(absres) || res.IsNaN() && absres.IsNaN()) && res.isNeg() == absres.isNeg() {
+			t.Errorf("Abs(%v) = %v, want %v", val, res, absres)
+		}
+	}
+}
+
 func TestCompose(t *testing.T) {
 	t.Parallel()
 
@@ -336,6 +355,25 @@ func TestCompose(t *testing.T) {
 
 		if sig != val.sig || exp != val.exp {
 			t.Errorf("%v.decompose() = (%v, %d), want (%v, %d)", val, sig, exp, val.sig, val.exp)
+		}
+	}
+}
+
+func TestDecimalNeg(t *testing.T) {
+	t.Parallel()
+
+	initDecimalValues()
+
+	for _, val := range decimalValues {
+		decval := val.Decimal()
+		res := decval.Neg()
+
+		negval := val
+		negval.neg = !val.neg
+		negres := negval.Decimal()
+
+		if !(res.Equal(negres) || res.IsNaN() && negres.IsNaN()) && res.isNeg() == negres.isNeg() {
+			t.Errorf("%v.Neg() = %v, want %v", val, res, negval.Decimal())
 		}
 	}
 }

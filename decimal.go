@@ -14,6 +14,11 @@ type Decimal struct {
 	lo, hi uint64
 }
 
+// Abs returns a new Decimal set to the absolute value of d.
+func Abs(d Decimal) Decimal {
+	return Decimal{d.lo, d.hi & 0x7fff_ffff_ffff_ffff}
+}
+
 // Inf returns a new Decimal set to positive infinity if sign >= 0, or negative
 // infinity if sign < 0.
 func Inf(sign int) Decimal {
@@ -111,6 +116,11 @@ func (d Decimal) IsInf(sign int) bool {
 // IsNaN reports whether d is a "not-a-number" value.
 func (d Decimal) IsNaN() bool {
 	return d.hi&0x7c00_0000_0000_0000 == 0x7c00_0000_0000_0000
+}
+
+// Neg returns d with its sign negated.
+func (d Decimal) Neg() Decimal {
+	return Decimal{d.lo, d.hi ^ 0x8000_0000_0000_0000}
 }
 
 func (d Decimal) decompose() (uint128, int16) {
