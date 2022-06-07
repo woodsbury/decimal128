@@ -77,6 +77,21 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 				}
 			} else {
 				if sig[1] <= 0x18ff_ffff_ffff_ffff {
+					if sig[1] <= 0x027f_ffff_ffff_ffff && i < l-1 {
+						c2 := data[i+1]
+						if c2 >= '0' && c2 <= '9' {
+							sig = sig.mul64(100)
+							sig = sig.add64(uint64(c-'0')*10 + uint64(c2-'0'))
+
+							if sawdot {
+								nfrac += 2
+							}
+
+							i++
+							continue
+						}
+					}
+
 					sig = sig.mul64(10)
 					sig = sig.add64(uint64(c - '0'))
 
