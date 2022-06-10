@@ -3,7 +3,6 @@ package decimal128
 import (
 	"fmt"
 	"math"
-	"math/big"
 	"sync"
 	"testing"
 	"unsafe"
@@ -82,54 +81,6 @@ func (td testDec) Decimal() Decimal {
 	}
 }
 
-func (td testDec) Float(flt *big.Float) *big.Float {
-	if td.form == nanForm {
-		panic("NaN big.Float")
-	}
-
-	if td.form == infForm {
-		return flt.SetInf(td.neg)
-	}
-
-	flt.SetPrec(128)
-
-	if td.sig[1] == 0 {
-		flt.SetUint64(td.sig[0])
-	} else {
-		bigsig := new(big.Int).SetUint64(td.sig[1])
-		bigsig.Lsh(bigsig, 64).Add(bigsig, new(big.Int).SetUint64(td.sig[0]))
-
-		flt.SetInt(bigsig)
-	}
-
-	if td.neg {
-		flt.Neg(flt)
-	}
-
-	if td.exp == exponentBias {
-		return flt
-	}
-
-	exp := td.exp - exponentBias
-
-	var bigexp *big.Int
-	if exp > 0 {
-		bigexp = big.NewInt(int64(exp))
-	} else {
-		bigexp = big.NewInt(int64(exp * -1))
-	}
-
-	bigexp.Exp(big.NewInt(10), bigexp, nil)
-
-	if exp > 0 {
-		flt.Mul(flt, new(big.Float).SetInt(bigexp))
-	} else {
-		flt.Quo(flt, new(big.Float).SetInt(bigexp))
-	}
-
-	return flt
-}
-
 func (td testDec) String() string {
 	switch td.form {
 	case regularForm:
@@ -177,7 +128,9 @@ func initDecimalValues() {
 				minBiasedExponent + exponentBias/2,
 				exponentBias - 34,
 				exponentBias - 19,
+				exponentBias - 1,
 				exponentBias,
+				exponentBias + 1,
 				exponentBias + 19,
 				exponentBias + 34,
 				maxBiasedExponent - exponentBias/2,

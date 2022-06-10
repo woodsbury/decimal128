@@ -19,7 +19,13 @@ func TestDecimalAdd(t *testing.T) {
 
 			biglhs := new(apd.Decimal)
 			bigrhs := new(apd.Decimal)
-			bigmode := roundingModeToBig(mode)
+			bigsum := new(apd.Decimal)
+			bigctx := apd.Context{
+				Precision:   38,
+				MaxExponent: 6145,
+				MinExponent: -6176,
+				Rounding:    roundingModeToBig(mode),
+			}
 
 			for _, lhs := range decimalValues {
 				for _, rhs := range decimalValues {
@@ -30,17 +36,27 @@ func TestDecimalAdd(t *testing.T) {
 					lhs.Big(biglhs)
 					rhs.Big(bigrhs)
 
-					bigctx := apd.Context{
-						Precision:   38,
-						MaxExponent: 6145,
-						MinExponent: -6176,
-						Rounding:    bigmode,
+					// apd is very slow at adding or subtracting two values
+					// when their exponents differ by too much, so help it out
+					// by adjusting numbers that are very far apart.
+					if biglhs.Form == apd.Finite && biglhs.Coeff.BitLen() != 0 && bigrhs.Form == apd.Finite && bigrhs.Coeff.BitLen() != 0 {
+						lhsexp := biglhs.Exponent + int32(biglhs.NumDigits())
+						rhsexp := bigrhs.Exponent + int32(bigrhs.NumDigits())
+						dexp := lhsexp - rhsexp
+
+						if dexp > 40 {
+							bigrhs.Coeff.SetInt64(1)
+							bigrhs.Exponent = lhsexp - 40
+						} else if dexp < -40 {
+							biglhs.Coeff.SetInt64(1)
+							biglhs.Exponent = rhsexp - 40
+						}
 					}
 
-					bigctx.Add(biglhs, biglhs, bigrhs)
+					bigctx.Add(bigsum, biglhs, bigrhs)
 
-					if !decimalsEqual(sum, biglhs, bigmode) {
-						t.Errorf("%v.AddWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, sum, biglhs)
+					if !decimalsEqual(sum, bigsum, bigctx.Rounding) {
+						t.Errorf("%v.AddWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, sum, bigsum)
 					}
 				}
 			}
@@ -61,7 +77,13 @@ func TestDecimalMul(t *testing.T) {
 
 			biglhs := new(apd.Decimal)
 			bigrhs := new(apd.Decimal)
-			bigmode := roundingModeToBig(mode)
+			bigprd := new(apd.Decimal)
+			bigctx := apd.Context{
+				Precision:   38,
+				MaxExponent: 6145,
+				MinExponent: -6176,
+				Rounding:    roundingModeToBig(mode),
+			}
 
 			for _, lhs := range decimalValues {
 				for _, rhs := range decimalValues {
@@ -71,18 +93,10 @@ func TestDecimalMul(t *testing.T) {
 
 					lhs.Big(biglhs)
 					rhs.Big(bigrhs)
+					bigctx.Mul(bigprd, biglhs, bigrhs)
 
-					bigctx := apd.Context{
-						Precision:   38,
-						MaxExponent: 6145,
-						MinExponent: -6176,
-						Rounding:    bigmode,
-					}
-
-					bigctx.Mul(biglhs, biglhs, bigrhs)
-
-					if !decimalsEqual(prd, biglhs, bigmode) {
-						t.Errorf("%v.MulWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, prd, biglhs)
+					if !decimalsEqual(prd, bigprd, bigctx.Rounding) {
+						t.Errorf("%v.MulWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, prd, bigprd)
 					}
 				}
 			}
@@ -103,28 +117,26 @@ func TestDecimalQuo(t *testing.T) {
 
 			biglhs := new(apd.Decimal)
 			bigrhs := new(apd.Decimal)
-			bigmode := roundingModeToBig(mode)
+			bigquo := new(apd.Decimal)
+			bigctx := apd.Context{
+				Precision:   38,
+				MaxExponent: 6145,
+				MinExponent: -6176,
+				Rounding:    roundingModeToBig(mode),
+			}
 
 			for _, lhs := range decimalValues {
 				for _, rhs := range decimalValues {
 					declhs := lhs.Decimal()
 					decrhs := rhs.Decimal()
-					sum := declhs.QuoWithMode(decrhs, mode)
+					quo := declhs.QuoWithMode(decrhs, mode)
 
 					lhs.Big(biglhs)
 					rhs.Big(bigrhs)
+					bigctx.Quo(bigquo, biglhs, bigrhs)
 
-					bigctx := apd.Context{
-						Precision:   38,
-						MaxExponent: 6145,
-						MinExponent: -6176,
-						Rounding:    bigmode,
-					}
-
-					bigctx.Quo(biglhs, biglhs, bigrhs)
-
-					if !decimalsEqual(sum, biglhs, bigmode) {
-						t.Errorf("%v.QuoWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, sum, biglhs)
+					if !decimalsEqual(quo, bigquo, bigctx.Rounding) {
+						t.Errorf("%v.QuoWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, quo, bigquo)
 					}
 				}
 			}
@@ -145,28 +157,44 @@ func TestDecimalSub(t *testing.T) {
 
 			biglhs := new(apd.Decimal)
 			bigrhs := new(apd.Decimal)
-			bigmode := roundingModeToBig(mode)
+			bigdif := new(apd.Decimal)
+			bigctx := apd.Context{
+				Precision:   38,
+				MaxExponent: 6145,
+				MinExponent: -6176,
+				Rounding:    roundingModeToBig(mode),
+			}
 
 			for _, lhs := range decimalValues {
 				for _, rhs := range decimalValues {
 					declhs := lhs.Decimal()
 					decrhs := rhs.Decimal()
-					sum := declhs.SubWithMode(decrhs, mode)
+					dif := declhs.SubWithMode(decrhs, mode)
 
 					lhs.Big(biglhs)
 					rhs.Big(bigrhs)
 
-					bigctx := apd.Context{
-						Precision:   38,
-						MaxExponent: 6145,
-						MinExponent: -6176,
-						Rounding:    bigmode,
+					// apd is very slow at adding or subtracting two values
+					// when their exponents differ by too much, so help it out
+					// by adjusting numbers that are very far apart.
+					if biglhs.Form == apd.Finite && biglhs.Coeff.BitLen() != 0 && bigrhs.Form == apd.Finite && bigrhs.Coeff.BitLen() != 0 {
+						lhsexp := biglhs.Exponent + int32(biglhs.NumDigits())
+						rhsexp := bigrhs.Exponent + int32(bigrhs.NumDigits())
+						dexp := lhsexp - rhsexp
+
+						if dexp > 40 {
+							bigrhs.Coeff.SetInt64(1)
+							bigrhs.Exponent = lhsexp - 40
+						} else if dexp < -40 {
+							biglhs.Coeff.SetInt64(1)
+							biglhs.Exponent = rhsexp - 40
+						}
 					}
 
-					bigctx.Sub(biglhs, biglhs, bigrhs)
+					bigctx.Sub(bigdif, biglhs, bigrhs)
 
-					if !decimalsEqual(sum, biglhs, bigmode) {
-						t.Errorf("%v.SubWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, sum, biglhs)
+					if !decimalsEqual(dif, bigdif, bigctx.Rounding) {
+						t.Errorf("%v.SubWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, dif, bigdif)
 					}
 				}
 			}
