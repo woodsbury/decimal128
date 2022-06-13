@@ -176,6 +176,24 @@ func (n uint128) mul(o uint128) uint256 {
 	return uint256{r0, r1, r2, r3}
 }
 
+func (n uint128) mul1e38() uint256 {
+	const o0 = 687399551400673280
+	const o1 = 5421010862427522170
+
+	u1, r0 := bits.Mul64(n[0], o0)
+	v1, v0 := bits.Mul64(n[1], o0)
+	w1, w0 := bits.Mul64(n[0], o1)
+	x1, x0 := bits.Mul64(n[1], o1)
+
+	r1, carry := bits.Add64(u1, v0, 0)
+	r2, y0 := bits.Add64(v1, w1, carry)
+	r1, carry = bits.Add64(r1, w0, 0)
+	r2, y1 := bits.Add64(r2, x0, carry)
+	r3, _ := bits.Add64(x1, y0, y1)
+
+	return uint256{r0, r1, r2, r3}
+}
+
 func (n uint128) mul64(o uint64) uint128 {
 	r1, r0 := bits.Mul64(n[0], o)
 	r1 += n[1] * o
@@ -185,6 +203,10 @@ func (n uint128) mul64(o uint64) uint128 {
 
 func (n uint128) not() uint128 {
 	return uint128{^n[0], ^n[1]}
+}
+
+func (n uint128) or64(o uint64) uint128 {
+	return uint128{n[0] | o, n[1]}
 }
 
 func (n uint128) rsh(o uint) uint128 {
@@ -292,4 +314,46 @@ func (n uint256) div1e19() (uint256, uint64) {
 	r0, rem := bits.Div64(rem, n[0], 10_000_000_000_000_000_000)
 
 	return uint256{r0, r1, r2, r3}, rem
+}
+
+func (n uint256) lsh(o uint) uint256 {
+	var r0, r1, r2, r3 uint64
+	if o > 192 {
+		r3 = n[0] << (o - 192)
+	} else if o > 128 {
+		r2 = n[0] << (o - 128)
+		r3 = n[1]<<(o-128) | n[0]>>(192-o)
+	} else if o > 64 {
+		r1 = n[0] << (o - 64)
+		r2 = n[1]<<(o-64) | n[0]>>(128-o)
+		r3 = n[2]<<(o-64) | n[1]>>(128-o)
+	} else {
+		r0 = n[0] << o
+		r1 = n[1]<<o | n[0]>>(64-o)
+		r2 = n[2]<<o | n[1]>>(64-o)
+		r3 = n[3]<<o | n[2]>>(64-o)
+	}
+
+	return uint256{r0, r1, r2, r3}
+}
+
+func (n uint256) rsh(o uint) uint256 {
+	var r0, r1, r2, r3 uint64
+	if o > 192 {
+		r0 = n[3] >> (o - 192)
+	} else if o > 128 {
+		r0 = n[2]>>(o-128) | n[3]<<(192-o)
+		r1 = n[3] >> (o - 128)
+	} else if o > 64 {
+		r0 = n[1]>>(o-64) | n[2]<<(128-o)
+		r1 = n[2]>>(o-64) | n[3]<<(128-o)
+		r2 = n[3] >> (o - 64)
+	} else {
+		r0 = n[0]>>o | n[1]<<(64-o)
+		r1 = n[1]>>o | n[2]<<(64-o)
+		r2 = n[2]>>o | n[3]<<(64-o)
+		r3 = n[3] >> o
+	}
+
+	return uint256{r0, r1, r2, r3}
 }

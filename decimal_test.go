@@ -19,7 +19,7 @@ func init() {
 	maxDecimal = new(apd.Decimal)
 	maxDecimal.Exponent = maxBiasedExponent - exponentBias
 	maxDecimal.Coeff.SetUint64(0x0002_7fff_ffff_ffff)
-	maxDecimal.Coeff.Lsh(&maxDecimal.Coeff, 64).Add(&maxDecimal.Coeff, lo)
+	maxDecimal.Coeff.Lsh(&maxDecimal.Coeff, 64).Or(&maxDecimal.Coeff, lo)
 }
 
 type testForm uint8
@@ -51,7 +51,7 @@ func (td testDec) Big(dec *apd.Decimal) *apd.Decimal {
 			lo.SetUint64(td.sig[0])
 
 			dec.Coeff.SetUint64(td.sig[1])
-			dec.Coeff.Lsh(&dec.Coeff, 64).Add(&dec.Coeff, lo)
+			dec.Coeff.Lsh(&dec.Coeff, 64).Or(&dec.Coeff, lo)
 		}
 
 		dec.Reduce(dec)
@@ -187,7 +187,7 @@ func decimalToBig(v Decimal) *apd.Decimal {
 		lo.SetUint64(sig[0])
 
 		r.Coeff.SetUint64(sig[1])
-		r.Coeff.Lsh(&r.Coeff, 64).Add(&r.Coeff, lo)
+		r.Coeff.Lsh(&r.Coeff, 64).Or(&r.Coeff, lo)
 	}
 
 	r.Reduce(r)

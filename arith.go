@@ -106,7 +106,7 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 	exp := (dExp - exponentBias) + (oExp - exponentBias) + exponentBias
 
 	neg := d.isNeg() != o.isNeg()
-	sig, exp := mode.reduce256(neg, sig256, exp)
+	sig, exp := mode.reduce256(neg, sig256, exp, 0)
 
 	if exp > maxBiasedExponent {
 		return inf(neg)

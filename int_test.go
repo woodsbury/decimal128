@@ -374,6 +374,28 @@ func TestUint128Mul(t *testing.T) {
 	}
 }
 
+func TestUint128Mul1e38(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	c := new(big.Int).Exp(new(big.Int).SetUint64(10), new(big.Int).SetUint64(38), nil)
+
+	bigval := new(big.Int)
+	tmpprd := new(big.Int)
+
+	for _, val := range uint128Values {
+		prd := val.mul1e38()
+
+		uint128ToBig(val, bigval)
+		bigprd := bigval.Mul(bigval, c)
+
+		if uint256ToBig(prd, tmpprd).Cmp(bigprd) != 0 {
+			t.Errorf("%v.mul1e38() = %v, want %v", val, prd, bigprd)
+		}
+	}
+}
+
 func TestUint128Mul64(t *testing.T) {
 	t.Parallel()
 
@@ -426,6 +448,30 @@ func TestUint128Not(t *testing.T) {
 
 		if uint128ToBig(res, tmpres).Cmp(bigres) != 0 {
 			t.Errorf("%v.not() = %v, want %v", val, res, bigres)
+		}
+	}
+}
+
+func TestUint128Or64(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	tmpres := new(big.Int)
+
+	for _, lhs := range uint128Values {
+		for _, rhs := range uint64Values {
+			res := lhs.or64(rhs)
+
+			uint128ToBig(lhs, biglhs)
+			bigrhs.SetUint64(rhs)
+			bigres := biglhs.Or(biglhs, bigrhs)
+
+			if uint128ToBig(res, tmpres).Cmp(bigres) != 0 {
+				t.Errorf("%v.or64(%d) = %v, want %v", lhs, rhs, res, bigres)
+			}
 		}
 	}
 }
@@ -661,6 +707,54 @@ func TestUint256Div1e19(t *testing.T) {
 
 		if uint256ToBig(quo, tmpquo).Cmp(bigquo) != 0 || tmprem.SetUint64(rem).Cmp(bigrem) != 0 {
 			t.Errorf("%v.div1e19() = (%v, %v), want (%v, %v)", val, quo, rem, bigquo, bigrem)
+		}
+	}
+}
+
+func TestUint256Lsh(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	tmpres := new(big.Int)
+
+	for _, lhs := range uint256Values {
+		for rhs := uint(0); rhs < 200; rhs += 10 {
+			res := lhs.lsh(rhs)
+
+			uint256ToBig(lhs, biglhs)
+			bigres := biglhs.Lsh(biglhs, rhs)
+			if bigres.BitLen() > 256 {
+				b := bigres.Bytes()
+				bigres.SetBytes(b[len(b)-32:])
+			}
+
+			if uint256ToBig(res, tmpres).Cmp(bigres) != 0 {
+				t.Errorf("%v.lsh(%d) = %v, want %v", lhs, rhs, res, bigres)
+			}
+		}
+	}
+}
+
+func TestUint256Rsh(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	tmpres := new(big.Int)
+
+	for _, lhs := range uint256Values {
+		for rhs := uint(0); rhs < 200; rhs += 10 {
+			res := lhs.rsh(rhs)
+
+			uint256ToBig(lhs, biglhs)
+			bigres := biglhs.Rsh(biglhs, rhs)
+
+			if uint256ToBig(res, tmpres).Cmp(bigres) != 0 {
+				t.Errorf("%v.rsh(%d) = %v, want %v", lhs, rhs, res, bigres)
+			}
 		}
 	}
 }

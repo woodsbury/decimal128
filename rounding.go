@@ -94,9 +94,7 @@ func (rm RoundingMode) String() string {
 	}
 }
 
-func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16) (uint128, int16) {
-	var trunc int8
-
+func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16, trunc int8) (uint128, int16) {
 	for sig256[3] > 0 {
 		var rem uint64
 		sig256, rem = sig256.div1e19()
