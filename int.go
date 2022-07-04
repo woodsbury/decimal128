@@ -337,6 +337,19 @@ func (n uint256) lsh(o uint) uint256 {
 	return uint256{r0, r1, r2, r3}
 }
 
+func (n uint256) mul64(o uint64) uint256 {
+	u1, r0 := bits.Mul64(n[0], o)
+	v1, v0 := bits.Mul64(n[1], o)
+	w1, w0 := bits.Mul64(n[2], o)
+	x0 := n[3] * o
+
+	r1, carry := bits.Add64(u1, v0, 0)
+	r2, carry := bits.Add64(v1, w0, carry)
+	r3, _ := bits.Add64(w1, x0, carry)
+
+	return uint256{r0, r1, r2, r3}
+}
+
 func (n uint256) rsh(o uint) uint256 {
 	var r0, r1, r2, r3 uint64
 	if o > 192 {

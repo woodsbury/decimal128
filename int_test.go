@@ -418,7 +418,7 @@ func TestUint128Mul64(t *testing.T) {
 			}
 
 			if uint128ToBig(prd, tmpprd).Cmp(bigprd) != 0 {
-				t.Errorf("%v.mul(%d) = %v, want %v", lhs, rhs, prd, bigprd)
+				t.Errorf("%v.mul64(%d) = %v, want %v", lhs, rhs, prd, bigprd)
 			}
 		}
 	}
@@ -732,6 +732,34 @@ func TestUint256Lsh(t *testing.T) {
 
 			if uint256ToBig(res, tmpres).Cmp(bigres) != 0 {
 				t.Errorf("%v.lsh(%d) = %v, want %v", lhs, rhs, res, bigres)
+			}
+		}
+	}
+}
+
+func TestUint256Mul64(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	tmpprd := new(big.Int)
+
+	for _, lhs := range uint256Values {
+		for _, rhs := range uint64Values {
+			prd := lhs.mul64(rhs)
+
+			uint256ToBig(lhs, biglhs)
+			bigrhs.SetUint64(rhs)
+			bigprd := biglhs.Mul(biglhs, bigrhs)
+			if bigprd.BitLen() > 256 {
+				b := bigprd.Bytes()
+				bigprd.SetBytes(b[len(b)-32:])
+			}
+
+			if uint256ToBig(prd, tmpprd).Cmp(bigprd) != 0 {
+				t.Errorf("%v.mul64(%d) = %v, want %v", lhs, rhs, prd, bigprd)
 			}
 		}
 	}

@@ -78,31 +78,29 @@ func FromFloat64(f float64) Decimal {
 
 		sig256 = uint256{mant, 0, 0, 0}
 
-		if shift >= 192 {
+		if shift <= 192 {
+			sig256 = sig256.lsh(uint(shift))
+		} else {
 			sig256 = sig256.lsh(192)
 			shift -= 192
-		} else if shift >= 128 {
-			sig256 = sig256.lsh(128)
-			shift -= 128
-		}
 
-		for shift != 0 {
-			if sig256[3] != 0 {
+			for shift != 0 {
 				var rem uint64
-				sig256, rem = sig256.div1e19()
-				exp += 19
+				sig256, rem = sig256.div10()
+				exp++
 
 				if rem != 0 {
 					trunc = 1
 				}
-			}
 
-			if shift > 64 {
-				sig256 = sig256.lsh(64)
-				shift -= 64
-			} else {
-				sig256 = sig256.lsh(uint(shift))
-				break
+				zeros = bits.LeadingZeros64(sig256[3])
+				if shift > zeros {
+					sig256 = sig256.lsh(uint(zeros))
+					shift -= zeros
+				} else {
+					sig256 = sig256.lsh(uint(shift))
+					break
+				}
 			}
 		}
 	} else {
@@ -115,37 +113,34 @@ func FromFloat64(f float64) Decimal {
 		mant >>= zeros
 		shift -= zeros
 
-		sig := uint128{mant, 0}
-		sig256 = sig.mul1e38()
-		exp -= 38
+		if shift == 0 {
+			sig256 = uint256{mant, 0, 0, 0}
+		} else {
+			sig := uint128{mant, 0}
+			sig256 = sig.mul1e38()
+			exp -= 38
 
-		for shift != 0 {
-			if sig256[2] == 0 && sig256[3] == 0 {
-				sig = uint128{sig256[0], sig256[1]}
-				sig256 = sig.mul1e38()
-				exp -= 38
-			}
+			for shift != 0 {
+				zeros = bits.LeadingZeros64(sig256[3])
+				for zeros >= 4 {
+					sig256 = sig256.mul64(10)
+					exp--
+					zeros = bits.LeadingZeros64(sig256[3])
+				}
 
-			if shift > 128 {
-				if sig[0] != 0 || sig[1] != 0 {
+				max := 4 - zeros
+				if shift < max {
+					max = shift
+				}
+
+				zeros = bits.TrailingZeros64(sig256[0])
+
+				if zeros < max {
 					trunc = 1
 				}
 
-				sig256 = sig256.rsh(128)
-				shift -= 128
-			} else {
-				if shift < 64 {
-					if sig[0]&(1<<shift-1) != 0 {
-						trunc = 1
-					}
-				} else {
-					if sig[0] != 0 && sig[1]&(1<<(shift-64)-1) != 0 {
-						trunc = 1
-					}
-				}
-
-				sig256 = sig256.rsh(uint(shift))
-				break
+				sig256 = sig256.rsh(uint(max))
+				shift -= max
 			}
 		}
 	}
