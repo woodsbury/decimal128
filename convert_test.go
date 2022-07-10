@@ -50,20 +50,24 @@ func TestDecimalFloat64(t *testing.T) {
 
 	values := []float64{
 		math.Inf(-1),
+		-5.0e300,
 		-5.0e100,
 		-5.0e50,
 		-5.0,
 		-1.0,
 		-5.0e-50,
 		-5.0e-100,
+		-5.0e-300,
 		math.Copysign(0.0, -1.0),
 		0.0,
+		5.0e-300,
 		5.0e-100,
 		5.0e-50,
 		1.0,
 		5.0,
 		5.0e50,
 		5.0e100,
+		5.0e300,
 		math.Inf(1),
 		math.NaN(),
 	}
@@ -72,8 +76,8 @@ func TestDecimalFloat64(t *testing.T) {
 		dec := FromFloat64(val)
 		res := dec.Float64()
 
-		valstr := fmt.Sprintf("%.14e", val)
-		resstr := fmt.Sprintf("%.14e", res)
+		valstr := fmt.Sprintf("%.17e", val)
+		resstr := fmt.Sprintf("%.17e", res)
 
 		if resstr != valstr {
 			t.Errorf("%v.Float64() = %v, want %v", val, res, val)

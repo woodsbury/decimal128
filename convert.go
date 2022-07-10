@@ -352,21 +352,82 @@ func (d Decimal) Float64() float64 {
 		return f
 	}
 
-	expf := math.Pow10(int(exp - exponentBias))
+	exp -= exponentBias
 
-	if sig[1] != 0 {
-		shift := 64 - bits.LeadingZeros64(sig[1])
-		sig = sig.rsh(uint(shift))
-		expf *= math.Exp2(float64(shift))
+	if exp < -358 {
+		f := 0.0
+		if d.isNeg() {
+			f = math.Copysign(f, -1.0)
+		}
+
+		return f
 	}
 
-	sigf := float64(sig[0])
+	if exp > 308 {
+		if d.isNeg() {
+			return math.Inf(-1)
+		}
+
+		return math.Inf(1)
+	}
+
+	var sig256 uint256
+	shift := int(exp)
+	exp = 0
+
+	if shift < 0 {
+		shift *= -1
+		sig256 = uint256{0, 0, sig[0], sig[1]}
+		exp = -128
+
+		for shift != 0 {
+			zeros := bits.LeadingZeros64(sig256[3])
+			sig256 = sig256.lsh(uint(zeros))
+			exp -= int16(zeros)
+
+			sig256, _ = sig256.div10()
+			shift--
+		}
+	} else {
+		sig256 = uint256{sig[0], sig[1], 0, 0}
+
+		for shift > 19 && sig256[3] == 0 {
+			sig256 = sig256.mul64(10_000_000_000_000_000_000)
+			shift -= 19
+		}
+
+		for shift != 0 && sig256[3] <= 0x18ff_ffff_ffff_ffff {
+			sig256 = sig256.mul64(10)
+			shift--
+		}
+
+		for shift != 0 {
+			sig256 = sig256.rsh(4)
+			exp += 4
+
+			for shift != 0 && sig256[3] <= 0x18ff_ffff_ffff_ffff {
+				sig256 = sig256.mul64(10)
+				shift--
+			}
+		}
+	}
+
+	zeros := bits.LeadingZeros64(sig256[3])
+	for zeros != 0 {
+		sig256 = sig256.lsh(uint(zeros))
+		exp -= int16(zeros)
+		zeros = bits.LeadingZeros64(sig256[3])
+	}
+
+	exp += 192
+	f := float64(sig256[3])
+	f = math.Ldexp(f, int(exp))
 
 	if d.isNeg() {
-		sigf = math.Copysign(sigf, -1.0)
+		f = math.Copysign(f, -1.0)
 	}
 
-	return sigf * expf
+	return f
 }
 
 // Int converts d into a big.Int, truncating towards zero. It panics if d is
