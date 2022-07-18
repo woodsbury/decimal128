@@ -58,7 +58,7 @@ func FromFloat64(f float64) Decimal {
 	shift := int(52 - exp)
 
 	if shift == 0 {
-		return compose(neg, uint128{mant, 0}, 0)
+		return compose(neg, uint128{mant, 0}, exponentBias)
 	}
 
 	var sig256 uint256
@@ -241,7 +241,7 @@ func FromInt64(i int64) Decimal {
 		i *= -1
 	}
 
-	return compose(neg, uint128{uint64(i), 0}, 0)
+	return compose(neg, uint128{uint64(i), 0}, exponentBias)
 }
 
 // FromRat converts r into a Decimal.
@@ -268,7 +268,7 @@ func FromUint64(i uint64) Decimal {
 		return zero(false)
 	}
 
-	return compose(false, uint128{i, 0}, 0)
+	return compose(false, uint128{i, 0}, exponentBias)
 }
 
 // Float converts d into a big.Float. It panics if d is NaN.
@@ -282,6 +282,7 @@ func (d Decimal) Float() *big.Float {
 	}
 
 	sig, exp := d.decompose()
+	exp -= exponentBias
 
 	f := new(big.Float).SetPrec(128)
 
@@ -298,11 +299,9 @@ func (d Decimal) Float() *big.Float {
 		f.Neg(f)
 	}
 
-	if exp == exponentBias {
+	if exp == 0 {
 		return f
 	}
-
-	exp -= exponentBias
 
 	var bigexp *big.Int
 	if exp > 0 {
@@ -446,6 +445,7 @@ func (d Decimal) Int() *big.Int {
 	}
 
 	sig, exp := d.decompose()
+	exp -= exponentBias
 
 	i := new(big.Int)
 
@@ -464,11 +464,9 @@ func (d Decimal) Int() *big.Int {
 		i.Neg(i)
 	}
 
-	if exp == exponentBias {
+	if exp == 0 {
 		return i
 	}
-
-	exp -= exponentBias
 
 	var bigexp *big.Int
 	if exp > 0 {
@@ -504,6 +502,7 @@ func (d Decimal) Int32() int32 {
 	}
 
 	sig, exp := d.decompose()
+	exp -= exponentBias
 
 	if exp < -maxDigits {
 		return 0
@@ -564,6 +563,7 @@ func (d Decimal) Int64() int64 {
 	}
 
 	sig, exp := d.decompose()
+	exp -= exponentBias
 
 	if exp < -maxDigits {
 		return 0
@@ -623,16 +623,15 @@ func (d Decimal) Rat() *big.Rat {
 	}
 
 	sig, exp := d.decompose()
+	exp -= exponentBias
 
 	r := new(big.Rat)
 
-	if exp == exponentBias && sig[1] == 0 {
+	if exp == 0 && sig[1] == 0 {
 		r.SetUint64(sig[0])
 	} else {
 		bigsig := new(big.Int).SetUint64(sig[1])
 		bigsig.Lsh(bigsig, 64).Or(bigsig, new(big.Int).SetUint64(sig[0]))
-
-		exp -= exponentBias
 
 		var bigexp *big.Int
 		if exp > 0 {
@@ -678,6 +677,7 @@ func (d Decimal) Uint32() uint32 {
 	}
 
 	sig, exp := d.decompose()
+	exp -= exponentBias
 
 	if exp < -maxDigits {
 		return 0
@@ -729,6 +729,7 @@ func (d Decimal) Uint64() uint64 {
 	}
 
 	sig, exp := d.decompose()
+	exp -= exponentBias
 
 	if exp < -maxDigits {
 		return 0
