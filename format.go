@@ -92,44 +92,90 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 
 		f.Write(digs.fmtF(prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), f.Flag('-'), f.Flag('0')))
 	case 'g', 'G':
+		var maxprec int
 		if f.Flag('#') {
 			if !hasPrec {
-				prec = 6
+				if digs.ndig < 6 {
+					prec = 6
+				} else {
+					prec = digs.ndig
+				}
+
+				maxprec = 6
+			} else {
+				maxprec = prec
+			}
+
+			if hasWidth {
+				if digs.ndig > prec {
+					if width > digs.ndig {
+						width -= digs.ndig
+						prec = digs.ndig
+					} else {
+						prec += width
+						width -= digs.ndig
+					}
+				}
 			}
 
 			digs.round(prec)
 		} else {
-			prec = digs.ndig - 1
+			if hasPrec {
+				digs.round(prec)
+				maxprec = prec
+			} else if digs.ndig != 0 {
+				prec = digs.ndig
+				maxprec = 6
+			} else {
+				maxprec = 6
+			}
 		}
 
-		exp := digs.exp + prec
+		eprec := 0
+		if digs.ndig != 0 {
+			eprec = digs.ndig - 1
+		}
+
+		exp := digs.exp + eprec
 
 		pad := 0
 		if hasWidth {
 			pad = width
 		}
 
-		if exp < -4 || exp > prec {
+		if exp < -4 || exp >= maxprec {
 			e := byte('e')
 			if verb == 'G' {
 				e = byte('E')
 			}
 
-			f.Write(digs.fmtE(prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, f.Flag('-'), f.Flag('0'), e))
+			f.Write(digs.fmtE(prec-1, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, f.Flag('-'), f.Flag('0'), e))
 		} else {
-			if digs.ndig == 0 {
-				prec--
+			if f.Flag('#') {
+				prec -= digs.exp
+				if digs.ndig == 0 {
+					prec--
+				} else {
+					prec -= digs.ndig
+				}
 			} else {
-				prec -= digs.ndig
+				prec = 0
+				if digs.exp < 0 {
+					prec = -digs.exp
+				}
 			}
 
 			f.Write(digs.fmtF(prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), f.Flag('-'), f.Flag('0')))
 		}
 	case 'v':
-		prec = digs.ndig - 1
+		prec := 0
+		if digs.ndig != 0 {
+			prec = digs.ndig - 1
+		}
+
 		exp := digs.exp + prec
 
-		if exp < -4 || exp > prec {
+		if exp < -4 || exp >= 6 {
 			f.Write(digs.fmtE(prec, 0, false, false, false, true, false, false, 'e'))
 		} else {
 			prec = 0
@@ -151,10 +197,15 @@ func (d Decimal) MarshalText() ([]byte, error) {
 	}
 
 	digs := d.digits()
-	prec := digs.ndig - 1
+
+	prec := 0
+	if digs.ndig != 0 {
+		prec = digs.ndig - 1
+	}
+
 	exp := digs.exp + prec
 
-	if exp < -4 || exp > prec {
+	if exp < -4 || exp >= 6 {
 		return digs.fmtE(prec, 0, false, false, false, true, false, false, 'e'), nil
 	}
 
@@ -173,10 +224,15 @@ func (d Decimal) String() string {
 	}
 
 	digs := d.digits()
-	prec := digs.ndig - 1
+
+	prec := 0
+	if digs.ndig != 0 {
+		prec = digs.ndig - 1
+	}
+
 	exp := digs.exp + prec
 
-	if exp < -4 || exp > prec {
+	if exp < -4 || exp >= 6 {
 		return string(digs.fmtE(prec, 0, false, false, false, true, false, false, 'e'))
 	}
 

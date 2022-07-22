@@ -81,6 +81,56 @@ func (td testDec) Decimal() Decimal {
 	}
 }
 
+func (td testDec) Float64() (float64, bool) {
+	if td.sig[1] != 0 {
+		return 0.0, false
+	}
+
+	sig64 := td.sig[0]
+
+	if sig64 == 0 {
+		if td.neg {
+			return math.Copysign(0.0, -1.0), true
+		}
+
+		return 0.0, true
+	}
+
+	if sig64 > math.MaxUint32 {
+		return 0.0, false
+	}
+
+	if td.exp < exponentBias {
+		return 0.0, false
+	}
+
+	switch td.exp {
+	case exponentBias:
+	case exponentBias + 1:
+		sig64 *= 10
+	case exponentBias + 2:
+		sig64 *= 100
+	case exponentBias + 3:
+		sig64 *= 1000
+	case exponentBias + 4:
+		sig64 *= 10_000
+	case exponentBias + 5:
+		sig64 *= 100_000
+	default:
+		return 0.0, false
+	}
+
+	if sig64 > math.MaxUint32 {
+		return 0.0, false
+	}
+
+	if td.neg {
+		return math.Copysign(float64(sig64), -1.0), true
+	}
+
+	return float64(sig64), true
+}
+
 func (td testDec) String() string {
 	switch td.form {
 	case regularForm:

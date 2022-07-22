@@ -87,18 +87,8 @@ func TestDecimalFormat(t *testing.T) {
 
 			var bigres string
 			if val.form == regularForm {
-				if val.sig == (uint128{}) {
-					if val.neg {
-						bigres = fmt.Sprintf(fmtstr, math.Copysign(0.0, -1.0))
-					} else {
-						bigres = fmt.Sprintf(fmtstr, 0.0)
-					}
-				} else if val.exp == exponentBias && val.sig[1] == 0 && val.sig[0] < math.MaxUint32 {
-					if val.neg {
-						bigres = fmt.Sprintf(fmtstr, math.Copysign(float64(val.sig[0]), -1.0))
-					} else {
-						bigres = fmt.Sprintf(fmtstr, float64(val.sig[0]))
-					}
+				if fltval, ok := val.Float64(); ok {
+					bigres = fmt.Sprintf(fmtstr, fltval)
 				} else {
 					// Skipping for now
 					continue
@@ -155,25 +145,15 @@ func TestDecimalString(t *testing.T) {
 
 		var bigres string
 		if val.form == regularForm {
-			if val.sig == (uint128{}) {
-				if val.neg {
-					bigres = fmt.Sprintf("%v", math.Copysign(0.0, -1.0))
-				} else {
-					bigres = fmt.Sprintf("%v", 0.0)
-				}
-			} else if val.exp == exponentBias && val.sig[1] == 0 && val.sig[0] < math.MaxUint32 {
-				if val.neg {
-					bigres = fmt.Sprintf("%v", math.Copysign(float64(val.sig[0]), -1.0))
-				} else {
-					bigres = fmt.Sprintf("%v", float64(val.sig[0]))
-				}
+			if fltval, ok := val.Float64(); ok {
+				bigres = fmt.Sprintf("%v", fltval)
 			} else {
 				val.Big(bigval)
 
 				prec := bigval.NumDigits() - 1
 				exp := int64(bigval.Exponent) + prec
 
-				if exp < -4 || exp > prec {
+				if exp < -4 || exp > 5 {
 					bigres = fmt.Sprintf("%e", bigval)
 
 					if idx := strings.IndexRune(bigres, 'e'); idx != -1 && idx == len(bigres)-3 {

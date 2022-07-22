@@ -21,6 +21,7 @@ func initUintValues() {
 			uint64Values = []uint64{
 				0,
 				5,
+				10,
 				0x0002_7fff_ffff_ffff,
 			}
 		} else {
@@ -28,6 +29,8 @@ func initUintValues() {
 				0,
 				1,
 				5,
+				10,
+				2500,
 				math.MaxUint32,
 				0x0001_ffff_ffff_ffff,
 				0x0002_7fff_ffff_ffff,

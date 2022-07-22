@@ -15,10 +15,15 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 	}
 
 	digs := d.digits()
-	prec := digs.ndig - 1
+
+	prec := 0
+	if digs.ndig != 0 {
+		prec = digs.ndig - 1
+	}
+
 	exp := digs.exp + prec
 
-	if exp < -6 || exp > 21 {
+	if exp < -6 || exp >= 20 {
 		return digs.fmtE(prec, 0, false, false, false, false, false, false, 'e'), nil
 	}
 
