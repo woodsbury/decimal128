@@ -271,20 +271,32 @@ func FromUint64(i uint64) Decimal {
 	return compose(false, uint128{i, 0}, exponentBias)
 }
 
-// Float converts d into a big.Float. It panics if d is NaN.
-func (d Decimal) Float() *big.Float {
+// Float converts d into a big.Float. If a non-nil argument f is provided,
+// Float stores the result in f instead of allocating a new big.Float. It
+// panics if d is NaN.
+func (d Decimal) Float(f *big.Float) *big.Float {
 	if d.isSpecial() {
 		if d.IsNaN() {
 			panic("Decimal(NaN).Float()")
 		}
 
-		return new(big.Float).SetInf(d.isNeg())
+		if f == nil {
+			f = new(big.Float)
+		} else if f.Prec() == 0 {
+			f.SetPrec(128)
+		}
+
+		return f.SetInf(d.isNeg())
 	}
 
 	sig, exp := d.decompose()
 	exp -= exponentBias
 
-	f := new(big.Float).SetPrec(128)
+	if f == nil {
+		f = new(big.Float).SetPrec(128)
+	} else if f.Prec() == 0 {
+		f.SetPrec(128)
+	}
 
 	if sig[1] == 0 {
 		f.SetUint64(sig[0])
@@ -429,9 +441,10 @@ func (d Decimal) Float64() float64 {
 	return f
 }
 
-// Int converts d into a big.Int, truncating towards zero. It panics if d is
-// NaN or infinite.
-func (d Decimal) Int() *big.Int {
+// Int converts d into a big.Int, truncating towards zero. If a non-nil
+// argument i is provided, Int stores the result in i instead of allocating a
+// new big.Int. It panics if d is NaN or infinite.
+func (d Decimal) Int(i *big.Int) *big.Int {
 	if d.isSpecial() {
 		if d.IsNaN() {
 			panic("Decimal(NaN).Int()")
@@ -447,7 +460,9 @@ func (d Decimal) Int() *big.Int {
 	sig, exp := d.decompose()
 	exp -= exponentBias
 
-	i := new(big.Int)
+	if i == nil {
+		i = new(big.Int)
+	}
 
 	if exp < -maxDigits {
 		return i
@@ -608,8 +623,10 @@ func (d Decimal) Int64() int64 {
 	return i
 }
 
-// Rat converts d into a big.Rat. It panics if d is NaN or infinite.
-func (d Decimal) Rat() *big.Rat {
+// Rat converts d into a big.Rat. If a non-nil argument r is provided, Rat
+// stores the result in r instead of allocating a new big.Rat. It panics if d
+// is NaN or infinite.
+func (d Decimal) Rat(r *big.Rat) *big.Rat {
 	if d.isSpecial() {
 		if d.IsNaN() {
 			panic("Decimal(NaN).Rat()")
@@ -625,7 +642,9 @@ func (d Decimal) Rat() *big.Rat {
 	sig, exp := d.decompose()
 	exp -= exponentBias
 
-	r := new(big.Rat)
+	if r == nil {
+		r = new(big.Rat)
+	}
 
 	if exp == 0 && sig[1] == 0 {
 		r.SetUint64(sig[0])

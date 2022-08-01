@@ -30,11 +30,12 @@ func TestDecimalFloat(t *testing.T) {
 	}
 
 	bigval := new(big.Float)
+	res := new(big.Float)
 
 	for _, val := range values {
 		bigval.SetFloat64(val)
 		dec := FromFloat(bigval)
-		res := dec.Float()
+		dec.Float(res)
 
 		valstr := fmt.Sprintf("%.17e", bigval)
 		resstr := fmt.Sprintf("%.17e", res)
@@ -128,11 +129,12 @@ func TestDecimalInt(t *testing.T) {
 	}
 
 	bigval := new(big.Int)
+	res := new(big.Int)
 
 	for _, val := range values {
 		bigval.SetBits(val)
 		dec := FromInt(bigval)
-		res := dec.Int()
+		dec.Int(res)
 
 		if bigval.Cmp(res) != 0 {
 			t.Errorf("%v.Int() = %v, want %v", dec, res, bigval)
@@ -140,7 +142,7 @@ func TestDecimalInt(t *testing.T) {
 
 		bigval.Neg(bigval)
 		dec = FromInt(bigval)
-		res = dec.Int()
+		dec.Int(res)
 
 		if bigval.Cmp(res) != 0 {
 			t.Errorf("%v.Int() = %v, want %v", dec, res, bigval)
@@ -225,13 +227,14 @@ func TestDecimalRat(t *testing.T) {
 	bignum := new(big.Int)
 	bigdenom := new(big.Int)
 	bigval := new(big.Rat)
+	res := new(big.Rat)
 
 	for _, val := range values {
 		bignum.SetBits(val[0])
 		bigdenom.SetBits(val[1])
 		bigval.SetFrac(bignum, bigdenom)
 		dec := FromRat(bigval)
-		res := dec.Rat()
+		dec.Rat(res)
 
 		if res.Cmp(bigval) != 0 {
 			t.Errorf("%v.Rat() = %v, want %v", dec, res, bigval)
@@ -239,7 +242,7 @@ func TestDecimalRat(t *testing.T) {
 
 		bigval.Neg(bigval)
 		dec = FromRat(bigval)
-		res = dec.Rat()
+		dec.Rat(res)
 
 		if res.Cmp(bigval) != 0 {
 			t.Errorf("%v.Rat() = %v, want %v", dec, res, bigval)
