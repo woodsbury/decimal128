@@ -71,7 +71,7 @@ const (
 	ToZero                            // == IEEE 754 roundTowardZero
 	AwayFromZero                      // no IEEE 754 equivalent
 	ToNegativeInf                     // == IEEE 754 roundTowardNegative
-	ToPositiveInf                     // == IEEE 754 roundTowardPostive
+	ToPositiveInf                     // == IEEE 754 roundTowardPositive
 )
 
 // String returns a string representation of the rounding mode.
