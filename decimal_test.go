@@ -198,6 +198,10 @@ func initDecimalValues() {
 			for _, siglo := range uint64Values {
 				sig := uint128{siglo, sighi}
 
+				if sig == (uint128{}) {
+					continue
+				}
+
 				for _, exp := range exponentValues {
 					decimalValues = append(decimalValues,
 						testDec{regularForm, false, sig, exp},
@@ -207,6 +211,8 @@ func initDecimalValues() {
 			}
 		}
 
+		decimalValues = append(decimalValues, testDec{regularForm, false, uint128{}, 0})
+		decimalValues = append(decimalValues, testDec{regularForm, true, uint128{}, 0})
 		decimalValues = append(decimalValues, testDec{infForm, false, uint128{}, 0})
 		decimalValues = append(decimalValues, testDec{infForm, true, uint128{}, 0})
 		decimalValues = append(decimalValues, testDec{nanForm, false, uint128{}, 0})

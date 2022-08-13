@@ -181,6 +181,11 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 		return zero(d.isNeg() != o.isNeg())
 	}
 
+	if dSig[1] == 0 {
+		dSig = dSig.mul64(10_000_000_000_000_000_000)
+		dExp -= 19
+	}
+
 	for dSig[1] <= 0x0002_7fff_ffff_ffff {
 		dSig = dSig.mul64(10_000)
 		dExp -= 4
@@ -215,7 +220,7 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 		for sig192[2] != 0 {
 			var rem192 uint64
 			sig192, rem192 = sig192.div10()
-			exp--
+			exp++
 
 			if rem192 != 0 {
 				trunc = 1
@@ -237,6 +242,211 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 	}
 
 	return compose(neg, sig, exp)
+}
+
+// QuoRem divides d by o, rounding using the DefaultRoundingMode, and returns
+// the result as an integer quotient and a remainder.
+func (d Decimal) QuoRem(o Decimal) (Decimal, Decimal) {
+	return d.QuoRemWithMode(o, DefaultRoundingMode)
+}
+
+// QuoRem divides d by o, rounding using the provided rounding mode, and
+// returns the result as an integer quotient and a remainder.
+func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal) {
+	if d.isSpecial() || o.isSpecial() {
+		if d.IsNaN() {
+			return d, d
+		}
+
+		if o.IsNaN() {
+			return o, o
+		}
+
+		if d.isInf() {
+			lhs := payloadValPosInfinite
+			if d.isNeg() {
+				lhs = payloadValNegInfinite
+			}
+
+			if o.isInf() {
+				rhs := payloadValPosInfinite
+				if o.isNeg() {
+					rhs = payloadValNegInfinite
+				}
+
+				res := nan(payloadOpQuoRem, lhs, rhs)
+				return res, res
+			}
+
+			rhs := payloadValPosFinite
+			if o.IsZero() {
+				if o.isNeg() {
+					rhs = payloadValNegZero
+				} else {
+					rhs = payloadValPosZero
+				}
+			} else if o.isNeg() {
+				rhs = payloadValNegFinite
+			}
+
+			return inf(d.isNeg() != o.isNeg()), nan(payloadOpQuoRem, lhs, rhs)
+		}
+
+		if o.isInf() {
+			return zero(d.isNeg() != o.isNeg()), d
+		}
+	}
+
+	dSig, dExp := d.decompose()
+	oSig, oExp := o.decompose()
+
+	if oSig == (uint128{}) {
+		rhs := payloadValPosZero
+		if o.isNeg() {
+			rhs = payloadValNegZero
+		}
+
+		if dSig == (uint128{}) {
+			lhs := payloadValPosZero
+			if d.isNeg() {
+				lhs = payloadValNegZero
+			}
+
+			res := nan(payloadOpQuoRem, lhs, rhs)
+			return res, res
+		}
+
+		lhs := payloadValPosFinite
+		if d.isNeg() {
+			lhs = payloadValNegFinite
+		}
+
+		return inf(d.isNeg() != o.isNeg()), nan(payloadOpQuoRem, lhs, rhs)
+	}
+
+	if dSig == (uint128{}) {
+		return zero(d.isNeg() != o.isNeg()), zero(d.isNeg())
+	}
+
+	exp := (dExp - exponentBias) - (oExp - exponentBias)
+
+	if exp < 0 {
+		if exp <= -19 && oSig[1] == 0 {
+			oSig = oSig.mul64(10_000_000_000_000_000_000)
+			exp += 19
+		}
+
+		for exp <= -4 && oSig[1] <= 0x0002_7fff_ffff_ffff {
+			oSig = oSig.mul64(10_000)
+			exp += 4
+		}
+
+		for exp < 0 && oSig[1] <= 0x18ff_ffff_ffff_ffff {
+			oSig = oSig.mul64(10)
+			exp++
+		}
+
+		if exp < 0 || oSig.cmp(dSig) > 0 {
+			return zero(d.isNeg() != o.isNeg()), d
+		}
+	} else if exp > 0 {
+		if exp >= 19 && dSig[1] == 0 {
+			dSig = dSig.mul64(10_000_000_000_000_000_000)
+			dExp -= 19
+			exp -= 19
+		}
+
+		for exp >= 4 && dSig[1] <= 0x0002_7fff_ffff_ffff {
+			dSig = dSig.mul64(10_000)
+			dExp -= 4
+			exp -= 4
+		}
+
+		for exp > 0 && dSig[1] <= 0x18ff_ffff_ffff_ffff {
+			dSig = dSig.mul64(10)
+			dExp--
+			exp--
+		}
+	}
+
+	sig, rem := dSig.div(oSig)
+	trunc := int8(0)
+
+	qexp := exp + exponentBias
+	rexp := dExp
+
+	for exp > 0 && rem != (uint128{}) && sig[1] <= 0x0002_7fff_ffff_ffff {
+		for exp >= 4 && rem[1] <= 0x0002_7fff_ffff_ffff && sig[1] <= 0x0002_7fff_ffff_ffff {
+			rem = rem.mul64(10_000)
+			sig = sig.mul64(10_000)
+			exp -= 4
+			qexp -= 4
+			rexp -= 4
+		}
+
+		for exp > 0 && rem[1] <= 0x18ff_ffff_ffff_ffff && sig[1] <= 0x18ff_ffff_ffff_ffff {
+			rem = rem.mul64(10)
+			sig = sig.mul64(10)
+			exp--
+			qexp--
+			rexp--
+		}
+
+		var tmp uint128
+		tmp, rem = rem.div(oSig)
+		sig192 := sig.add(tmp)
+
+		for sig192[2] != 0 {
+			var rem192 uint64
+			sig192, rem192 = sig192.div10()
+			qexp++
+
+			if rem192 != 0 {
+				trunc = 1
+			}
+		}
+
+		sig = uint128{sig192[0], sig192[1]}
+	}
+
+	for exp > 0 && rem != (uint128{}) {
+		for exp >= 4 && rem[1] <= 0x0002_7fff_ffff_ffff {
+			rem = rem.mul64(10_000)
+			exp -= 4
+			rexp -= 4
+		}
+
+		for exp > 0 && rem[1] <= 0x18ff_ffff_ffff_ffff {
+			rem = rem.mul64(10)
+			exp--
+			rexp--
+		}
+
+		var tmp uint128
+		tmp, rem = rem.div(oSig)
+
+		if tmp != (uint128{}) {
+			trunc = 1
+		}
+	}
+
+	qneg := d.isNeg() != o.isNeg()
+	qsig, qexp := mode.reduce128(qneg, sig, qexp, trunc)
+
+	rneg := d.isNeg()
+	rsig, rexp := mode.reduce128(rneg, rem, rexp, 0)
+
+	quo := compose(qneg, qsig, qexp)
+
+	if qexp > maxBiasedExponent {
+		quo = inf(qneg)
+	}
+
+	if rexp > maxBiasedExponent {
+		return quo, inf(rneg)
+	}
+
+	return quo, compose(rneg, rsig, rexp)
 }
 
 // Sub subtracts o from d, rounding using the DefaultRoundingMode, and returns

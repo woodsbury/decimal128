@@ -144,6 +144,59 @@ func TestDecimalQuo(t *testing.T) {
 	}
 }
 
+func TestDecimalQuoRem(t *testing.T) {
+	t.Parallel()
+
+	initDecimalValues()
+
+	for _, mode := range roundingModes {
+		mode := mode
+
+		t.Run(mode.String(), func(t *testing.T) {
+			t.Parallel()
+
+			biglhs := new(apd.Decimal)
+			bigrhs := new(apd.Decimal)
+			bigquo := new(apd.Decimal)
+			bigrem := new(apd.Decimal)
+			bigctx := apd.Context{
+				Precision:   38,
+				MaxExponent: 6145,
+				MinExponent: -6176,
+				Rounding:    roundingModeToBig(mode),
+			}
+
+			for _, lhs := range decimalValues {
+				for _, rhs := range decimalValues {
+					if dexp := lhs.exp - rhs.exp; dexp < -128 || dexp > 128 {
+						// apd is very slow at finding the integer quotient or
+						// remainder of two values when their exponents differ
+						// by too much, skip these for now.
+						continue
+					}
+
+					declhs := lhs.Decimal()
+					decrhs := rhs.Decimal()
+					quo, rem := declhs.QuoRemWithMode(decrhs, mode)
+
+					lhs.Big(biglhs)
+					rhs.Big(bigrhs)
+					bigctx.Precision = 12325
+					bigctx.QuoInteger(bigquo, biglhs, bigrhs)
+					bigctx.Rem(bigrem, biglhs, bigrhs)
+					bigctx.Precision = 38
+					bigctx.Round(bigquo, bigquo)
+					bigctx.Round(bigrem, bigrem)
+
+					if !decimalsEqual(quo, bigquo, bigctx.Rounding) || !decimalsEqual(rem, bigrem, bigctx.Rounding) {
+						t.Errorf("%v.QuoRemWithMode(%v, %v) = (%v, %v), want (%v, %v)", lhs, rhs, mode, quo, rem, bigquo, bigrem)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestDecimalSub(t *testing.T) {
 	t.Parallel()
 
