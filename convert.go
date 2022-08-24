@@ -286,7 +286,7 @@ func (d Decimal) Float(f *big.Float) *big.Float {
 			f.SetPrec(128)
 		}
 
-		return f.SetInf(d.isNeg())
+		return f.SetInf(d.Signbit())
 	}
 
 	sig, exp := d.decompose()
@@ -307,7 +307,7 @@ func (d Decimal) Float(f *big.Float) *big.Float {
 		f.SetInt(bigsig)
 	}
 
-	if d.isNeg() {
+	if d.Signbit() {
 		f.Neg(f)
 	}
 
@@ -345,7 +345,7 @@ func (d Decimal) Float64() float64 {
 			return math.NaN()
 		}
 
-		if d.isNeg() {
+		if d.Signbit() {
 			return math.Inf(-1)
 		}
 
@@ -356,7 +356,7 @@ func (d Decimal) Float64() float64 {
 
 	if sig == (uint128{}) {
 		f := 0.0
-		if d.isNeg() {
+		if d.Signbit() {
 			f = math.Copysign(f, -1.0)
 		}
 
@@ -367,7 +367,7 @@ func (d Decimal) Float64() float64 {
 
 	if exp < -358 {
 		f := 0.0
-		if d.isNeg() {
+		if d.Signbit() {
 			f = math.Copysign(f, -1.0)
 		}
 
@@ -375,7 +375,7 @@ func (d Decimal) Float64() float64 {
 	}
 
 	if exp > 308 {
-		if d.isNeg() {
+		if d.Signbit() {
 			return math.Inf(-1)
 		}
 
@@ -434,7 +434,7 @@ func (d Decimal) Float64() float64 {
 	f := float64(sig256[3])
 	f = math.Ldexp(f, int(exp))
 
-	if d.isNeg() {
+	if d.Signbit() {
 		f = math.Copysign(f, -1.0)
 	}
 
@@ -450,7 +450,7 @@ func (d Decimal) Int(i *big.Int) *big.Int {
 			panic("Decimal(NaN).Int()")
 		}
 
-		if d.isNeg() {
+		if d.Signbit() {
 			panic("Decimal(-Inf).Int()")
 		}
 
@@ -475,7 +475,7 @@ func (d Decimal) Int(i *big.Int) *big.Int {
 		i.Lsh(i, 64).Or(i, new(big.Int).SetUint64(sig[0]))
 	}
 
-	if d.isNeg() {
+	if d.Signbit() {
 		i.Neg(i)
 	}
 
@@ -509,7 +509,7 @@ func (d Decimal) Int32() int32 {
 			panic("Decimal(NaN).Int32()")
 		}
 
-		if d.isNeg() {
+		if d.Signbit() {
 			panic("Decimal(-Inf).Int32()")
 		}
 
@@ -534,14 +534,14 @@ func (d Decimal) Int32() int32 {
 	}
 
 	if sig[1] != 0 || exp != 0 {
-		if d.isNeg() {
+		if d.Signbit() {
 			panic("Decimal(<MinInt32).Int32()")
 		}
 
 		panic("Decimal(>MaxInt32).Int32()")
 	}
 
-	neg := d.isNeg()
+	neg := d.Signbit()
 
 	if neg {
 		if sig[0] > math.MinInt32*-1 {
@@ -570,7 +570,7 @@ func (d Decimal) Int64() int64 {
 			panic("Decimal(NaN).Int64()")
 		}
 
-		if d.isNeg() {
+		if d.Signbit() {
 			panic("Decimal(-Inf).Int64()")
 		}
 
@@ -595,14 +595,14 @@ func (d Decimal) Int64() int64 {
 	}
 
 	if sig[1] != 0 || exp != 0 {
-		if d.isNeg() {
+		if d.Signbit() {
 			panic("Decimal(<MinInt64).Int64()")
 		}
 
 		panic("Decimal(>MaxInt64).Int64()")
 	}
 
-	neg := d.isNeg()
+	neg := d.Signbit()
 
 	if neg {
 		if sig[0] > math.MinInt64*-1 {
@@ -632,7 +632,7 @@ func (d Decimal) Rat(r *big.Rat) *big.Rat {
 			panic("Decimal(NaN).Rat()")
 		}
 
-		if d.isNeg() {
+		if d.Signbit() {
 			panic("Decimal(-Inf).Rat()")
 		}
 
@@ -669,7 +669,7 @@ func (d Decimal) Rat(r *big.Rat) *big.Rat {
 		}
 	}
 
-	if d.isNeg() {
+	if d.Signbit() {
 		r.Neg(r)
 	}
 
@@ -684,14 +684,14 @@ func (d Decimal) Uint32() uint32 {
 			panic("Decimal(NaN).Uint32()")
 		}
 
-		if d.isNeg() {
+		if d.Signbit() {
 			panic("Decimal(-Inf).Uint32()")
 		}
 
 		panic("Decimal(+Inf).Uint32()")
 	}
 
-	if d.isNeg() {
+	if d.Signbit() {
 		panic("Decimal(<0).Uint32()")
 	}
 
@@ -736,14 +736,14 @@ func (d Decimal) Uint64() uint64 {
 			panic("Decimal(NaN).Uint64()")
 		}
 
-		if d.isNeg() {
+		if d.Signbit() {
 			panic("Decimal(-Inf).Uint64()")
 		}
 
 		panic("Decimal(+Inf).Uint64()")
 	}
 
-	if d.isNeg() {
+	if d.Signbit() {
 		panic("Decimal(<0).Uint64()")
 	}
 

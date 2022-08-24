@@ -19,9 +19,9 @@ func (d Decimal) AddWithMode(o Decimal, mode RoundingMode) Decimal {
 		}
 
 		if d.isInf() {
-			neg := d.isNeg()
+			neg := d.Signbit()
 
-			if o.isInf() && neg != o.isNeg() {
+			if o.isInf() && neg != o.Signbit() {
 				lhs := payloadValPosInfinite
 				rhs := payloadValNegInfinite
 				if neg {
@@ -35,7 +35,7 @@ func (d Decimal) AddWithMode(o Decimal, mode RoundingMode) Decimal {
 			return inf(neg)
 		}
 
-		return inf(o.isNeg())
+		return inf(o.Signbit())
 	}
 
 	return d.add(o, mode, false)
@@ -63,12 +63,12 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 			sig, _ := d.decompose()
 			if sig == (uint128{}) {
 				lhs := payloadValPosZero
-				if d.isNeg() {
+				if d.Signbit() {
 					lhs = payloadValNegZero
 				}
 
 				rhs := payloadValPosInfinite
-				if o.isNeg() {
+				if o.Signbit() {
 					rhs = payloadValNegInfinite
 				}
 
@@ -78,12 +78,12 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 			sig, _ := o.decompose()
 			if sig == (uint128{}) {
 				lhs := payloadValPosInfinite
-				if d.isNeg() {
+				if d.Signbit() {
 					lhs = payloadValNegInfinite
 				}
 
 				rhs := payloadValPosZero
-				if o.isNeg() {
+				if o.Signbit() {
 					rhs = payloadValNegZero
 				}
 
@@ -91,7 +91,7 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 			}
 		}
 
-		return inf(d.isNeg() != o.isNeg())
+		return inf(d.Signbit() != o.Signbit())
 	}
 
 	dSig, dExp := d.decompose()
@@ -100,12 +100,12 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 	sig256 := dSig.mul(oSig)
 
 	if sig256 == (uint256{}) {
-		return zero(d.isNeg() != o.isNeg())
+		return zero(d.Signbit() != o.Signbit())
 	}
 
 	exp := (dExp - exponentBias) + (oExp - exponentBias) + exponentBias
 
-	neg := d.isNeg() != o.isNeg()
+	neg := d.Signbit() != o.Signbit()
 	sig, exp := mode.reduce256(neg, sig256, exp, 0)
 
 	if exp > maxBiasedExponent {
@@ -136,23 +136,23 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 		if d.isInf() {
 			if o.isInf() {
 				lhs := payloadValPosInfinite
-				if d.isNeg() {
+				if d.Signbit() {
 					lhs = payloadValNegInfinite
 				}
 
 				rhs := payloadValPosInfinite
-				if o.isNeg() {
+				if o.Signbit() {
 					rhs = payloadValNegInfinite
 				}
 
 				return nan(payloadOpQuo, lhs, rhs)
 			}
 
-			return inf(d.isNeg() != o.isNeg())
+			return inf(d.Signbit() != o.Signbit())
 		}
 
 		if o.isInf() {
-			return zero(d.isNeg() != o.isNeg())
+			return zero(d.Signbit() != o.Signbit())
 		}
 	}
 
@@ -162,23 +162,23 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 	if oSig == (uint128{}) {
 		if dSig == (uint128{}) {
 			lhs := payloadValPosZero
-			if d.isNeg() {
+			if d.Signbit() {
 				lhs = payloadValNegZero
 			}
 
 			rhs := payloadValPosZero
-			if o.isNeg() {
+			if o.Signbit() {
 				rhs = payloadValNegZero
 			}
 
 			return nan(payloadOpQuo, lhs, rhs)
 		}
 
-		return inf(d.isNeg() != o.isNeg())
+		return inf(d.Signbit() != o.Signbit())
 	}
 
 	if dSig == (uint128{}) {
-		return zero(d.isNeg() != o.isNeg())
+		return zero(d.Signbit() != o.Signbit())
 	}
 
 	if dSig[1] == 0 {
@@ -234,7 +234,7 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 		trunc = 1
 	}
 
-	neg := d.isNeg() != o.isNeg()
+	neg := d.Signbit() != o.Signbit()
 	sig, exp = mode.reduce128(neg, sig, exp, trunc)
 
 	if exp > maxBiasedExponent {
@@ -264,13 +264,13 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 
 		if d.isInf() {
 			lhs := payloadValPosInfinite
-			if d.isNeg() {
+			if d.Signbit() {
 				lhs = payloadValNegInfinite
 			}
 
 			if o.isInf() {
 				rhs := payloadValPosInfinite
-				if o.isNeg() {
+				if o.Signbit() {
 					rhs = payloadValNegInfinite
 				}
 
@@ -280,20 +280,20 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 
 			rhs := payloadValPosFinite
 			if o.IsZero() {
-				if o.isNeg() {
+				if o.Signbit() {
 					rhs = payloadValNegZero
 				} else {
 					rhs = payloadValPosZero
 				}
-			} else if o.isNeg() {
+			} else if o.Signbit() {
 				rhs = payloadValNegFinite
 			}
 
-			return inf(d.isNeg() != o.isNeg()), nan(payloadOpQuoRem, lhs, rhs)
+			return inf(d.Signbit() != o.Signbit()), nan(payloadOpQuoRem, lhs, rhs)
 		}
 
 		if o.isInf() {
-			return zero(d.isNeg() != o.isNeg()), d
+			return zero(d.Signbit() != o.Signbit()), d
 		}
 	}
 
@@ -302,13 +302,13 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 
 	if oSig == (uint128{}) {
 		rhs := payloadValPosZero
-		if o.isNeg() {
+		if o.Signbit() {
 			rhs = payloadValNegZero
 		}
 
 		if dSig == (uint128{}) {
 			lhs := payloadValPosZero
-			if d.isNeg() {
+			if d.Signbit() {
 				lhs = payloadValNegZero
 			}
 
@@ -317,15 +317,15 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 		}
 
 		lhs := payloadValPosFinite
-		if d.isNeg() {
+		if d.Signbit() {
 			lhs = payloadValNegFinite
 		}
 
-		return inf(d.isNeg() != o.isNeg()), nan(payloadOpQuoRem, lhs, rhs)
+		return inf(d.Signbit() != o.Signbit()), nan(payloadOpQuoRem, lhs, rhs)
 	}
 
 	if dSig == (uint128{}) {
-		return zero(d.isNeg() != o.isNeg()), zero(d.isNeg())
+		return zero(d.Signbit() != o.Signbit()), zero(d.Signbit())
 	}
 
 	exp := (dExp - exponentBias) - (oExp - exponentBias)
@@ -347,7 +347,7 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 		}
 
 		if exp < 0 || oSig.cmp(dSig) > 0 {
-			return zero(d.isNeg() != o.isNeg()), d
+			return zero(d.Signbit() != o.Signbit()), d
 		}
 	} else if exp > 0 {
 		if exp >= 19 && dSig[1] == 0 {
@@ -430,10 +430,10 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 		}
 	}
 
-	qneg := d.isNeg() != o.isNeg()
+	qneg := d.Signbit() != o.Signbit()
 	qsig, qexp := mode.reduce128(qneg, sig, qexp, trunc)
 
-	rneg := d.isNeg()
+	rneg := d.Signbit()
 	rsig, rexp := mode.reduce128(rneg, rem, rexp, 0)
 
 	quo := compose(qneg, qsig, qexp)
@@ -468,9 +468,9 @@ func (d Decimal) SubWithMode(o Decimal, mode RoundingMode) Decimal {
 		}
 
 		if d.isInf() {
-			neg := d.isNeg()
+			neg := d.Signbit()
 
-			if o.isInf() && neg == o.isNeg() {
+			if o.isInf() && neg == o.Signbit() {
 				lhs := payloadValPosInfinite
 				rhs := payloadValPosInfinite
 				if neg {
@@ -484,7 +484,7 @@ func (d Decimal) SubWithMode(o Decimal, mode RoundingMode) Decimal {
 			return inf(neg)
 		}
 
-		return inf(!o.isNeg())
+		return inf(!o.Signbit())
 	}
 
 	return d.add(o, mode, true)
@@ -497,14 +497,14 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 	if dSig == (uint128{}) {
 		if oSig == (uint128{}) {
 			if subtract {
-				return zero(d.isNeg() && !o.isNeg())
+				return zero(d.Signbit() && !o.Signbit())
 			} else {
-				return zero(d.isNeg() && o.isNeg())
+				return zero(d.Signbit() && o.Signbit())
 			}
 		}
 
 		if subtract {
-			return compose(!o.isNeg(), oSig, oExp)
+			return compose(!o.Signbit(), oSig, oExp)
 		}
 
 		return o
@@ -636,8 +636,8 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 		}
 	}
 
-	dNeg := d.isNeg()
-	oNeg := o.isNeg()
+	dNeg := d.Signbit()
+	oNeg := o.Signbit()
 	if subtract {
 		oNeg = !oNeg
 	}

@@ -3,9 +3,9 @@ package decimal128
 // CmpResult represents the result from comparing two Decimals. When the values
 // being compared aren't NaNs, the integer value of the CmpResult will be:
 //
-//   -1 if x < y
-//    0 if x == y
-//   +1 if x > y
+//   -1 if lhs < rhs
+//    0 if lhs == rhs
+//   +1 if lhs > rhs
 //
 // The Equal, Greater, and Less methods can also be used to determine the
 // result. If either value is a NaN, then these methods will still behave
@@ -52,9 +52,9 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		}
 
 		if d.isInf() {
-			neg := d.isNeg()
+			neg := d.Signbit()
 
-			if o.isInf() && neg == o.isNeg() {
+			if o.isInf() && neg == o.Signbit() {
 				return cmpEqual
 			}
 
@@ -66,7 +66,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		}
 
 		if o.isInf() {
-			if o.isNeg() {
+			if o.Signbit() {
 				return cmpGreater
 			}
 
@@ -86,7 +86,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 			return cmpEqual
 		}
 
-		if o.isNeg() {
+		if o.Signbit() {
 			return cmpGreater
 		}
 
@@ -94,16 +94,16 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 	}
 
 	if oSig == (uint128{}) {
-		if d.isNeg() {
+		if d.Signbit() {
 			return cmpLess
 		}
 
 		return cmpGreater
 	}
 
-	neg := d.isNeg()
+	neg := d.Signbit()
 
-	if neg != o.isNeg() {
+	if neg != o.Signbit() {
 		if neg {
 			return cmpLess
 		}
@@ -371,7 +371,7 @@ func (d Decimal) Equal(o Decimal) bool {
 		}
 
 		if d.isInf() {
-			return o.isInf() && d.isNeg() == o.isNeg()
+			return o.isInf() && d.Signbit() == o.Signbit()
 		}
 
 		if o.isInf() {
@@ -394,7 +394,7 @@ func (d Decimal) Equal(o Decimal) bool {
 		return false
 	}
 
-	if d.isNeg() != o.isNeg() {
+	if d.Signbit() != o.Signbit() {
 		return false
 	}
 

@@ -246,7 +246,7 @@ func (d Decimal) String() string {
 
 func (d Decimal) digits() *digits {
 	digs := &digits{
-		neg: d.isNeg(),
+		neg: d.Signbit(),
 	}
 
 	sig, exp := d.decompose()
@@ -304,7 +304,7 @@ func (d Decimal) fmtSpecial(pad int, printSign, padSign, padRight, copyBuf bool)
 			buf = nanText
 		}
 	} else {
-		if d.isNeg() {
+		if d.Signbit() {
 			buf = negInfText
 		} else {
 			if padSign && !printSign {

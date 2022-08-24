@@ -224,7 +224,7 @@ func decimalToBig(v Decimal) *apd.Decimal {
 
 	if v.isInf() {
 		r.Form = apd.Infinite
-		r.Negative = v.isNeg()
+		r.Negative = v.Signbit()
 		return r
 	}
 
@@ -233,7 +233,7 @@ func decimalToBig(v Decimal) *apd.Decimal {
 		return r
 	}
 
-	r.Negative = v.isNeg()
+	r.Negative = v.Signbit()
 
 	sig, exp := v.decompose()
 	r.Exponent = int32(exp - exponentBias)
@@ -259,7 +259,7 @@ func decimalsEqual(x Decimal, y *apd.Decimal, mode apd.Rounder) bool {
 		}
 
 		if x.isInf() {
-			if y.Negative != x.isNeg() {
+			if y.Negative != x.Signbit() {
 				return false
 			}
 
@@ -278,7 +278,7 @@ func decimalsEqual(x Decimal, y *apd.Decimal, mode apd.Rounder) bool {
 		return false
 	}
 
-	if x.isNeg() != y.Negative {
+	if x.Signbit() != y.Negative {
 		// apd appears to always return -0 when rounding towards -infinity,
 		// even if the operands are themselves zero.
 		if x.IsZero() && y.Coeff.IsInt64() && y.Coeff.Int64() == 0 && mode == apd.RoundFloor {
@@ -328,7 +328,7 @@ func TestAbs(t *testing.T) {
 		absval.neg = false
 		absres := absval.Decimal()
 
-		if !(res.Equal(absres) || res.IsNaN() && absres.IsNaN()) && res.isNeg() == absres.isNeg() {
+		if !(res.Equal(absres) || res.IsNaN() && absres.IsNaN()) && res.Signbit() == absres.Signbit() {
 			t.Errorf("Abs(%v) = %v, want %v", val, res, absres)
 		}
 	}
@@ -355,11 +355,11 @@ func TestCompose(t *testing.T) {
 		}
 
 		if dec.IsNaN() {
-			t.Errorf("%v.isNaN() = true, want false", val)
+			t.Errorf("%v.IsNaN() = true, want false", val)
 		}
 
-		if dec.isNeg() != val.neg {
-			t.Errorf("%v.isNeg() = %t, want %t", val, dec.isNeg(), val.neg)
+		if dec.Signbit() != val.neg {
+			t.Errorf("%v.Signbit() = %t, want %t", val, dec.Signbit(), val.neg)
 		}
 
 		sig, exp := dec.decompose()
@@ -383,7 +383,7 @@ func TestDecimalNeg(t *testing.T) {
 		negval.neg = !val.neg
 		negres := negval.Decimal()
 
-		if !(res.Equal(negres) || res.IsNaN() && negres.IsNaN()) && res.isNeg() == negres.isNeg() {
+		if !(res.Equal(negres) || res.IsNaN() && negres.IsNaN()) && res.Signbit() == negres.Signbit() {
 			t.Errorf("%v.Neg() = %v, want %v", val, res, negval.Decimal())
 		}
 	}
@@ -403,11 +403,11 @@ func TestInf(t *testing.T) {
 	}
 
 	if dec.IsNaN() {
-		t.Errorf("%v.isNaN() = true, want false", dec)
+		t.Errorf("%v.IsNaN() = true, want false", dec)
 	}
 
-	if dec.isNeg() {
-		t.Errorf("%v.isNeg() = true, want false", dec)
+	if dec.Signbit() {
+		t.Errorf("%v.Signbit() = true, want false", dec)
 	}
 
 	dec = Inf(-1)
@@ -421,11 +421,11 @@ func TestInf(t *testing.T) {
 	}
 
 	if dec.IsNaN() {
-		t.Errorf("%v.isNaN() = true, want false", dec)
+		t.Errorf("%v.IsNaN() = true, want false", dec)
 	}
 
-	if !dec.isNeg() {
-		t.Errorf("%v.isNeg() = false, want true", dec)
+	if !dec.Signbit() {
+		t.Errorf("%v.Signbit() = false, want true", dec)
 	}
 }
 
@@ -443,7 +443,7 @@ func TestNaN(t *testing.T) {
 	}
 
 	if !dec.IsNaN() {
-		t.Errorf("%v.isNaN() = false, want true", dec)
+		t.Errorf("%v.IsNaN() = false, want true", dec)
 	}
 }
 
@@ -476,7 +476,7 @@ func FuzzDecimal(f *testing.F) {
 			}
 
 			sig, exp := dec.decompose()
-			res := compose(dec.isNeg(), sig, exp)
+			res := compose(dec.Signbit(), sig, exp)
 
 			if res != dec {
 				t.Fail()

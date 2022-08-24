@@ -20,7 +20,7 @@ func (d Decimal) Round(dp int, mode RoundingMode) Decimal {
 	sig, exp := d.decompose()
 
 	if sig == (uint128{}) {
-		return zero(d.isNeg())
+		return zero(d.Signbit())
 	}
 
 	dp = dp*-1 + exponentBias
@@ -31,7 +31,7 @@ func (d Decimal) Round(dp int, mode RoundingMode) Decimal {
 	}
 
 	if iexp < dp-maxDigits {
-		return zero(d.isNeg())
+		return zero(d.Signbit())
 	}
 
 	var trunc int8
@@ -45,13 +45,13 @@ func (d Decimal) Round(dp int, mode RoundingMode) Decimal {
 		sig, digit = sig.div10()
 
 		if sig == (uint128{}) && digit == 0 {
-			return zero(d.isNeg())
+			return zero(d.Signbit())
 		}
 
 		iexp++
 	}
 
-	neg := d.isNeg()
+	neg := d.Signbit()
 	sig, exp = mode.round(neg, sig, int16(iexp), trunc, digit)
 
 	if exp > maxBiasedExponent {

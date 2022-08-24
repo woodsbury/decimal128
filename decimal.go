@@ -107,10 +107,10 @@ func (d Decimal) IsInf(sign int) bool {
 	}
 
 	if sign > 0 {
-		return !d.isNeg()
+		return !d.Signbit()
 	}
 
-	return d.isNeg()
+	return d.Signbit()
 }
 
 // IsNaN reports whether d is a "not-a-number" value.
@@ -121,6 +121,34 @@ func (d Decimal) IsNaN() bool {
 // Neg returns d with its sign negated.
 func (d Decimal) Neg() Decimal {
 	return Decimal{d.lo, d.hi ^ 0x8000_0000_0000_0000}
+}
+
+// Sign returns:
+//
+//   -1 if d <   0
+//    0 if d is ±0
+//   +1 if d >   0
+//
+// It panics if d is NaN.
+func (d Decimal) Sign() int {
+	if d.IsNaN() {
+		panic("Decimal(NaN).Sign()")
+	}
+
+	if d.IsZero() {
+		return 0
+	}
+
+	if d.Signbit() {
+		return -1
+	}
+
+	return 1
+}
+
+// Signbit reports whether d is negative or negative zero.
+func (d Decimal) Signbit() bool {
+	return d.hi&0x8000_0000_0000_0000 == 0x8000_0000_0000_0000
 }
 
 func (d Decimal) decompose() (uint128, int16) {
@@ -140,10 +168,6 @@ func (d Decimal) decompose() (uint128, int16) {
 
 func (d Decimal) isInf() bool {
 	return d.hi&0x7c00_0000_0000_0000 == 0x7800_0000_0000_0000
-}
-
-func (d Decimal) isNeg() bool {
-	return d.hi&0x8000_0000_0000_0000 == 0x8000_0000_0000_0000
 }
 
 func (d Decimal) isSpecial() bool {
