@@ -3,7 +3,8 @@ package decimal128
 import "fmt"
 
 const (
-	payloadOpFromFloat32 Payload = iota + 1
+	payloadOpCompose Payload = iota + 1
+	payloadOpFromFloat32
 	payloadOpFromFloat64
 	payloadOpNaN
 	payloadOpParse
@@ -54,6 +55,8 @@ func (p Payload) String() string {
 	}
 
 	switch p & 0xff {
+	case payloadOpCompose:
+		return "Compose()"
 	case payloadOpFromFloat32:
 		return "FromFloat32()"
 	case payloadOpFromFloat64:

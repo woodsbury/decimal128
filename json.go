@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-// MarshalJSON implements the json.Marshaler interface.
+// MarshalJSON implements the [encoding/json.Marshaler] interface.
 func (d Decimal) MarshalJSON() ([]byte, error) {
 	if d.isSpecial() {
 		return nil, &json.UnsupportedValueError{
@@ -35,7 +35,7 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 	return digs.fmtF(prec, 0, false, false, false, false, false), nil
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface.
+// UnmarshalJSON implements the [encoding/json.Unmarshaler] interface.
 func (d *Decimal) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
 		return nil

@@ -2,10 +2,12 @@
 package decimal128
 
 const (
-	exponentBias      = 6176
-	maxBiasedExponent = 12287
-	minBiasedExponent = 0
-	maxDigits         = 35
+	exponentBias        = 6176
+	maxBiasedExponent   = 12287
+	maxUnbiasedExponent = maxBiasedExponent - exponentBias
+	minBiasedExponent   = 0
+	minUnbiasedExponent = minBiasedExponent - exponentBias
+	maxDigits           = 35
 )
 
 // Decimal represents a 128-bit decimal floating point value. The zero value

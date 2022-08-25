@@ -19,7 +19,7 @@ func Parse(s string) (Decimal, error) {
 	return parse(s, payloadOpParse)
 }
 
-// Scan implements the fmt.Scanner interface. It supports the verbs 'e', 'E',
+// Scan implements the [fmt.Scanner] interface. It supports the verbs 'e', 'E',
 // 'f', 'F', 'g', 'G', and 'v'.
 func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 	switch verb {
@@ -271,7 +271,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 	return nil
 }
 
-// UnmarshalText implements the encoding.TextUnmarshaler interface.
+// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
 func (d *Decimal) UnmarshalText(data []byte) error {
 	tmp, err := parse(data, payloadOpUnmarshalText)
 	if err != nil {

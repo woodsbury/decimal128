@@ -36,7 +36,7 @@ var (
 	}
 )
 
-// Format implements the fmt.Formatter interface. It supports the verbs 'e',
+// Format implements the [fmt.Formatter] interface. It supports the verbs 'e',
 // 'E', 'f', 'F', 'g', 'G', and 'v', along with the format flags '+', '-', '#',
 // ' ', and '0' and custom width and precision values. Decimal values interpret
 // the format value the same way float32 and float64 does.
@@ -190,7 +190,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 	}
 }
 
-// MarshalText implements the encoding.TextMarshaler interface.
+// MarshalText implements the [encoding.TextMarshaler] interface.
 func (d Decimal) MarshalText() ([]byte, error) {
 	if d.isSpecial() {
 		return d.fmtSpecial(0, false, false, false, true), nil
