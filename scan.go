@@ -7,6 +7,17 @@ import (
 	"strconv"
 )
 
+// MustParse is like Parse but panics if the provided string cannot be parsed,
+// instead of returning an error.
+func MustParse(s string) Decimal {
+	d, err := parse(s, payloadOpMustParse)
+	if err != nil {
+		panic("decimal128.MustParse(" + strconv.Quote(s) + "): invalid syntax")
+	}
+
+	return d
+}
+
 // Parse parses a Decimal value from the string provided. Parse accepts decimal
 // floating point syntax. An underscore character '_' may appear between digits
 // as a separator. Parse also recognises the string "NaN", and the (possibly

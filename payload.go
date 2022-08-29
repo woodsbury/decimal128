@@ -6,6 +6,7 @@ const (
 	payloadOpCompose Payload = iota + 1
 	payloadOpFromFloat32
 	payloadOpFromFloat64
+	payloadOpMustParse
 	payloadOpNaN
 	payloadOpParse
 	payloadOpScan
@@ -61,6 +62,8 @@ func (p Payload) String() string {
 		return "FromFloat32()"
 	case payloadOpFromFloat64:
 		return "FromFloat64()"
+	case payloadOpMustParse:
+		return "MustParse()"
 	case payloadOpNaN:
 		return "NaN()"
 	case payloadOpParse:

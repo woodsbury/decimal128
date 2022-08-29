@@ -166,9 +166,6 @@ func TestDecimalComposeSQL(t *testing.T) {
 
 		var resval Decimal
 		err = rows.Scan(&resval)
-		if err := rows.Scan(&resval); err != nil {
-			t.Fatalf("sql.Rows.Scan() = %v, want <nil>", err)
-		}
 
 		if !(decval.Equal(resval) || decval.IsNaN() == resval.IsNaN()) || err != nil {
 			t.Errorf("sql.Rows.Scan() = (%v, %v), want (%v, <nil>)", resval, err, resval)
