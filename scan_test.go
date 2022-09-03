@@ -55,3 +55,21 @@ func TestParse(t *testing.T) {
 		}
 	}
 }
+
+func FuzzParse(f *testing.F) {
+	f.Add("123_456.789e10")
+	f.Add("+Inf")
+	f.Add("-Inf")
+	f.Add("NaN")
+
+	f.Fuzz(func(t *testing.T, s string) {
+		t.Parallel()
+
+		dec, err := Parse(s)
+		if err != nil {
+			return
+		}
+
+		_ = dec.String()
+	})
+}

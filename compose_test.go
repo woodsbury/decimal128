@@ -172,3 +172,26 @@ func TestDecimalComposeSQL(t *testing.T) {
 		}
 	}
 }
+
+func FuzzDecimalCompose(f *testing.F) {
+	f.Add(byte(0), false, []byte{0, 1}, int32(0))
+	f.Add(byte(1), false, []byte{0, 1}, int32(0))
+	f.Add(byte(2), false, []byte{0, 1}, int32(0))
+
+	f.Fuzz(func(t *testing.T, form byte, neg bool, sig []byte, exp int32) {
+		t.Parallel()
+
+		form %= 3
+
+		var dec Decimal
+		if err := dec.Compose(form, neg, sig, exp); err != nil {
+			return
+		}
+
+		decform, decneg, _, _ := dec.Decompose(nil)
+
+		if decform != form || (decform != 2 && decneg != neg) {
+			t.Fail()
+		}
+	})
+}

@@ -65,7 +65,7 @@ func (d *Decimal) Compose(form byte, neg bool, sig []byte, exp int32) error {
 		}
 
 		var sig128 uint128
-		if l > 16 {
+		if l := len(sig); l > 16 {
 			if exp > maxUnbiasedExponent {
 				return &composeRangeError{}
 			}
@@ -114,7 +114,7 @@ func (d *Decimal) Compose(form byte, neg bool, sig []byte, exp int32) error {
 		} else {
 			sig128[0] = uint64(sig[0])
 
-			for i := 1; i < l; i++ {
+			for i := 1; i < len(sig); i++ {
 				sig128 = sig128.lsh(8)
 				sig128[0] |= uint64(sig[i])
 			}
