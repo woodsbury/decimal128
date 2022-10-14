@@ -2,6 +2,7 @@ package decimal128
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -39,6 +40,26 @@ func TestDecimalMarshalJSON(t *testing.T) {
 			if string(fltres) != string(res) {
 				t.Errorf("%v.MarshalJSON() = (%s, <nil>), want (%s, <nil>)", val, res, fltres)
 			}
+		}
+	}
+}
+
+func TestDecimalUnmarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	for val, num := range textValues {
+		if num.isInf() || num.IsNaN() {
+			continue
+		}
+
+		if strings.Contains(val, "_") {
+			continue
+		}
+
+		var res Decimal
+		err := res.UnmarshalJSON([]byte(val))
+		if !res.Equal(num) || err != nil {
+			t.Errorf("Decimal.UnmarshalJSON(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 	}
 }

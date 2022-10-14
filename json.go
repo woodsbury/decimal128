@@ -103,8 +103,16 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 					if sawdot {
 						nfrac++
 					}
-				} else if c != '0' {
-					trunc = 1
+				} else {
+					if c != '0' {
+						trunc = 1
+					}
+
+					if !sawdot {
+						if exp < exponentBias+39 {
+							nfrac--
+						}
+					}
 				}
 			}
 		case c == '.':
