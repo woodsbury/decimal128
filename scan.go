@@ -199,8 +199,16 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 					if sawdot {
 						nfrac++
 					}
-				} else if r != '0' {
-					trunc = 1
+				} else {
+					if r != '0' {
+						trunc = 1
+					}
+
+					if !sawdot {
+						if exp < exponentBias+39 {
+							exp++
+						}
+					}
 				}
 			}
 		case r == '.':
@@ -373,8 +381,16 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 					if sawdot {
 						nfrac++
 					}
-				} else if c != '0' {
-					trunc = 1
+				} else {
+					if c != '0' {
+						trunc = 1
+					}
+
+					if !sawdot {
+						if exp < exponentBias+39 {
+							exp++
+						}
+					}
 				}
 			}
 		case c == '.':

@@ -6,19 +6,23 @@ import (
 )
 
 var textValues = map[string]Decimal{
-	"0":              zero(false),
-	"+0":             zero(false),
-	"-0":             zero(true),
+	"0":  zero(false),
+	"+0": zero(false),
+	"-0": zero(true),
+	"0.00000000000000000000000000000000000005e-6150": zero(false),
 	"1":              compose(false, uint128{1, 0}, exponentBias),
 	"-1e1":           compose(true, uint128{10, 0}, exponentBias),
 	"-1_23e1_0":      compose(true, uint128{123, 0}, exponentBias+10),
 	"00123.45600e10": compose(false, uint128{123456, 0}, exponentBias+7),
 	"123.456e-10":    compose(false, uint128{123456, 0}, exponentBias-13),
-	"inf":            inf(false),
-	"+Inf":           inf(false),
-	"-Infinity":      inf(true),
-	"nan":            NaN(),
-	"NaN":            NaN(),
+	"0.00000000000000000000000000000000000005":     compose(false, uint128{5, 0}, exponentBias-38),
+	"500000000000000000000000000000000000000":      compose(false, uint128{5, 0}, exponentBias+38),
+	"500000000000000000000000000000000000000e6150": inf(false),
+	"inf":       inf(false),
+	"+Inf":      inf(false),
+	"-Infinity": inf(true),
+	"nan":       NaN(),
+	"NaN":       NaN(),
 }
 
 func TestDecimalScan(t *testing.T) {
