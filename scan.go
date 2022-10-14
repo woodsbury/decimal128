@@ -206,7 +206,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 
 					if !sawdot {
 						if exp < exponentBias+39 {
-							exp++
+							nfrac--
 						}
 					}
 				}
@@ -388,7 +388,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 
 					if !sawdot {
 						if exp < exponentBias+39 {
-							exp++
+							nfrac--
 						}
 					}
 				}
