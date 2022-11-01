@@ -127,9 +127,9 @@ func (d Decimal) Neg() Decimal {
 
 // Sign returns:
 //
-//   -1 if d <   0
-//    0 if d is ±0
-//   +1 if d >   0
+//	-1 if d <   0
+//	 0 if d is ±0
+//	+1 if d >   0
 //
 // It panics if d is NaN.
 func (d Decimal) Sign() int {

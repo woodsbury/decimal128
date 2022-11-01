@@ -3,9 +3,9 @@ package decimal128
 // CmpResult represents the result from comparing two Decimals. When the values
 // being compared aren't NaNs, the integer value of the CmpResult will be:
 //
-//   -1 if lhs < rhs
-//    0 if lhs == rhs
-//   +1 if lhs > rhs
+//	-1 if lhs < rhs
+//	 0 if lhs == rhs
+//	+1 if lhs > rhs
 //
 // The Equal, Greater, and Less methods can also be used to determine the
 // result. If either value is a NaN, then these methods will still behave

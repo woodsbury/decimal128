@@ -64,6 +64,20 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestParseDecimal(t *testing.T) {
+	t.Parallel()
+
+	for val, num := range textValues {
+		if num.IsNaN() || num.IsInf(0) {
+			continue
+		}
+		res, err := ParseDecimal(fmt.Sprintf("%.12287f", num))
+		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+			t.Errorf("Parse(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
+		}
+	}
+}
+
 func FuzzParse(f *testing.F) {
 	f.Add("123_456.789e10")
 	f.Add("+Inf")

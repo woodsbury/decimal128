@@ -1,6 +1,7 @@
 package decimal128
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -28,6 +29,34 @@ func MustParse(s string) Decimal {
 // the DefaultRoundingMode.
 func Parse(s string) (Decimal, error) {
 	return parse(s, payloadOpParse)
+}
+
+// ParseDecimal parses a Decimal value from the string provided. ParseDecimal
+// accepts only decimal floating point syntax (i.e. "±nnnn.mmmm") and is therefore
+// faster than Parse. ParseDecimal falls back to Parse for large strings (longer
+// than 18 characters without decimal point and sign for a 64-bit int and longer
+// than 9 characters for a 32-bit int).
+func ParseDecimal(s string) (Decimal, error) {
+	if len(s) > 18 || (strconv.IntSize == 32 && len(s) > 9) {
+		return parse(s, payloadOpParse)
+	}
+
+	intString := []byte(s)
+	var exp int
+	if idx := bytes.IndexByte(intString, '.'); idx != -1 {
+		if idx+1 < len(s) {
+			copy(intString[idx:], intString[idx+1:])
+		}
+		intString = intString[:len(intString)-1]
+		exp = -len(s[idx+1:])
+	}
+
+	sig, err := btoi(intString)
+	if err != nil {
+		return Decimal{}, err
+	}
+
+	return New(sig, exp), nil
 }
 
 // Scan implements the [fmt.Scanner] interface. It supports the verbs 'e', 'E',
@@ -480,4 +509,33 @@ type scanError struct{}
 
 func (err *scanError) Error() string {
 	return "expected decimal"
+}
+
+// btoi is the version of strconv.Atoi for []byte.
+func btoi(s []byte) (int64, error) {
+	if len(s) == 0 {
+		return 0, &parseError{string(s)}
+	}
+
+	s0 := s
+	if s[0] == '-' || s[0] == '+' {
+		s = s[1:]
+		if len(s) < 1 {
+			return 0, &parseError{string(s)}
+		}
+	}
+
+	var n int64
+	for _, ch := range s {
+		ch -= '0'
+		if ch > 9 {
+			return 0, &parseError{string(s)}
+		}
+		n = n*10 + int64(ch)
+	}
+	if s0[0] == '-' {
+		n = -n
+	}
+
+	return n, nil
 }
