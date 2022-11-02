@@ -57,8 +57,7 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 		i = 1
 	}
 
-	var sig uint128
-	var exp int16
+	var sig64 uint64
 	var nfrac int16
 	var trunc int8
 	caneof := false
@@ -67,6 +66,61 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 	sawdig := false
 	sawdot := false
 	sawexp := false
+
+	for ; !sawexp && sig64 < 0x18ff_ffff_ffff_ffff && i < l; i++ {
+		switch c := data[i]; true {
+		case c >= '0' && c <= '9':
+			caneof = true
+			cansgn = false
+			sawdig = true
+
+			sig64 = sig64*10 + uint64(c-'0')
+
+			if sawdot {
+				nfrac++
+			}
+		case c == '.':
+			if sawdot {
+				return &json.UnmarshalTypeError{
+					Value: "number " + string(data),
+					Type:  reflect.TypeOf(Decimal{}),
+				}
+			}
+
+			caneof = true
+			cansgn = false
+			sawdot = true
+		case c == 'E' || c == 'e':
+			if !sawdig {
+				return &json.UnmarshalTypeError{
+					Value: "number " + string(data),
+					Type:  reflect.TypeOf(Decimal{}),
+				}
+			}
+
+			caneof = true
+			cansgn = true
+			sawexp = true
+		default:
+			err := &json.UnmarshalTypeError{
+				Type: reflect.TypeOf(Decimal{}),
+			}
+
+			switch data[0] {
+			case 'f', 't':
+				err.Value = "bool"
+			case '"':
+				err.Value = "string"
+			default:
+				err.Value = "number " + string(data)
+			}
+
+			return err
+		}
+	}
+
+	sig := uint128{sig64, 0}
+	var exp int16
 
 	for ; i < l; i++ {
 		switch c := data[i]; true {

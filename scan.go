@@ -130,8 +130,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 
 	f.UnreadRune()
 
-	var sig uint128
-	var exp int16
+	var sig64 uint64
 	var nfrac int16
 	var trunc int8
 	caneof := false
@@ -140,13 +139,15 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 	eneg := false
 	sawdig := false
 	sawdot := false
+	saweof := false
 	sawexp := false
 
-	for {
+	for !sawexp && sig64 < 0x18ff_ffff_ffff_ffff {
 		r, _, err = f.ReadRune()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				if caneof {
+					saweof = true
 					break
 				}
 
@@ -163,56 +164,13 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			cansgn = false
 			sawdig = true
 
-			if sawexp {
-				if exp < exponentBias+39 {
-					exp *= 10
-					exp += int16(r - '0')
-				}
-			} else {
-				if sig[1] <= 0x18ff_ffff_ffff_ffff {
-					if sig[1] <= 0x027f_ffff_ffff_ffff {
-						var r2 rune
-						r2, _, err = f.ReadRune()
-						if err == nil {
-							if r2 >= '0' && r2 <= '9' {
-								sig = sig.mul64(100)
-								sig = sig.add64(uint64(r-'0')*10 + uint64(r2-'0'))
+			sig64 = sig64*10 + uint64(r-'0')
 
-								if sawdot {
-									nfrac += 2
-								}
-
-								continue
-							} else {
-								if err = f.UnreadRune(); err != nil {
-									return err
-								}
-							}
-						} else if !errors.Is(err, io.EOF) {
-							return err
-						}
-					}
-
-					sig = sig.mul64(10)
-					sig = sig.add64(uint64(r - '0'))
-
-					if sawdot {
-						nfrac++
-					}
-				} else {
-					if r != '0' {
-						trunc = 1
-					}
-
-					if !sawdot {
-						if exp < exponentBias+39 {
-							nfrac--
-						}
-					}
-				}
+			if sawdot {
+				nfrac++
 			}
 		case r == '.':
-			if sawdot || sawexp {
+			if sawdot {
 				return &scanError{}
 			}
 
@@ -221,7 +179,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			cansgn = false
 			sawdot = true
 		case r == 'E' || r == 'e':
-			if !sawdig || sawexp {
+			if !sawdig {
 				return &scanError{}
 			}
 
@@ -229,15 +187,6 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			cansep = false
 			cansgn = true
 			sawexp = true
-		case r == '-':
-			if !cansgn {
-				return &scanError{}
-			}
-
-			caneof = false
-			cansep = false
-			cansgn = false
-			eneg = true
 		case r == '_':
 			if !cansep {
 				return &scanError{}
@@ -246,16 +195,130 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			caneof = false
 			cansep = false
 			cansgn = false
-		case r == '+':
-			if !cansgn {
-				return &scanError{}
-			}
-
-			caneof = false
-			cansep = false
-			cansgn = false
 		default:
 			return &scanError{}
+		}
+	}
+
+	sig := uint128{sig64, 0}
+	var exp int16
+
+	if !saweof {
+		for {
+			r, _, err = f.ReadRune()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					if caneof {
+						break
+					}
+
+					return io.ErrUnexpectedEOF
+				}
+
+				return err
+			}
+
+			switch true {
+			case r >= '0' && r <= '9':
+				caneof = true
+				cansep = true
+				cansgn = false
+				sawdig = true
+
+				if sawexp {
+					if exp < exponentBias+39 {
+						exp *= 10
+						exp += int16(r - '0')
+					}
+				} else {
+					if sig[1] <= 0x18ff_ffff_ffff_ffff {
+						if sig[1] <= 0x027f_ffff_ffff_ffff {
+							var r2 rune
+							r2, _, err = f.ReadRune()
+							if err == nil {
+								if r2 >= '0' && r2 <= '9' {
+									sig = sig.mul64(100)
+									sig = sig.add64(uint64(r-'0')*10 + uint64(r2-'0'))
+
+									if sawdot {
+										nfrac += 2
+									}
+
+									continue
+								} else {
+									if err = f.UnreadRune(); err != nil {
+										return err
+									}
+								}
+							} else if !errors.Is(err, io.EOF) {
+								return err
+							}
+						}
+
+						sig = sig.mul64(10)
+						sig = sig.add64(uint64(r - '0'))
+
+						if sawdot {
+							nfrac++
+						}
+					} else {
+						if r != '0' {
+							trunc = 1
+						}
+
+						if !sawdot {
+							if exp < exponentBias+39 {
+								nfrac--
+							}
+						}
+					}
+				}
+			case r == '.':
+				if sawdot || sawexp {
+					return &scanError{}
+				}
+
+				caneof = true
+				cansep = false
+				cansgn = false
+				sawdot = true
+			case r == 'E' || r == 'e':
+				if !sawdig || sawexp {
+					return &scanError{}
+				}
+
+				caneof = false
+				cansep = false
+				cansgn = true
+				sawexp = true
+			case r == '-':
+				if !cansgn {
+					return &scanError{}
+				}
+
+				caneof = false
+				cansep = false
+				cansgn = false
+				eneg = true
+			case r == '_':
+				if !cansep {
+					return &scanError{}
+				}
+
+				caneof = false
+				cansep = false
+				cansgn = false
+			case r == '+':
+				if !cansgn {
+					return &scanError{}
+				}
+
+				caneof = false
+				cansep = false
+				cansgn = false
+			default:
+				return &scanError{}
+			}
 		}
 	}
 
@@ -333,8 +396,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 		}
 	}
 
-	var sig uint128
-	var exp int16
+	var sig64 uint64
 	var nfrac int16
 	var trunc int8
 	caneof := false
@@ -345,7 +407,55 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	sawdot := false
 	sawexp := false
 
-	for i := 0; i < l; i++ {
+	i := 0
+	for ; !sawexp && sig64 <= 0x18ff_ffff_ffff_ffff && i < l; i++ {
+		switch c := d[i]; true {
+		case c >= '0' && c <= '9':
+			caneof = true
+			cansep = true
+			cansgn = false
+			sawdig = true
+
+			sig64 = sig64*10 + uint64(c-'0')
+
+			if sawdot {
+				nfrac++
+			}
+		case c == '.':
+			if sawdot {
+				return Decimal{}, &parseError{string(d)}
+			}
+
+			caneof = true
+			cansep = false
+			cansgn = false
+			sawdot = true
+		case c == 'E' || c == 'e':
+			if !sawdig {
+				return Decimal{}, &parseError{string(d)}
+			}
+
+			caneof = false
+			cansep = false
+			cansgn = true
+			sawexp = true
+		case c == '_':
+			if !cansep {
+				return Decimal{}, &parseError{string(d)}
+			}
+
+			caneof = false
+			cansep = false
+			cansgn = false
+		default:
+			return Decimal{}, &parseError{string(d)}
+		}
+	}
+
+	sig := uint128{sig64, 0}
+	var exp int16
+
+	for ; i < l; i++ {
 		switch c := d[i]; true {
 		case c >= '0' && c <= '9':
 			caneof = true
