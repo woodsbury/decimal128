@@ -492,22 +492,25 @@ func (d *digits) pad(buf []byte, pad int, printSign, padSign, padRight, padZero 
 			buf = append(buf, padChar)
 		}
 	} else {
-		tmp := make([]byte, pad)
+		// Determine where to keep the sign.
 		i := 0
-
 		if padZero && (d.neg || printSign || padSign) {
-			tmp[0] = buf[0]
-			buf = buf[1:]
 			i = 1
 			p++
 		}
 
-		for ; i < p; i++ {
-			tmp[i] = padChar
+		// Grow buf until it fits the nb + padding.
+		for len(buf) < pad {
+			buf = append(buf, 0)
 		}
 
-		copy(tmp[p:], buf)
-		buf = tmp
+		// Move the existing number to the end of the buffer.
+		copy(buf[p:], buf[i:])
+
+		// Fill left-padding chars.
+		for ; i < p; i++ {
+			buf[i] = padChar
+		}
 	}
 
 	return buf
