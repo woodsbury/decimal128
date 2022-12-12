@@ -413,36 +413,7 @@ func (d *digits) fmtE(prec, pad int, forceDP, printSign, padSign, padExp, padRig
 		buf = append(buf, '0'+byte(exp/1000), '0'+byte(exp/100%10), '0'+byte(exp/10%10), '0'+byte(exp%10))
 	}
 
-	if p := pad - len(buf); p > 0 {
-		padChar := byte(' ')
-		if padZero {
-			padChar = byte('0')
-		}
-
-		if padRight {
-			for i := 0; i < p; i++ {
-				buf = append(buf, padChar)
-			}
-		} else {
-			tmp := make([]byte, pad)
-			i := 0
-
-			if padZero && (d.neg || printSign || padSign) {
-				tmp[0] = buf[0]
-				buf = buf[1:]
-				i = 1
-				p++
-			}
-
-			for ; i < p; i++ {
-				tmp[i] = padChar
-			}
-
-			copy(tmp[p:], buf)
-			buf = tmp
-		}
-	}
-
+	buf = d.pad(buf, pad, printSign, padSign, padRight, padZero)
 	return buf
 }
 
@@ -499,34 +470,44 @@ func (d *digits) fmtF(prec, pad int, forceDP, printSign, padSign, padRight, padZ
 		buf = append(buf, '.')
 	}
 
-	if p := pad - len(buf); p > 0 {
-		padChar := byte(' ')
-		if padZero {
-			padChar = byte('0')
+	buf = d.pad(buf, pad, printSign, padSign, padRight, padZero)
+	return buf
+}
+
+// pad adds padding to the passed buf.
+func (d *digits) pad(buf []byte, pad int, printSign, padSign, padRight, padZero bool) []byte {
+	p := pad - len(buf)
+	if p <= 0 {
+		// No need for padding.
+		return buf
+	}
+
+	padChar := byte(' ')
+	if padZero {
+		padChar = byte('0')
+	}
+
+	if padRight {
+		for i := 0; i < p; i++ {
+			buf = append(buf, padChar)
+		}
+	} else {
+		tmp := make([]byte, pad)
+		i := 0
+
+		if padZero && (d.neg || printSign || padSign) {
+			tmp[0] = buf[0]
+			buf = buf[1:]
+			i = 1
+			p++
 		}
 
-		if padRight {
-			for i := 0; i < p; i++ {
-				buf = append(buf, padChar)
-			}
-		} else {
-			tmp := make([]byte, pad)
-			i := 0
-
-			if padZero && (d.neg || printSign || padSign) {
-				tmp[0] = buf[0]
-				buf = buf[1:]
-				i = 1
-				p++
-			}
-
-			for ; i < p; i++ {
-				tmp[i] = padChar
-			}
-
-			copy(tmp[p:], buf)
-			buf = tmp
+		for ; i < p; i++ {
+			tmp[i] = padChar
 		}
+
+		copy(tmp[p:], buf)
+		buf = tmp
 	}
 
 	return buf
