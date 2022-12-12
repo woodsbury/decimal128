@@ -355,6 +355,15 @@ type digits struct {
 func (d *digits) fmtE(prec, pad int, forceDP, printSign, padSign, padExp, padRight, padZero bool, e byte) []byte {
 	var buf []byte
 
+	// Attempt to pre-size buffer to avoid multiple allocations. Currently,
+	// this might overshoot the actual needed size. Calculation is:
+	// sign + decimal separator + exponent + signficant digits + padding.
+	sizeHint := 1 + 1 + 5 + d.ndig
+	if pad > sizeHint {
+		sizeHint = pad
+	}
+	buf = make([]byte, 0, sizeHint)
+
 	if d.neg {
 		buf = append(buf, '-')
 	} else if printSign {
@@ -419,6 +428,15 @@ func (d *digits) fmtE(prec, pad int, forceDP, printSign, padSign, padExp, padRig
 
 func (d *digits) fmtF(prec, pad int, forceDP, printSign, padSign, padRight, padZero bool) []byte {
 	var buf []byte
+
+	// Attempt to pre-size buffer to avoid multiple allocations. Currently,
+	// this might overshoot the actual needed size. Calculation is:
+	// sign + decimal separator + signficant digits + padding.
+	sizeHint := 1 + 1 + d.ndig
+	if pad > sizeHint {
+		sizeHint = pad
+	}
+	buf = make([]byte, 0, sizeHint)
 
 	if d.neg {
 		buf = append(buf, '-')
