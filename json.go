@@ -14,7 +14,8 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	digs := d.digits()
+	var digs digits
+	d.digits(&digs)
 
 	prec := 0
 	if digs.ndig != 0 {

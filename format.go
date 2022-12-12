@@ -60,7 +60,8 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 		return
 	}
 
-	digs := d.digits()
+	var digs digits
+	d.digits(&digs)
 	prec, hasPrec := f.Precision()
 
 	switch verb {
@@ -196,7 +197,8 @@ func (d Decimal) MarshalText() ([]byte, error) {
 		return d.fmtSpecial(0, false, false, false, true), nil
 	}
 
-	digs := d.digits()
+	var digs digits
+	d.digits(&digs)
 
 	prec := 0
 	if digs.ndig != 0 {
@@ -223,7 +225,8 @@ func (d Decimal) String() string {
 		return string(d.fmtSpecial(0, false, false, false, false))
 	}
 
-	digs := d.digits()
+	var digs digits
+	d.digits(&digs)
 
 	prec := 0
 	if digs.ndig != 0 {
@@ -244,10 +247,9 @@ func (d Decimal) String() string {
 	return string(digs.fmtF(prec, 0, false, false, false, false, false))
 }
 
-func (d Decimal) digits() *digits {
-	digs := &digits{
-		neg: d.Signbit(),
-	}
+func (d Decimal) digits(digs *digits) {
+	*digs = digits{}
+	digs.neg = d.Signbit()
 
 	sig, exp := d.decompose()
 
@@ -288,8 +290,6 @@ func (d Decimal) digits() *digits {
 
 		digs.ndig = n
 	}
-
-	return digs
 }
 
 func (d Decimal) fmtSpecial(pad int, printSign, padSign, padRight, copyBuf bool) []byte {
