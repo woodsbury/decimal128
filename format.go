@@ -60,7 +60,8 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 		return
 	}
 
-	digs := d.digits()
+	var digs digits
+	d.digits(&digs)
 	prec, hasPrec := f.Precision()
 
 	switch verb {
@@ -196,7 +197,8 @@ func (d Decimal) MarshalText() ([]byte, error) {
 		return d.fmtSpecial(0, false, false, false, true), nil
 	}
 
-	digs := d.digits()
+	var digs digits
+	d.digits(&digs)
 
 	prec := 0
 	if digs.ndig != 0 {
@@ -223,7 +225,8 @@ func (d Decimal) String() string {
 		return string(d.fmtSpecial(0, false, false, false, false))
 	}
 
-	digs := d.digits()
+	var digs digits
+	d.digits(&digs)
 
 	prec := 0
 	if digs.ndig != 0 {
@@ -244,10 +247,9 @@ func (d Decimal) String() string {
 	return string(digs.fmtF(prec, 0, false, false, false, false, false))
 }
 
-func (d Decimal) digits() *digits {
-	digs := &digits{
-		neg: d.Signbit(),
-	}
+func (d Decimal) digits(digs *digits) {
+	*digs = digits{}
+	digs.neg = d.Signbit()
 
 	sig, exp := d.decompose()
 
@@ -288,8 +290,6 @@ func (d Decimal) digits() *digits {
 
 		digs.ndig = n
 	}
-
-	return digs
 }
 
 func (d Decimal) fmtSpecial(pad int, printSign, padSign, padRight, copyBuf bool) []byte {
@@ -355,6 +355,15 @@ type digits struct {
 func (d *digits) fmtE(prec, pad int, forceDP, printSign, padSign, padExp, padRight, padZero bool, e byte) []byte {
 	var buf []byte
 
+	// Attempt to pre-size buffer to avoid multiple allocations. Currently,
+	// this might overshoot the actual needed size. Calculation is:
+	// sign + decimal separator + exponent + signficant digits + padding.
+	sizeHint := 1 + 1 + 5 + d.ndig
+	if pad > sizeHint {
+		sizeHint = pad
+	}
+	buf = make([]byte, 0, sizeHint)
+
 	if d.neg {
 		buf = append(buf, '-')
 	} else if printSign {
@@ -413,41 +422,21 @@ func (d *digits) fmtE(prec, pad int, forceDP, printSign, padSign, padExp, padRig
 		buf = append(buf, '0'+byte(exp/1000), '0'+byte(exp/100%10), '0'+byte(exp/10%10), '0'+byte(exp%10))
 	}
 
-	if p := pad - len(buf); p > 0 {
-		padChar := byte(' ')
-		if padZero {
-			padChar = byte('0')
-		}
-
-		if padRight {
-			for i := 0; i < p; i++ {
-				buf = append(buf, padChar)
-			}
-		} else {
-			tmp := make([]byte, pad)
-			i := 0
-
-			if padZero && (d.neg || printSign || padSign) {
-				tmp[0] = buf[0]
-				buf = buf[1:]
-				i = 1
-				p++
-			}
-
-			for ; i < p; i++ {
-				tmp[i] = padChar
-			}
-
-			copy(tmp[p:], buf)
-			buf = tmp
-		}
-	}
-
+	buf = d.pad(buf, pad, printSign, padSign, padRight, padZero)
 	return buf
 }
 
 func (d *digits) fmtF(prec, pad int, forceDP, printSign, padSign, padRight, padZero bool) []byte {
 	var buf []byte
+
+	// Attempt to pre-size buffer to avoid multiple allocations. Currently,
+	// this might overshoot the actual needed size. Calculation is:
+	// sign + decimal separator + signficant digits + padding.
+	sizeHint := 1 + 1 + d.ndig
+	if pad > sizeHint {
+		sizeHint = pad
+	}
+	buf = make([]byte, 0, sizeHint)
 
 	if d.neg {
 		buf = append(buf, '-')
@@ -499,33 +488,46 @@ func (d *digits) fmtF(prec, pad int, forceDP, printSign, padSign, padRight, padZ
 		buf = append(buf, '.')
 	}
 
-	if p := pad - len(buf); p > 0 {
-		padChar := byte(' ')
-		if padZero {
-			padChar = byte('0')
+	buf = d.pad(buf, pad, printSign, padSign, padRight, padZero)
+	return buf
+}
+
+// pad adds padding to the passed buf.
+func (d *digits) pad(buf []byte, pad int, printSign, padSign, padRight, padZero bool) []byte {
+	p := pad - len(buf)
+	if p <= 0 {
+		// No need for padding.
+		return buf
+	}
+
+	padChar := byte(' ')
+	if padZero {
+		padChar = byte('0')
+	}
+
+	if padRight {
+		for i := 0; i < p; i++ {
+			buf = append(buf, padChar)
+		}
+	} else {
+		// Determine where to keep the sign.
+		i := 0
+		if padZero && (d.neg || printSign || padSign) {
+			i = 1
+			p++
 		}
 
-		if padRight {
-			for i := 0; i < p; i++ {
-				buf = append(buf, padChar)
-			}
-		} else {
-			tmp := make([]byte, pad)
-			i := 0
+		// Grow buf until it fits the nb + padding.
+		for len(buf) < pad {
+			buf = append(buf, 0)
+		}
 
-			if padZero && (d.neg || printSign || padSign) {
-				tmp[0] = buf[0]
-				buf = buf[1:]
-				i = 1
-				p++
-			}
+		// Move the existing number to the end of the buffer.
+		copy(buf[p:], buf[i:])
 
-			for ; i < p; i++ {
-				tmp[i] = padChar
-			}
-
-			copy(tmp[p:], buf)
-			buf = tmp
+		// Fill left-padding chars.
+		for ; i < p; i++ {
+			buf[i] = padChar
 		}
 	}
 
