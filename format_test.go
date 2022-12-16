@@ -1,6 +1,7 @@
 package decimal128
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"strconv"
@@ -255,6 +256,69 @@ func BenchmarkFormat(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
 				fmt.Fprintf(w, tc.fmt, vptr)
+			}
+		})
+	}
+}
+
+// BenchmarkAppend benchmarks appending using the various format specifiers.
+func BenchmarkAppend(b *testing.B) {
+	tests := []struct {
+		name string
+		txt  string
+		fmt  string
+		want string
+	}{{
+		name: "large number f format",
+		txt:  "12345678901234.67890123456789012345",
+		fmt:  "%f",
+		want: "12345678901234.678901",
+	}, {
+		name: "large number e format",
+		txt:  "12345678901234.67890123456789012345",
+		fmt:  "%e",
+		want: "1.234568e+13",
+	}, {
+		name: "large number padding f format",
+		txt:  "12345678901234.67890123456789012345",
+		fmt:  "%80.40f",
+		want: "                         12345678901234.6789012345678901234500000000000000000000",
+	}, {
+		name: "large number padding e format",
+		txt:  "12345678901234.67890123456789012345",
+		fmt:  "%80.40e",
+		want: "                                  1.2345678901234678901234567890123450000000e+13",
+	}, {
+		name: "special",
+		txt:  "nan",
+		fmt:  "%f",
+		want: "NaN",
+	}, {
+		name: "special with padding",
+		txt:  "nan",
+		fmt:  "%80.40f",
+		want: "                                                                             NaN",
+	}}
+
+	for _, tc := range tests {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Ensure correctness of test case before benchmarking.
+			v := MustParse(tc.txt)
+			format := mustParseFmtFormat(tc.fmt)
+			want := []byte(tc.want)
+			buf := v.Append(nil, format)
+			if !bytes.Equal(buf, want) {
+				b.Fatalf("Unexpected formatted value. got %s, "+
+					"want %s", string(buf), tc.want)
+			}
+			buf = buf[:0]
+
+			// Benchmark.
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				_ = v.Append(buf, format)
 			}
 		})
 	}

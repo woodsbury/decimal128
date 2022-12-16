@@ -2,6 +2,8 @@ package decimal128
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 var (
@@ -36,33 +38,30 @@ var (
 	}
 )
 
-// Format implements the [fmt.Formatter] interface. It supports the verbs 'e',
-// 'E', 'f', 'F', 'g', 'G', and 'v', along with the format flags '+', '-', '#',
-// ' ', and '0' and custom width and precision values. Decimal values interpret
-// the format value the same way float32 and float64 does.
-func (d Decimal) Format(f fmt.State, verb rune) {
-	width, hasWidth := f.Width()
+// Append appends the decimal to the buffer, using the specified format.
+func (d Decimal) Append(buf []byte, f *FmtFormat) []byte {
+	width, hasWidth := f.width, f.hasWidth
+	verb := f.verb
 
 	if d.isSpecial() {
 		pad := 0
 		padSign := false
 		printSign := false
 		if verb != 'v' {
-			printSign = f.Flag('+')
-			padSign = f.Flag(' ')
+			printSign = f.flag('+')
+			padSign = f.flag(' ')
 
 			if hasWidth {
 				pad = width
 			}
 		}
 
-		f.Write(d.fmtSpecial(nil, pad, printSign, padSign, f.Flag('-'), false))
-		return
+		return d.fmtSpecial(buf, pad, printSign, padSign, f.flag('-'), false)
 	}
 
 	var digs digits
 	d.digits(&digs)
-	prec, hasPrec := f.Precision()
+	prec, hasPrec := f.prec, f.hasPrec
 
 	switch verb {
 	case 'e', 'E':
@@ -76,7 +75,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 		}
 
 		digs.round(prec + 1)
-		f.Write(digs.fmtE(nil, prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, f.Flag('-'), f.Flag('0'), byte(verb)))
+		return digs.fmtE(buf, prec, pad, f.flag('#'), f.flag('+'), f.flag(' '), true, f.flag('-'), f.flag('0'), byte(verb))
 	case 'f', 'F':
 		if !hasPrec {
 			prec = 6
@@ -91,10 +90,10 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 			pad = width
 		}
 
-		f.Write(digs.fmtF(nil, prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), f.Flag('-'), f.Flag('0')))
+		return digs.fmtF(buf, prec, pad, f.flag('#'), f.flag('+'), f.flag(' '), f.flag('-'), f.flag('0'))
 	case 'g', 'G':
 		var maxprec int
-		if f.Flag('#') {
+		if f.flag('#') {
 			if !hasPrec {
 				if digs.ndig < 6 {
 					prec = 6
@@ -150,9 +149,9 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 				e = byte('E')
 			}
 
-			f.Write(digs.fmtE(nil, prec-1, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), true, f.Flag('-'), f.Flag('0'), e))
+			return digs.fmtE(buf, prec-1, pad, f.flag('#'), f.flag('+'), f.flag(' '), true, f.flag('-'), f.flag('0'), e)
 		} else {
-			if f.Flag('#') {
+			if f.flag('#') {
 				prec -= digs.exp
 				if digs.ndig == 0 {
 					prec--
@@ -166,7 +165,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 				}
 			}
 
-			f.Write(digs.fmtF(nil, prec, pad, f.Flag('#'), f.Flag('+'), f.Flag(' '), f.Flag('-'), f.Flag('0')))
+			return digs.fmtF(buf, prec, pad, f.flag('#'), f.flag('+'), f.flag(' '), f.flag('-'), f.flag('0'))
 		}
 	case 'v':
 		prec := 0
@@ -177,18 +176,28 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 		exp := digs.exp + prec
 
 		if exp < -4 || exp >= 6 {
-			f.Write(digs.fmtE(nil, prec, 0, false, false, false, true, false, false, 'e'))
+			return digs.fmtE(buf, prec, 0, false, false, false, true, false, false, 'e')
 		} else {
 			prec = 0
 			if digs.exp < 0 {
 				prec = -digs.exp
 			}
 
-			f.Write(digs.fmtF(nil, prec, 0, false, false, false, false, false))
+			return digs.fmtF(buf, prec, 0, false, false, false, false, false)
 		}
 	default:
-		fmt.Fprintf(f, "%%!%c(decimal128.Decimal=%s)", verb, d.String())
+		return append(buf, []byte(fmt.Sprintf("%%!%c(decimal128.Decimal=%s)", verb, d.String()))...)
 	}
+}
+
+// Format implements the [fmt.Formatter] interface. It supports the verbs 'e',
+// 'E', 'f', 'F', 'g', 'G', and 'v', along with the format flags '+', '-', '#',
+// ' ', and '0' and custom width and precision values. Decimal values interpret
+// the format value the same way float32 and float64 does.
+func (d Decimal) Format(st fmt.State, verb rune) {
+	var f FmtFormat
+	fmtFormatFromFmtState(st, verb, &f)
+	st.Write(d.Append(nil, &f))
 }
 
 // MarshalText implements the [encoding.TextMarshaler] interface.
@@ -581,4 +590,124 @@ func (d *digits) round(prec int) {
 		d.exp += d.ndig - prec
 		d.ndig = prec
 	}
+}
+
+// FmtFormat stores a formatting layout for Decimal values.
+type FmtFormat struct {
+	width    int
+	hasWidth bool
+	prec     int
+	hasPrec  bool
+
+	verb rune
+
+	minus bool
+	plus  bool
+	sharp bool
+	space bool
+	zero  bool
+}
+
+func (f *FmtFormat) flag(b int) bool {
+	switch b {
+	case '-':
+		return f.minus
+	case '+':
+		return f.plus
+	case '#':
+		return f.sharp
+	case ' ':
+		return f.space
+	case '0':
+		return f.zero
+	}
+	return false
+}
+
+// ParseFmtFormat parses the string as a decimal formatter.
+//
+// TODO: only a subset of formatting strings are supported.
+func ParseFmtFormat(f string) (*FmtFormat, error) {
+	if len(f) < 2 {
+		return nil, fmt.Errorf("format string has len < 2")
+
+	}
+	if f[0] != '%' {
+		return nil, fmt.Errorf("format string does not start with '%%'")
+	}
+
+	verb := rune(f[len(f)-1])
+	switch verb {
+	case 'f', 'g', 'e':
+	default:
+		return nil, fmt.Errorf("unsupported format verb '%s'", string(verb))
+	}
+
+	var width, prec int
+	var hasWidth, hasPrec bool
+	dp := strings.Index(f, ".")
+	if dp > -1 && dp >= len(f)-2 {
+		return nil, fmt.Errorf("format has decimal point without precision")
+
+	}
+	if dp == -1 {
+		hasWidth = len(f) > 2
+		dp = len(f) - 1
+	} else {
+		hasWidth = dp > 1
+		hasPrec = true
+	}
+
+	if hasWidth {
+		sWid := f[1:dp]
+		w, err := strconv.ParseInt(sWid, 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid width %q: %v", sWid, err)
+
+		}
+		width = int(w)
+	}
+	if hasPrec {
+		sPrec := f[dp+1 : len(f)-1]
+		p, err := strconv.ParseInt(sPrec, 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid precision %q: %v", sPrec, err)
+
+		}
+		prec = int(p)
+	}
+
+	return &FmtFormat{
+		prec:     prec,
+		hasPrec:  hasPrec,
+		width:    width,
+		hasWidth: hasWidth,
+		verb:     verb,
+	}, nil
+}
+
+func fmtFormatFromFmtState(st fmt.State, verb rune, f *FmtFormat) {
+	wid, hasWid := st.Width()
+	prec, hasPrec := st.Precision()
+	*f = FmtFormat{
+		prec:     prec,
+		hasPrec:  hasPrec,
+		width:    wid,
+		hasWidth: hasWid,
+		verb:     verb,
+		minus:    st.Flag('-'),
+		plus:     st.Flag('+'),
+		sharp:    st.Flag('#'),
+		space:    st.Flag(' '),
+		zero:     st.Flag('0'),
+	}
+}
+
+func mustParseFmtFormat(f string) *FmtFormat {
+	af, err := ParseFmtFormat(f)
+	if err != nil {
+		panic(err)
+
+	}
+	return af
 }
