@@ -25,7 +25,7 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 	exp := digs.exp + prec
 
 	if exp < -6 || exp >= 20 {
-		return digs.fmtE(prec, 0, false, false, false, false, false, false, 'e'), nil
+		return digs.fmtE(nil, prec, 0, false, false, false, false, false, false, 'e'), nil
 	}
 
 	prec = 0
@@ -33,7 +33,7 @@ func (d Decimal) MarshalJSON() ([]byte, error) {
 		prec = -digs.exp
 	}
 
-	return digs.fmtF(prec, 0, false, false, false, false, false), nil
+	return digs.fmtF(nil, prec, 0, false, false, false, false, false), nil
 }
 
 // UnmarshalJSON implements the [encoding/json.Unmarshaler] interface.

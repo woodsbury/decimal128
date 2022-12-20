@@ -40,6 +40,14 @@ func ExampleDecimal_Add() {
 	// 3 + 0.2 = 3.2
 }
 
+func ExampleDecimal_Append() {
+	x := decimal128.New(3, 0)
+	b := x.Append(nil, "010.5f")
+	fmt.Printf("%s\n", b)
+	// Output:
+	// 0003.00000
+}
+
 func ExampleDecimal_Cmp() {
 	x := decimal128.New(1, 0)
 	y := decimal128.New(2, 0)

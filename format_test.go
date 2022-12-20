@@ -74,6 +74,8 @@ func TestDecimalFormat(t *testing.T) {
 		}
 	}
 
+	var appres []byte
+
 	for _, format := range formats {
 		for _, val := range decimalValues {
 			decval := val.Decimal()
@@ -83,6 +85,11 @@ func TestDecimalFormat(t *testing.T) {
 			if strings.Contains(res, "PANIC") {
 				t.Errorf("fmt.Sprintf(%v, %v) = %s", format, val, res)
 				continue
+			}
+
+			appres := decval.Append(appres[:0], fmtstr[1:])
+			if res != string(appres) {
+				t.Errorf("%v.Append(%s) = %s, want %s", val, fmtstr, appres, res)
 			}
 
 			var bigres string
@@ -198,44 +205,118 @@ func (d devNull) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// BenchmarkFormat benchmarks formatting using the various format specifiers.
+func BenchmarkAppend(b *testing.B) {
+	tests := []struct {
+		name string
+		txt  string
+		fmt  string
+		want string
+	}{
+		{
+			name: "large number f format",
+			txt:  "12345678901234.67890123456789012345",
+			fmt:  "f",
+			want: "12345678901234.678901",
+		},
+		{
+			name: "large number e format",
+			txt:  "12345678901234.67890123456789012345",
+			fmt:  "e",
+			want: "1.234568e+13",
+		},
+		{
+			name: "large number padding f format",
+			txt:  "12345678901234.67890123456789012345",
+			fmt:  "80.40f",
+			want: "                         12345678901234.6789012345678901234500000000000000000000",
+		},
+		{
+			name: "large number padding e format",
+			txt:  "12345678901234.67890123456789012345",
+			fmt:  "80.40e",
+			want: "                                  1.2345678901234678901234567890123450000000e+13",
+		},
+		{
+			name: "special",
+			txt:  "nan",
+			fmt:  "f",
+			want: "NaN",
+		},
+		{
+			name: "special with padding",
+			txt:  "nan",
+			fmt:  "80.40f",
+			want: "                                                                             NaN",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Ensure correctness of test case before benchmarking.
+			v := MustParse(tc.txt)
+			buf := []byte{}
+			buf = v.Append(buf, tc.fmt)
+			if string(buf) != tc.want {
+				b.Fatalf("Unexpected formatted value. got %s, "+
+					"want %s", buf, tc.want)
+			}
+
+			// Benchmark.
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				buf = buf[:0]
+				buf = v.Append(buf, tc.fmt)
+			}
+		})
+	}
+}
+
 func BenchmarkFormat(b *testing.B) {
 	tests := []struct {
 		name string
 		txt  string
 		fmt  string
 		want string
-	}{{
-		name: "large number f format",
-		txt:  "12345678901234.67890123456789012345",
-		fmt:  "%f",
-		want: "12345678901234.678901",
-	}, {
-		name: "large number e format",
-		txt:  "12345678901234.67890123456789012345",
-		fmt:  "%e",
-		want: "1.234568e+13",
-	}, {
-		name: "large number padding f format",
-		txt:  "12345678901234.67890123456789012345",
-		fmt:  "%80.40f",
-		want: "                         12345678901234.6789012345678901234500000000000000000000",
-	}, {
-		name: "large number padding e format",
-		txt:  "12345678901234.67890123456789012345",
-		fmt:  "%80.40e",
-		want: "                                  1.2345678901234678901234567890123450000000e+13",
-	}, {
-		name: "special",
-		txt:  "nan",
-		fmt:  "%f",
-		want: "NaN",
-	}, {
-		name: "special with padding",
-		txt:  "nan",
-		fmt:  "%80.40f",
-		want: "                                                                             NaN",
-	}}
+	}{
+		{
+			name: "large number f format",
+			txt:  "12345678901234.67890123456789012345",
+			fmt:  "%f",
+			want: "12345678901234.678901",
+		},
+		{
+			name: "large number e format",
+			txt:  "12345678901234.67890123456789012345",
+			fmt:  "%e",
+			want: "1.234568e+13",
+		},
+		{
+			name: "large number padding f format",
+			txt:  "12345678901234.67890123456789012345",
+			fmt:  "%80.40f",
+			want: "                         12345678901234.6789012345678901234500000000000000000000",
+		},
+		{
+			name: "large number padding e format",
+			txt:  "12345678901234.67890123456789012345",
+			fmt:  "%80.40e",
+			want: "                                  1.2345678901234678901234567890123450000000e+13",
+		},
+		{
+			name: "special",
+			txt:  "nan",
+			fmt:  "%f",
+			want: "NaN",
+		},
+		{
+			name: "special with padding",
+			txt:  "nan",
+			fmt:  "%80.40f",
+			want: "                                                                             NaN",
+		},
+	}
 
 	for _, tc := range tests {
 		tc := tc
@@ -255,6 +336,131 @@ func BenchmarkFormat(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
 				fmt.Fprintf(w, tc.fmt, vptr)
+			}
+		})
+	}
+}
+
+func BenchmarkMarshalText(b *testing.B) {
+	tests := []struct {
+		name string
+		txt  string
+		want string
+	}{
+		{
+			name: "small number",
+			txt:  "1234.1234",
+			want: "1234.1234",
+		},
+		{
+			name: "large number",
+			txt:  "12345678901234.67890123456789012345",
+			want: "1.234567890123467890123456789012345e+13",
+		},
+		{
+			name: "special",
+			txt:  "nan",
+			want: "NaN",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Ensure correctness of test case before benchmarking.
+			v := MustParse(tc.txt)
+			got, err := v.MarshalText()
+			if err != nil || string(got) != tc.want {
+				b.Fatalf("Unexpected formatted value. got '%s', "+
+					"want '%s' with %v", got, tc.want, err)
+			}
+
+			// Benchmark.
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				v.MarshalText()
+			}
+		})
+	}
+}
+
+func BenchmarkString(b *testing.B) {
+	tests := []struct {
+		name string
+		txt  string
+		want string
+	}{
+		{
+			name: "small number",
+			txt:  "1234.1234",
+			want: "1234.1234",
+		},
+		{
+			name: "large number",
+			txt:  "12345678901234.67890123456789012345",
+			want: "1.234567890123467890123456789012345e+13",
+		},
+		{
+			name: "special",
+			txt:  "nan",
+			want: "NaN",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Ensure correctness of test case before benchmarking.
+			v := MustParse(tc.txt)
+			got := v.String()
+			if got != tc.want {
+				b.Fatalf("Unexpected formatted value. got '%s', "+
+					"want '%s'", got, tc.want)
+			}
+
+			// Benchmark.
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				_ = v.String()
+			}
+		})
+	}
+}
+
+func BenchmarkParseFormat(b *testing.B) {
+	tests := []struct {
+		name string
+		txt  string
+		fmt  string
+		want string
+	}{
+		{
+			name: "f format",
+			fmt:  "%f",
+		},
+		{
+			name: "e format",
+			fmt:  "%e",
+		},
+		{
+			name: "padding f format",
+			fmt:  "%80.40f",
+		},
+		{
+			name: "padding e format",
+			fmt:  "%80.40e",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Benchmark.
+			var args formatArgs
+			for i := 0; i < b.N; i++ {
+				parseFormat(tc.fmt, &args)
 			}
 		})
 	}
