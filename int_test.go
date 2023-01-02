@@ -327,6 +327,25 @@ func TestUint128Div1e19(t *testing.T) {
 	}
 }
 
+func TestUint128Log10(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	bigval := new(big.Int)
+
+	for _, val := range uint128Values {
+		res := val.log10()
+
+		uint128ToBig(val, bigval)
+		bigres := len(bigval.Text(10)) - 1
+
+		if res != bigres {
+			t.Errorf("%v.log10() = %v, want %v", val, res, bigres)
+		}
+	}
+}
+
 func TestUint128Lsh(t *testing.T) {
 	t.Parallel()
 

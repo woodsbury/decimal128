@@ -254,3 +254,31 @@ func TestDecimalSub(t *testing.T) {
 		})
 	}
 }
+
+func TestSqrt(t *testing.T) {
+	t.Parallel()
+
+	initDecimalValues()
+
+	bigval := new(apd.Decimal)
+	bigres := new(apd.Decimal)
+	bigctx := apd.Context{
+		Precision:   38,
+		MaxExponent: 6145,
+		MinExponent: -6176,
+		Rounding:    apd.RoundHalfEven,
+	}
+
+	for _, val := range decimalValues {
+		decval := val.Decimal()
+		res := Sqrt(decval)
+
+		val.Big(bigval)
+
+		bigctx.Sqrt(bigres, bigval)
+
+		if !decimalsEqual(res, bigres, bigctx.Rounding) {
+			t.Errorf("Sqrt(%v) = %v, want %v", val, res, bigres)
+		}
+	}
+}

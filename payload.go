@@ -16,6 +16,7 @@ const (
 	payloadOpMul
 	payloadOpQuo
 	payloadOpQuoRem
+	payloadOpSqrt
 	payloadOpSub
 )
 
@@ -80,6 +81,8 @@ func (p Payload) String() string {
 		return "Quo(" + p.argString(8) + ", " + p.argString(16) + ")"
 	case payloadOpQuoRem:
 		return "QuoRem(" + p.argString(8) + ", " + p.argString(16) + ")"
+	case payloadOpSqrt:
+		return "Sqrt(" + p.argString(8) + ")"
 	case payloadOpSub:
 		return "Sub(" + p.argString(8) + ", " + p.argString(16) + ")"
 	default:
