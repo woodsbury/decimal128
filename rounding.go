@@ -2,6 +2,195 @@ package decimal128
 
 import "fmt"
 
+// Ceil returns the least integer value greater than or equal to d.
+//
+// Ceil is equivalent to:
+//
+//	d.Ceil(0)
+func Ceil(d Decimal) Decimal {
+	return d.Ceil(0)
+}
+
+// Floor returns the greatest integer value less than or equal to d.
+//
+// Floor is equivalent to:
+//
+//	d.Floor(0)
+func Floor(d Decimal) Decimal {
+	return d.Floor(0)
+}
+
+// Round returns the nearest integer, rounding half away from zero.
+//
+// Round is equivalent to:
+//
+//	d.Round(0, decimal128.ToNearestAway)
+func Round(d Decimal) Decimal {
+	return d.Round(0, ToNearestAway)
+}
+
+// Ceil returns the least Decimal value greater than or equal to d that has no
+// digits after the specified number of decimal places.
+//
+// The value of dp affects how many digits after the decimal point the Decimal
+// would have if it were printed in decimal notation (for example, by the '%f'
+// verb in Format). It can be zero to return an integer, and can also be
+// negative to round off digits before the decimal point.
+//
+// NaN and infinity values are left untouched.
+func (d Decimal) Ceil(dp int) Decimal {
+	if d.isSpecial() {
+		return d
+	}
+
+	sig, exp := d.decompose()
+
+	if sig == (uint128{}) {
+		return zero(d.Signbit())
+	}
+
+	dp = dp*-1 + exponentBias
+	iexp := int(exp)
+
+	if iexp >= dp {
+		return d
+	}
+
+	if iexp < dp-maxDigits {
+		if d.Signbit() {
+			return zero(d.Signbit())
+		}
+
+		return compose(false, uint128{1, 0}, int16(dp))
+	}
+
+	var trunc int8
+
+	for iexp < dp {
+		var rem uint64
+		sig, rem = sig.div10()
+
+		if rem != 0 {
+			trunc = 1
+		}
+
+		if sig == (uint128{}) {
+			iexp = dp
+			break
+		}
+
+		iexp++
+	}
+
+	neg := d.Signbit()
+	exp = int16(iexp)
+
+	if !neg {
+		for trunc != 0 {
+			sig = sig.add64(1)
+			trunc = 0
+
+			if sig[1] > 0x0002_7fff_ffff_ffff {
+				var rem uint64
+				sig, rem = sig.div10()
+
+				if rem != 0 {
+					trunc = 1
+				}
+
+				exp++
+			}
+		}
+	}
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
+
+	return compose(neg, sig, exp)
+}
+
+// Floor returns the greatest Decimal value less than or equal to d that has no
+// digits after the specified number of decimal places.
+//
+// The value of dp affects how many digits after the decimal point the Decimal
+// would have if it were printed in decimal notation (for example, by the '%f'
+// verb in Format). It can be zero to return an integer, and can also be
+// negative to round off digits before the decimal point.
+//
+// NaN and infinity values are left untouched.
+func (d Decimal) Floor(dp int) Decimal {
+	if d.isSpecial() {
+		return d
+	}
+
+	sig, exp := d.decompose()
+
+	if sig == (uint128{}) {
+		return zero(d.Signbit())
+	}
+
+	dp = dp*-1 + exponentBias
+	iexp := int(exp)
+
+	if iexp >= dp {
+		return d
+	}
+
+	if iexp < dp-maxDigits {
+		if !d.Signbit() {
+			return zero(d.Signbit())
+		}
+
+		return compose(true, uint128{1, 0}, int16(dp))
+	}
+
+	var trunc int8
+
+	for iexp < dp {
+		var rem uint64
+		sig, rem = sig.div10()
+
+		if rem != 0 {
+			trunc = 1
+		}
+
+		if sig == (uint128{}) {
+			iexp = dp
+			break
+		}
+
+		iexp++
+	}
+
+	neg := d.Signbit()
+	exp = int16(iexp)
+
+	if neg {
+		for trunc != 0 {
+			sig = sig.add64(1)
+			trunc = 0
+
+			if sig[1] > 0x0002_7fff_ffff_ffff {
+				var rem uint64
+				sig, rem = sig.div10()
+
+				if rem != 0 {
+					trunc = 1
+				}
+
+				exp++
+			}
+		}
+	}
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
+
+	return compose(neg, sig, exp)
+}
+
 // Round rounds (or quantises) a Decimal value to the specified number of
 // decimal places using the rounding mode provided.
 //
