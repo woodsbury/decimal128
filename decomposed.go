@@ -180,6 +180,13 @@ func (d decomposed128) mul(o decomposed128, trunc int8) (decomposed128, int8) {
 }
 
 func (d decomposed128) quo(o decomposed128, trunc int8) (decomposed128, int8) {
+	if d.sig == (uint128{}) {
+		return decomposed128{
+			sig: uint128{},
+			exp: 0,
+		}, trunc
+	}
+
 	if d.sig[1] == 0 {
 		d.sig = d.sig.mul64(10_000_000_000_000_000_000)
 		d.exp -= 19
@@ -243,6 +250,125 @@ func (d decomposed128) quo(o decomposed128, trunc int8) (decomposed128, int8) {
 	}
 
 	return decomposed128{
+		sig: sig,
+		exp: exp,
+	}, trunc
+}
+
+func (d decomposed128) sub(o decomposed128, trunc int8) (bool, decomposed128, int8) {
+	exp := d.exp - o.exp
+
+	if exp < 0 {
+		for exp <= -19 && o.sig[1] == 0 {
+			o.sig = o.sig.mul64(10_000_000_000_000_000_000)
+			o.exp -= 19
+			exp += 19
+		}
+
+		for exp <= -4 && o.sig[1] <= 0x0002_7fff_ffff_ffff {
+			o.sig = o.sig.mul64(10_000)
+			o.exp -= 4
+			exp += 4
+		}
+
+		for exp < 0 && o.sig[1] <= 0x18ff_ffff_ffff_ffff {
+			o.sig = o.sig.mul64(10)
+			o.exp--
+			exp++
+		}
+
+		if exp <= -3 {
+			var rem uint64
+			d.sig, rem = d.sig.div1000()
+			if rem != 0 {
+				trunc = 1
+			}
+
+			if d.sig == (uint128{}) {
+				d.exp = o.exp
+				exp = 0
+			} else {
+				d.exp += 3
+				exp += 3
+			}
+		}
+
+		for exp < 0 {
+			var rem uint64
+			d.sig, rem = d.sig.div10()
+			if rem != 0 {
+				trunc = 1
+			}
+
+			if d.sig == (uint128{}) {
+				d.exp = o.exp
+				exp = 0
+				break
+			}
+
+			d.exp++
+			exp++
+		}
+	} else if exp > 0 {
+		if exp >= 19 && d.sig[1] == 0 {
+			d.sig = d.sig.mul64(10_000_000_000_000_000_000)
+			d.exp -= 19
+			exp -= 19
+		}
+
+		for exp >= 4 && d.sig[1] <= 0x0002_7fff_ffff_ffff {
+			d.sig = d.sig.mul64(10_000)
+			d.exp -= 4
+			exp -= 4
+		}
+
+		for exp > 0 && d.sig[1] <= 0x18ff_ffff_ffff_ffff {
+			d.sig = d.sig.mul64(10)
+			d.exp--
+			exp--
+		}
+
+		if exp >= 3 {
+			var rem uint64
+			o.sig, rem = o.sig.div1000()
+			if rem != 0 {
+				trunc = -1
+			}
+
+			if o.sig == (uint128{}) {
+				exp = 0
+			} else {
+				exp -= 3
+			}
+		}
+
+		for exp > 0 {
+			var rem uint64
+			o.sig, rem = o.sig.div10()
+			if rem != 0 {
+				trunc = -1
+			}
+
+			if o.sig == (uint128{}) {
+				exp = 0
+				break
+			}
+
+			exp--
+		}
+	}
+
+	neg := false
+	sig, brw := d.sig.sub(o.sig)
+	exp = d.exp
+
+	if brw != 0 {
+		sig = sig.twos()
+		neg = true
+		trunc *= -1
+	}
+
+	return neg, decomposed128{
 		sig: sig,
 		exp: exp,
 	}, trunc

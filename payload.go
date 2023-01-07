@@ -13,6 +13,7 @@ const (
 	payloadOpUnmarshalText
 
 	payloadOpAdd
+	payloadOpLog
 	payloadOpMul
 	payloadOpQuo
 	payloadOpQuoRem
@@ -75,6 +76,8 @@ func (p Payload) String() string {
 		return "UnmarshalText()"
 	case payloadOpAdd:
 		return "Add(" + p.argString(8) + ", " + p.argString(16) + ")"
+	case payloadOpLog:
+		return "Log(" + p.argString(8) + ")"
 	case payloadOpMul:
 		return "Mul(" + p.argString(8) + ", " + p.argString(16) + ")"
 	case payloadOpQuo:

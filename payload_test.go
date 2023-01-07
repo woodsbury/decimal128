@@ -33,6 +33,21 @@ func TestDecimalPayload(t *testing.T) {
 		t.Errorf("UnmarshalText(NaN).Payload() = %s, want UnmarshalText()", s)
 	}
 
+	d = Log(inf(true))
+	if s := d.Payload().String(); s != "Log(-Infinite)" {
+		t.Errorf("Log(-Inf).Payload() = %s, want Log(-Infinite)", s)
+	}
+
+	d = Log(FromInt64(-1))
+	if s := d.Payload().String(); s != "Log(-Finite)" {
+		t.Errorf("Log(-1).Payload() = %s, want Log(-Finite)", s)
+	}
+
+	d = Sqrt(inf(true))
+	if s := d.Payload().String(); s != "Sqrt(-Infinite)" {
+		t.Errorf("Sqrt(-Inf).Payload() = %s, want Sqrt(-Infinite)", s)
+	}
+
 	d = inf(false).Add(inf(true))
 	if s := d.Payload().String(); s != "Add(Infinite, -Infinite)" {
 		t.Errorf("Inf.Add(-Inf).Payload() = %s, want Add(Infinite, -Infinite)", s)

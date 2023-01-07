@@ -1,5 +1,170 @@
 package decimal128
 
+import "math/bits"
+
+// Log returns the natural logarithm of d.
+func Log(d Decimal) Decimal {
+	if d.isSpecial() {
+		if d.IsNaN() {
+			return d
+		}
+
+		if d.Signbit() {
+			return nan(payloadOpLog, payloadValNegInfinite, 0)
+		}
+
+		return inf(false)
+	}
+
+	if d.IsZero() {
+		return inf(true)
+	}
+
+	if d.Signbit() {
+		return nan(payloadOpLog, payloadValNegFinite, 0)
+	}
+
+	dSig, dExp := d.decompose()
+	l10 := int16(dSig.log10())
+	dExp = (dExp - exponentBias) + l10
+
+	sig := dSig
+	exp := -l10
+	oneSig := uint128{1, 0}
+	oneExp := int16(0)
+
+	for sig[1] <= 0x0002_7fff_ffff_ffff {
+		sig = sig.mul64(10_000)
+		exp -= 4
+
+		oneSig = oneSig.mul64(10_000)
+		oneExp -= 4
+	}
+
+	for sig[1] <= 0x18ff_ffff_ffff_ffff {
+		sig = sig.mul64(10)
+		exp--
+
+		oneSig = oneSig.mul64(10)
+		oneExp--
+	}
+
+	// Only 37 digits fit in the significand after multiplying when the first
+	// digit is at least 3. We can bring this value closer to 1 by halving it.
+	reduced := 0
+	trunc := int8(0)
+	if sig.log10() <= 37 {
+		// If there is only 1 leading zero when there are 37 digits then the
+		// first digit is at least 8. We can reduce this value even closer to 1
+		// by dividing it by 8.
+		if bits.LeadingZeros64(sig[1]) <= 1 {
+			var rem uint128
+			sig, rem = sig.div(uint128{8, 0})
+
+			if rem != (uint128{}) {
+				trunc = 1
+			}
+
+			reduced = 2
+		} else {
+			var rem uint128
+			sig, rem = sig.div(uint128{2, 0})
+
+			if rem != (uint128{}) {
+				trunc = 1
+			}
+
+			reduced = 1
+		}
+	}
+
+	nrm := decomposed128{
+		sig: sig,
+		exp: exp,
+	}
+
+	one := decomposed128{
+		sig: oneSig,
+		exp: oneExp,
+	}
+
+	_, num, _ := nrm.sub(one, int8(0))
+	den, _ := nrm.add(one, int8(0))
+	frc, trunc := num.quo(den, int8(0))
+	sqr, _ := frc.mul(frc, int8(0))
+
+	res := frc
+
+	for i := uint64(3); i <= 149; i += 2 {
+		// res += frc^i / i
+		frc, _ = frc.mul(sqr, int8(0))
+		tmp, _ := frc.quo(decomposed128{
+			sig: uint128{i, 0},
+			exp: 0,
+		}, int8(0))
+
+		res, trunc = res.add(tmp, trunc)
+	}
+
+	ln10 := decomposed128{
+		sig: uint128{0x09bb_c25b_3ca8_1898, 0xad3a_2d01_4ad4_7d7a},
+		exp: -38,
+	}
+
+	dExpNeg := false
+	if dExp < 0 {
+		dExp *= -1
+		dExpNeg = true
+	}
+
+	ln10, _ = ln10.mul(decomposed128{
+		sig: uint128{uint64(dExp), 0},
+		exp: 0,
+	}, int8(0))
+
+	two := decomposed128{
+		sig: uint128{2, 0},
+		exp: 0,
+	}
+
+	res, trunc = res.mul(two, trunc)
+
+	neg := false
+	if dExpNeg {
+		neg, res, trunc = res.sub(ln10, trunc)
+	} else {
+		res, trunc = res.add(ln10, trunc)
+	}
+
+	if reduced == 1 {
+		ln2 := decomposed128{
+			sig: uint128{0x43d4_c3f7_1489_9de8, 0x3425_8773_b151_f6b7},
+			exp: -38,
+		}
+
+		if dExpNeg {
+			_, res, trunc = res.sub(ln2, trunc)
+		} else {
+			res, trunc = res.add(ln2, trunc)
+		}
+	} else if reduced == 2 {
+		ln8 := decomposed128{
+			sig: uint128{0xcb7e_4be5_3d9c_d9b6, 0x9c70_965b_13f5_e425},
+			exp: -38,
+		}
+
+		if dExpNeg {
+			_, res, trunc = res.sub(ln8, trunc)
+		} else {
+			res, trunc = res.add(ln8, trunc)
+		}
+	}
+
+	sig, exp = ToNearestEven.reduce128(neg, res.sig, res.exp+exponentBias, trunc)
+
+	return compose(neg, sig, exp)
+}
+
 // Sqrt returns the square root of d.
 func Sqrt(d Decimal) Decimal {
 	if d.isSpecial() {
@@ -72,7 +237,7 @@ func Sqrt(d Decimal) Decimal {
 		exp: -1,
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 9; i++ {
 		tmp, trunc = nrm.quo(res, trunc)
 		res, trunc = res.add(tmp, trunc)
 		res, trunc = half.mul(res, trunc)
