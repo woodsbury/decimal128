@@ -221,6 +221,24 @@ func (n uint128) lsh(o uint) uint128 {
 	return uint128{r0, r1}
 }
 
+func (n uint128) msd() int {
+	for n[1] != 0 {
+		n, _ = n.div1e19()
+	}
+
+	n64 := n[0]
+
+	for n64 >= 10000 {
+		n64 /= 10000
+	}
+
+	for n64 >= 10 {
+		n64 /= 10
+	}
+
+	return int(n64)
+}
+
 func (n uint128) mul(o uint128) uint256 {
 	u1, r0 := bits.Mul64(n[0], o[0])
 	v1, v0 := bits.Mul64(n[1], o[0])

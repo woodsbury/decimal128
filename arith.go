@@ -1,7 +1,5 @@
 package decimal128
 
-import "math/bits"
-
 // Log returns the natural logarithm of d.
 func Log(d Decimal) Decimal {
 	if d.isSpecial() {
@@ -28,6 +26,7 @@ func Log(d Decimal) Decimal {
 	l10 := int16(dSig.log10())
 	dExp = (dExp - exponentBias) + l10
 
+	msd := dSig.msd()
 	sig := dSig
 	exp := -l10
 	oneSig := uint128{1, 0}
@@ -49,33 +48,29 @@ func Log(d Decimal) Decimal {
 		oneExp--
 	}
 
-	// Only 37 digits fit in the significand after multiplying when the first
-	// digit is at least 3. We can bring this value closer to 1 by halving it.
-	reduced := 0
-	trunc := int8(0)
-	if sig.log10() <= 37 {
-		// If there is only 1 leading zero when there are 37 digits then the
-		// first digit is at least 8. We can reduce this value even closer to 1
-		// by dividing it by 8.
-		if bits.LeadingZeros64(sig[1]) <= 1 {
-			var rem uint128
-			sig, rem = sig.div(uint128{8, 0})
+	var rem uint128
+	var trunc int8
+	switch msd {
+	case 2:
+		sig, rem = sig.div(uint128{2, 0})
+	case 3:
+		sig, rem = sig.div(uint128{3, 0})
+	case 4:
+		sig, rem = sig.div(uint128{4, 0})
+	case 5:
+		sig, rem = sig.div(uint128{5, 0})
+	case 6:
+		sig, rem = sig.div(uint128{6, 0})
+	case 7:
+		sig, rem = sig.div(uint128{7, 0})
+	case 8:
+		sig, rem = sig.div(uint128{8, 0})
+	case 9:
+		sig, rem = sig.div(uint128{9, 0})
+	}
 
-			if rem != (uint128{}) {
-				trunc = 1
-			}
-
-			reduced = 2
-		} else {
-			var rem uint128
-			sig, rem = sig.div(uint128{2, 0})
-
-			if rem != (uint128{}) {
-				trunc = 1
-			}
-
-			reduced = 1
-		}
+	if rem != (uint128{}) {
+		trunc = 1
 	}
 
 	nrm := decomposed128{
@@ -95,7 +90,7 @@ func Log(d Decimal) Decimal {
 
 	res := frc
 
-	for i := uint64(3); i <= 149; i += 2 {
+	for i := uint64(3); i <= 65; i += 2 {
 		// res += frc^i / i
 		frc, _ = frc.mul(sqr, int8(0))
 		tmp, _ := frc.quo(decomposed128{
@@ -122,12 +117,10 @@ func Log(d Decimal) Decimal {
 		exp: 0,
 	}, int8(0))
 
-	two := decomposed128{
+	res, trunc = res.mul(decomposed128{
 		sig: uint128{2, 0},
 		exp: 0,
-	}
-
-	res, trunc = res.mul(two, trunc)
+	}, trunc)
 
 	neg := false
 	if dExpNeg {
@@ -136,28 +129,54 @@ func Log(d Decimal) Decimal {
 		res, trunc = res.add(ln10, trunc)
 	}
 
-	if reduced == 1 {
-		ln2 := decomposed128{
+	var lnMSD decomposed128
+	switch msd {
+	case 2:
+		lnMSD = decomposed128{
 			sig: uint128{0x43d4_c3f7_1489_9de8, 0x3425_8773_b151_f6b7},
 			exp: -38,
 		}
-
-		if dExpNeg {
-			_, res, trunc = res.sub(ln2, trunc)
-		} else {
-			res, trunc = res.add(ln2, trunc)
+	case 3:
+		lnMSD = decomposed128{
+			sig: uint128{0xbdf9_7603_a9e9_a361, 0x52a6_80c7_3db5_105b},
+			exp: -38,
 		}
-	} else if reduced == 2 {
-		ln8 := decomposed128{
+	case 4:
+		lnMSD = decomposed128{
+			sig: uint128{0x87a9_87ee_2913_3bcf, 0x684b_0ee7_62a3_ed6e},
+			exp: -38,
+		}
+	case 5:
+		lnMSD = decomposed128{
+			sig: uint128{0xc5e6_fe64_281e_7ab0, 0x7914_a58d_9982_86c2},
+			exp: -38,
+		}
+	case 6:
+		lnMSD = decomposed128{
+			sig: uint128{0x86cc_083a_ef07_0713, 0x01ce_39fa_be73_4148},
+			exp: -38,
+		}
+	case 7:
+		lnMSD = decomposed128{
+			sig: uint128{0x6930_c961_2ceb_f1e4, 0x9264_ddc2_a8f8_bea3},
+			exp: -38,
+		}
+	case 8:
+		lnMSD = decomposed128{
 			sig: uint128{0xcb7e_4be5_3d9c_d9b6, 0x9c70_965b_13f5_e425},
 			exp: -38,
 		}
-
-		if dExpNeg {
-			_, res, trunc = res.sub(ln8, trunc)
-		} else {
-			res, trunc = res.add(ln8, trunc)
+	case 9:
+		lnMSD = decomposed128{
+			sig: uint128{0x7bf2_ec07_53d3_46c1, 0xa54d_018e_7b6a_20b7},
+			exp: -38,
 		}
+	}
+
+	if dExpNeg {
+		_, res, trunc = res.sub(lnMSD, trunc)
+	} else {
+		res, trunc = res.add(lnMSD, trunc)
 	}
 
 	sig, exp = ToNearestEven.reduce128(neg, res.sig, res.exp+exponentBias, trunc)
