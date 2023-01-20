@@ -372,7 +372,7 @@ func TestUint128Lsh(t *testing.T) {
 	}
 }
 
-func TestUint128Msd(t *testing.T) {
+func TestUint128Msd2(t *testing.T) {
 	t.Parallel()
 
 	initUintValues()
@@ -380,13 +380,18 @@ func TestUint128Msd(t *testing.T) {
 	bigval := new(big.Int)
 
 	for _, val := range uint128Values {
-		res := val.msd()
+		res := val.msd2()
 
 		uint128ToBig(val, bigval)
-		bigres := int(bigval.Text(10)[0]) - '0'
+		bigtxt := bigval.Text(10)
+		bigres := int(bigtxt[0]) - '0'
+		if len(bigtxt) > 1 {
+			bigres *= 10
+			bigres += int(bigtxt[1]) - '0'
+		}
 
 		if res != bigres {
-			t.Errorf("%v.msd() = %v, want %v", val, res, bigres)
+			t.Errorf("%v.msd2() = %v, want %v", val, res, bigres)
 		}
 	}
 }

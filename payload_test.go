@@ -43,6 +43,26 @@ func TestDecimalPayload(t *testing.T) {
 		t.Errorf("Log(-1).Payload() = %s, want Log(-Finite)", s)
 	}
 
+	d = Log10(inf(true))
+	if s := d.Payload().String(); s != "Log10(-Infinite)" {
+		t.Errorf("Log10(-Inf).Payload() = %s, want Log10(-Infinite)", s)
+	}
+
+	d = Log10(FromInt64(-1))
+	if s := d.Payload().String(); s != "Log10(-Finite)" {
+		t.Errorf("Log10(-1).Payload() = %s, want Log10(-Finite)", s)
+	}
+
+	d = Log2(inf(true))
+	if s := d.Payload().String(); s != "Log2(-Infinite)" {
+		t.Errorf("Log2(-Inf).Payload() = %s, want Log2(-Infinite)", s)
+	}
+
+	d = Log2(FromInt64(-1))
+	if s := d.Payload().String(); s != "Log2(-Finite)" {
+		t.Errorf("Log2(-1).Payload() = %s, want Log2(-Finite)", s)
+	}
+
 	d = Sqrt(inf(true))
 	if s := d.Payload().String(); s != "Sqrt(-Infinite)" {
 		t.Errorf("Sqrt(-Inf).Payload() = %s, want Sqrt(-Infinite)", s)

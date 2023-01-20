@@ -221,18 +221,22 @@ func (n uint128) lsh(o uint) uint128 {
 	return uint128{r0, r1}
 }
 
-func (n uint128) msd() int {
-	for n[1] != 0 {
+func (n uint128) msd2() int {
+	for n[1] >= 10 {
 		n, _ = n.div1e19()
+	}
+
+	if n[1] != 0 {
+		n, _ = n.div10()
 	}
 
 	n64 := n[0]
 
 	for n64 >= 10000 {
-		n64 /= 10000
+		n64 /= 1000
 	}
 
-	for n64 >= 10 {
+	for n64 >= 100 {
 		n64 /= 10
 	}
 
