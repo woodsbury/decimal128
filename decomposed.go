@@ -1,5 +1,7 @@
 package decimal128
 
+import "strconv"
+
 var (
 	ln10 = decomposed128{
 		sig: uint128{0x09bb_c25b_3ca8_1898, 0xad3a_2d01_4ad4_7d7a},
@@ -12,7 +14,7 @@ var (
 	}
 
 	invLn2 = decomposed128{
-		sig: uint128{0x43d4_c3f7_1489_9de8, 0x3425_8773_b151_f6b7},
+		sig: uint128{0xcd31_2967_174b_542e, 0x6c89_4bb9_762e_ce51},
 		exp: -38,
 	}
 
@@ -112,6 +114,10 @@ var (
 type decomposed128 struct {
 	sig uint128
 	exp int16
+}
+
+func (d decomposed128) String() string {
+	return d.sig.String() + "e" + strconv.FormatInt(int64(d.exp), 10)
 }
 
 func (d decomposed128) add(o decomposed128, trunc int8) (decomposed128, int8) {
@@ -248,33 +254,27 @@ func (d decomposed128) add(o decomposed128, trunc int8) (decomposed128, int8) {
 
 func (d decomposed128) log() (bool, decomposed128, int8) {
 	l10 := int16(d.sig.log10())
-	d.exp = (d.exp - exponentBias) + l10
+	exp := d.exp + l10
+	d.exp = -l10
 
 	msd := d.sig.msd2()
-	sig := d.sig
-	exp := -l10
 	oneSig := uint128{1, 0}
 	oneExp := int16(0)
 
-	for sig[1] <= 0x0002_7fff_ffff_ffff {
-		sig = sig.mul64(10_000)
-		exp -= 4
+	for d.sig[1] <= 0x0002_7fff_ffff_ffff {
+		d.sig = d.sig.mul64(10_000)
+		d.exp -= 4
 
 		oneSig = oneSig.mul64(10_000)
 		oneExp -= 4
 	}
 
-	for sig[1] <= 0x18ff_ffff_ffff_ffff {
-		sig = sig.mul64(10)
-		exp--
+	for d.sig[1] <= 0x18ff_ffff_ffff_ffff {
+		d.sig = d.sig.mul64(10)
+		d.exp--
 
 		oneSig = oneSig.mul64(10)
 		oneExp--
-	}
-
-	nrm := decomposed128{
-		sig: sig,
-		exp: exp,
 	}
 
 	if msd < 10 {
@@ -283,7 +283,7 @@ func (d decomposed128) log() (bool, decomposed128, int8) {
 
 	var trunc int8
 	if msd > 10 {
-		nrm, trunc = nrm.quo(decomposed128{
+		d, trunc = d.quo(decomposed128{
 			sig: uint128{uint64(msd), 0},
 			exp: -1,
 		}, 0)
@@ -294,8 +294,8 @@ func (d decomposed128) log() (bool, decomposed128, int8) {
 		exp: oneExp,
 	}
 
-	_, num, _ := nrm.sub(one, int8(0))
-	den, _ := nrm.add(one, int8(0))
+	_, num, _ := d.sub(one, int8(0))
+	den, _ := d.add(one, int8(0))
 	frc, trunc := num.quo(den, trunc)
 	sqr, _ := frc.mul(frc, int8(0))
 
@@ -313,13 +313,13 @@ func (d decomposed128) log() (bool, decomposed128, int8) {
 	}
 
 	expNeg := false
-	if d.exp < 0 {
-		d.exp *= -1
+	if exp < 0 {
+		exp *= -1
 		expNeg = true
 	}
 
 	lnExp, _ := ln10.mul(decomposed128{
-		sig: uint128{uint64(d.exp), 0},
+		sig: uint128{uint64(exp), 0},
 		exp: 0,
 	}, int8(0))
 

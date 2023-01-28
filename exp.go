@@ -26,10 +26,14 @@ func Log(d Decimal) Decimal {
 
 	neg, res, trunc := decomposed128{
 		sig: dSig,
-		exp: dExp,
+		exp: dExp - exponentBias,
 	}.log()
 
 	sig, exp := DefaultRoundingMode.reduce128(neg, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
 
 	return compose(neg, sig, exp)
 }
@@ -60,12 +64,16 @@ func Log10(d Decimal) Decimal {
 
 	neg, res, trunc := decomposed128{
 		sig: dSig,
-		exp: dExp,
+		exp: dExp - exponentBias,
 	}.log()
 
 	res, trunc = res.mul(invLn10, trunc)
 
 	sig, exp := DefaultRoundingMode.reduce128(neg, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
 
 	return compose(neg, sig, exp)
 }
@@ -96,12 +104,16 @@ func Log2(d Decimal) Decimal {
 
 	neg, res, trunc := decomposed128{
 		sig: dSig,
-		exp: dExp,
+		exp: dExp - exponentBias,
 	}.log()
 
 	res, trunc = res.mul(invLn2, trunc)
 
 	sig, exp := DefaultRoundingMode.reduce128(neg, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
 
 	return compose(neg, sig, exp)
 }
@@ -186,6 +198,10 @@ func Sqrt(d Decimal) Decimal {
 
 	res.exp += dExp / 2
 	sig, exp := DefaultRoundingMode.reduce128(false, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		return inf(false)
+	}
 
 	return compose(false, sig, exp)
 }

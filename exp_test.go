@@ -14,7 +14,7 @@ func TestLog(t *testing.T) {
 	bigval := new(apd.Decimal)
 	bigres := new(apd.Decimal)
 	bigctx := apd.Context{
-		Precision:   38,
+		Precision:   39,
 		MaxExponent: 6145,
 		MinExponent: -6176,
 		Rounding:    apd.RoundHalfEven,
@@ -42,7 +42,7 @@ func TestLog10(t *testing.T) {
 	bigval := new(apd.Decimal)
 	bigres := new(apd.Decimal)
 	bigctx := apd.Context{
-		Precision:   38,
+		Precision:   39,
 		MaxExponent: 6145,
 		MinExponent: -6176,
 		Rounding:    apd.RoundHalfEven,
@@ -70,7 +70,7 @@ func TestLog2(t *testing.T) {
 	bigval := new(apd.Decimal)
 	bigres := new(apd.Decimal)
 	bigctx := apd.Context{
-		Precision:   38,
+		Precision:   39,
 		MaxExponent: 6145,
 		MinExponent: -6176,
 		Rounding:    apd.RoundHalfEven,
@@ -86,7 +86,7 @@ func TestLog2(t *testing.T) {
 		val.Big(bigval)
 
 		bigctx.Ln(bigres, bigval)
-		bigctx.Mul(bigres, bigres, bigln2)
+		bigctx.Quo(bigres, bigres, bigln2)
 
 		if !decimalsEqual(res, bigres, bigctx.Rounding) {
 			t.Errorf("Log2(%v) = %v, want %v", val, res, bigres)
@@ -102,7 +102,7 @@ func TestSqrt(t *testing.T) {
 	bigval := new(apd.Decimal)
 	bigres := new(apd.Decimal)
 	bigctx := apd.Context{
-		Precision:   38,
+		Precision:   39,
 		MaxExponent: 6145,
 		MinExponent: -6176,
 		Rounding:    apd.RoundHalfEven,
