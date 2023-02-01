@@ -1,5 +1,67 @@
 package decimal128
 
+// Exp returns e**d, the base-e exponential of d.
+func Exp(d Decimal) Decimal {
+	if d.isSpecial() {
+		if d.IsNaN() {
+			return d
+		}
+
+		if d.Signbit() {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	if d.IsZero() {
+		return one(false)
+	}
+
+	dSig, dExp := d.decompose()
+	l10 := dSig.log10()
+
+	if int(dExp) > exponentBias+5-l10 {
+		if d.Signbit() {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	res, trunc := decomposed128{
+		sig: dSig,
+		exp: dExp - exponentBias,
+	}.epow(int16(l10), int8(0))
+
+	if res.exp > maxBiasedExponent-exponentBias+39 {
+		if d.Signbit() {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	if d.Signbit() {
+		res, trunc = decomposed128{
+			sig: uint128{1, 0},
+			exp: 0,
+		}.quo(res, trunc)
+	}
+
+	sig, exp := DefaultRoundingMode.reduce128(false, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		if d.Signbit() {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	return compose(false, sig, exp)
+}
+
 // Log returns the natural logarithm of d.
 func Log(d Decimal) Decimal {
 	if d.isSpecial() {

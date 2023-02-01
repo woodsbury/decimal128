@@ -6,6 +6,34 @@ import (
 	"github.com/cockroachdb/apd/v3"
 )
 
+func TestExp(t *testing.T) {
+	t.Parallel()
+
+	initDecimalValues()
+
+	bigval := new(apd.Decimal)
+	bigres := new(apd.Decimal)
+	bigctx := apd.Context{
+		Precision:   49,
+		MaxExponent: 6145,
+		MinExponent: -6176,
+		Rounding:    apd.RoundHalfEven,
+	}
+
+	for _, val := range decimalValues {
+		decval := val.Decimal()
+		res := Exp(decval)
+
+		val.Big(bigval)
+
+		bigctx.Exp(bigres, bigval)
+
+		if !decimalsEqual(res, bigres, bigctx.Rounding) {
+			t.Errorf("Exp(%v) = %v, want %v", val, res, bigres)
+		}
+	}
+}
+
 func TestLog(t *testing.T) {
 	t.Parallel()
 

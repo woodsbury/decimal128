@@ -88,6 +88,14 @@ func nan(op, lhs, rhs Payload) Decimal {
 	return Decimal{uint64(op | lhs<<8 | rhs<<16), 0x7c00_0000_0000_0000}
 }
 
+func one(neg bool) Decimal {
+	if neg {
+		return Decimal{1, 0xb040_0000_0000_0000}
+	}
+
+	return Decimal{1, 0x3040_0000_0000_0000}
+}
+
 func zero(neg bool) Decimal {
 	if neg {
 		return Decimal{0, 0x8000_0000_0000_0000}

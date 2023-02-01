@@ -1,10 +1,23 @@
 package decimal128
 
-import "strconv"
+import (
+	"math"
+	"strconv"
+)
 
 var (
+	dinf = decomposed128{
+		sig: uint128{math.MaxUint64, math.MaxUint64},
+		exp: math.MaxInt16,
+	}
+
 	ln10 = decomposed128{
 		sig: uint128{0x09bb_c25b_3ca8_1898, 0xad3a_2d01_4ad4_7d7a},
+		exp: -38,
+	}
+
+	ln2 = decomposed128{
+		sig: uint128{0x43d4_c3f7_1489_9de8, 0x3425_8773_b151_f6b7},
 		exp: -38,
 	}
 
@@ -142,7 +155,7 @@ func (d decomposed128) add(o decomposed128, trunc int8) (decomposed128, int8) {
 			exp++
 		}
 
-		if exp <= -3 {
+		if exp < -3 {
 			var rem uint64
 			d.sig, rem = d.sig.div1000()
 			if rem != 0 {
@@ -158,21 +171,20 @@ func (d decomposed128) add(o decomposed128, trunc int8) (decomposed128, int8) {
 			}
 		}
 
+		var digit uint64
+
 		for exp < 0 {
-			var rem uint64
-			d.sig, rem = d.sig.div10()
-			if rem != 0 {
+			if digit != 0 {
 				trunc = 1
 			}
 
-			if d.sig == (uint128{}) {
-				d.exp = o.exp
-				exp = 0
-				break
-			}
-
+			d.sig, digit = d.sig.div10()
 			d.exp++
 			exp++
+		}
+
+		if digit != 0 {
+			d, trunc = d.round(trunc, digit)
 		}
 	} else if exp > 0 {
 		if exp >= 19 && d.sig[1] == 0 {
@@ -193,7 +205,7 @@ func (d decomposed128) add(o decomposed128, trunc int8) (decomposed128, int8) {
 			exp--
 		}
 
-		if exp >= 3 {
+		if exp > 3 {
 			var rem uint64
 			o.sig, rem = o.sig.div1000()
 			if rem != 0 {
@@ -207,19 +219,19 @@ func (d decomposed128) add(o decomposed128, trunc int8) (decomposed128, int8) {
 			}
 		}
 
+		var digit uint64
+
 		for exp > 0 {
-			var rem uint64
-			o.sig, rem = o.sig.div10()
-			if rem != 0 {
-				trunc = -1
+			if digit != 0 {
+				trunc = 1
 			}
 
-			if o.sig == (uint128{}) {
-				exp = 0
-				break
-			}
-
+			o.sig, digit = o.sig.div10()
 			exp--
+		}
+
+		if digit != 0 {
+			o, trunc = o.round(trunc, digit)
 		}
 	}
 
@@ -236,20 +248,74 @@ func (d decomposed128) add(o decomposed128, trunc int8) (decomposed128, int8) {
 		}
 	}
 
-	for sig192[2] > 0 {
-		var rem uint64
-		sig192, rem = sig192.div10()
-		exp++
+	var digit uint64
 
-		if rem != 0 {
+	for sig192[2] > 0 {
+		if digit != 0 {
 			trunc = 1
 		}
+
+		sig192, digit = sig192.div10()
+		exp++
 	}
 
 	return decomposed128{
 		sig: uint128{sig192[0], sig192[1]},
 		exp: exp,
-	}, trunc
+	}.round(trunc, digit)
+}
+
+func (d decomposed128) epow(l10 int16, trunc int8) (decomposed128, int8) {
+	exp := d.exp + l10 + 1
+	if exp < 0 {
+		exp = 0
+	} else {
+		d.exp = -l10 - 1
+	}
+
+	oneSig := uint128{1, 0}
+	oneExp := int16(0)
+
+	for d.sig[1] <= 0x0002_7fff_ffff_ffff {
+		d.sig = d.sig.mul64(10_000)
+		d.exp -= 4
+
+		oneSig = oneSig.mul64(10_000)
+		oneExp -= 4
+	}
+
+	for d.sig[1] <= 0x18ff_ffff_ffff_ffff {
+		d.sig = d.sig.mul64(10)
+		d.exp--
+
+		oneSig = oneSig.mul64(10)
+		oneExp--
+	}
+
+	one := decomposed128{
+		sig: oneSig,
+		exp: oneExp,
+	}
+
+	res, trunc := d.quo(decomposed128{
+		sig: uint128{40, 0},
+		exp: 0,
+	}, trunc)
+
+	for i := uint64(39); i > 1; i-- {
+		tmp, _ := d.quo(decomposed128{
+			sig: uint128{i, 0},
+			exp: 0,
+		}, int8(0))
+
+		res, trunc = res.mul(tmp, trunc)
+		res, trunc = res.add(one, trunc)
+	}
+
+	res, trunc = res.mul(d, trunc)
+	res, trunc = res.add(one, trunc)
+
+	return res.powexp10(exp, trunc)
 }
 
 func (d decomposed128) log() (bool, decomposed128, int8) {
@@ -377,20 +443,75 @@ func (d decomposed128) mul(o decomposed128, trunc int8) (decomposed128, int8) {
 		}
 	}
 
-	for sig192[2] > 0 {
-		var rem uint64
-		sig192, rem = sig192.div10()
-		exp++
+	var digit uint64
 
-		if rem != 0 {
+	for sig192[2] > 0 {
+		if digit != 0 {
 			trunc = 1
 		}
+
+		sig192, digit = sig192.div10()
+		exp++
 	}
 
 	return decomposed128{
 		sig: uint128{sig192[0], sig192[1]},
 		exp: exp,
-	}, trunc
+	}.round(trunc, digit)
+}
+
+func (d decomposed128) powexp10(o int16, trunc int8) (decomposed128, int8) {
+	var p10 int64
+	switch o {
+	case 0:
+		return d, trunc
+	case 1:
+		p10 = 10
+	case 2:
+		p10 = 100
+	case 3:
+		p10 = 1_000
+	case 4:
+		p10 = 10_000
+	case 5:
+		p10 = 100_000
+	case 6:
+		p10 = 1_000_000
+	case 7:
+		p10 = 10_000_000
+	case 8:
+		return dinf, trunc
+	}
+
+	r := decomposed128{
+		sig: uint128{1, 0},
+		exp: 0,
+	}
+
+	var rtrunc int8
+	for p10 > 1 {
+		if int64(d.exp)*2 > math.MaxInt16 {
+			return dinf, trunc
+		}
+
+		if p10&1 != 0 {
+			r, rtrunc = d.mul(r, rtrunc)
+			p10--
+		}
+
+		d, trunc = d.mul(d, trunc)
+		p10 /= 2
+	}
+
+	if int64(d.exp)+int64(r.exp) > math.MaxInt16 {
+		return dinf, trunc
+	}
+
+	if rtrunc != 0 {
+		trunc = 1
+	}
+
+	return d.mul(r, trunc)
 }
 
 func (d decomposed128) quo(o decomposed128, trunc int8) (decomposed128, int8) {
@@ -429,6 +550,8 @@ func (d decomposed128) quo(o decomposed128, trunc int8) (decomposed128, int8) {
 	sig, rem := d.sig.div(o.sig)
 	exp := d.exp - o.exp
 
+	var digit uint64
+
 	for rem != (uint128{}) && sig[1] <= 0x18ff_ffff_ffff_ffff {
 		for rem[1] <= 0x0002_7fff_ffff_ffff && sig[1] <= 0x0002_7fff_ffff_ffff {
 			rem = rem.mul64(10_000)
@@ -447,13 +570,12 @@ func (d decomposed128) quo(o decomposed128, trunc int8) (decomposed128, int8) {
 		sig192 := sig.add(tmp)
 
 		for sig192[2] != 0 {
-			var rem192 uint64
-			sig192, rem192 = sig192.div10()
-			exp++
-
-			if rem192 != 0 {
+			if digit != 0 {
 				trunc = 1
 			}
+
+			sig192, digit = sig192.div10()
+			exp++
 		}
 
 		sig = uint128{sig192[0], sig192[1]}
@@ -466,7 +588,42 @@ func (d decomposed128) quo(o decomposed128, trunc int8) (decomposed128, int8) {
 	return decomposed128{
 		sig: sig,
 		exp: exp,
-	}, trunc
+	}.round(trunc, digit)
+}
+
+func (d decomposed128) round(trunc int8, digit uint64) (decomposed128, int8) {
+	for {
+		var adjust int
+		if trunc != 0 {
+			if digit >= 5 {
+				adjust = 1
+			}
+		} else {
+			if digit > 5 {
+				adjust = 1
+			} else if digit == 5 {
+				if d.sig[0]%2 != 0 {
+					adjust = 1
+				}
+			}
+		}
+
+		if adjust != 0 {
+			if d.sig.cmp(uint128{math.MaxUint64, math.MaxUint64}) == 0 {
+				if digit != 0 {
+					trunc = 1
+				}
+
+				d.sig, digit = d.sig.div10()
+				d.exp++
+				continue
+			}
+
+			d.sig = d.sig.add64(1)
+		}
+
+		return d, trunc
+	}
 }
 
 func (d decomposed128) sub(o decomposed128, trunc int8) (bool, decomposed128, int8) {
