@@ -332,12 +332,12 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 
 	exp -= nfrac
 
-	if exp > maxBiasedExponent-exponentBias+39 {
+	if exp > maxUnbiasedExponent+39 {
 		*d = inf(neg)
 		return nil
 	}
 
-	if exp < minBiasedExponent-exponentBias-39 {
+	if exp < minUnbiasedExponent-39 {
 		*d = zero(neg)
 		return nil
 	}
@@ -561,11 +561,11 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 
 	exp -= nfrac
 
-	if exp > maxBiasedExponent-exponentBias+39 {
+	if exp > maxUnbiasedExponent+39 {
 		return inf(neg), nil
 	}
 
-	if exp < minBiasedExponent-exponentBias-39 {
+	if exp < minUnbiasedExponent-39 {
 		return zero(neg), nil
 	}
 

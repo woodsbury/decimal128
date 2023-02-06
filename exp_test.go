@@ -34,6 +34,38 @@ func TestExp(t *testing.T) {
 	}
 }
 
+func TestExp2(t *testing.T) {
+	t.Parallel()
+
+	initDecimalValues()
+
+	bigval := new(apd.Decimal)
+	bigres := new(apd.Decimal)
+	bigctx := apd.Context{
+		Precision:   39,
+		MaxExponent: 6145,
+		MinExponent: -6176,
+		Rounding:    apd.RoundHalfEven,
+	}
+
+	bigln2 := new(apd.Decimal)
+	bigctx.Ln(bigln2, apd.New(2, 0))
+
+	for _, val := range decimalValues {
+		decval := val.Decimal()
+		res := Exp2(decval)
+
+		val.Big(bigval)
+
+		bigctx.Mul(bigres, bigval, bigln2)
+		bigctx.Exp(bigres, bigres)
+
+		if !decimalsEqual(res, bigres, bigctx.Rounding) {
+			t.Errorf("Exp2(%v) = %v, want %v", val, res, bigres)
+		}
+	}
+}
+
 func TestLog(t *testing.T) {
 	t.Parallel()
 

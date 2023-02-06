@@ -244,12 +244,12 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 
 	exp -= nfrac
 
-	if exp > maxBiasedExponent-exponentBias+39 {
+	if exp > maxUnbiasedExponent+39 {
 		*d = inf(neg)
 		return nil
 	}
 
-	if exp < minBiasedExponent-exponentBias-39 {
+	if exp < minUnbiasedExponent-39 {
 		*d = zero(neg)
 		return nil
 	}

@@ -17,7 +17,7 @@ func init() {
 	lo.SetUint64(math.MaxUint64)
 
 	maxDecimal = new(apd.Decimal)
-	maxDecimal.Exponent = maxBiasedExponent - exponentBias
+	maxDecimal.Exponent = maxUnbiasedExponent
 	maxDecimal.Coeff.SetUint64(0x0002_7fff_ffff_ffff)
 	maxDecimal.Coeff.Lsh(&maxDecimal.Coeff, 64).Or(&maxDecimal.Coeff, lo)
 }

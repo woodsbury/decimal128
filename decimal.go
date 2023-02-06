@@ -44,11 +44,11 @@ func New(sig int64, exp int) Decimal {
 		sig *= -1
 	}
 
-	if exp < minBiasedExponent-exponentBias+19 {
+	if exp < minUnbiasedExponent+19 {
 		return zero(neg)
 	}
 
-	if exp > maxBiasedExponent-exponentBias+39 {
+	if exp > maxUnbiasedExponent+39 {
 		return inf(neg)
 	}
 
