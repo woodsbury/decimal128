@@ -65,6 +65,151 @@ func Exp(d Decimal) Decimal {
 	return compose(false, sig, exp)
 }
 
+// Exp10 returns 10**d, the base-10 exponential of d.
+func Exp10(d Decimal) Decimal {
+	if d.isSpecial() {
+		if d.IsNaN() {
+			return d
+		}
+
+		if d.Signbit() {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	if d.IsZero() {
+		return one(false)
+	}
+
+	dSig, dExp := d.decompose()
+	dExp -= exponentBias
+	l10 := dSig.log10()
+
+	if int(dExp) > 4-l10 {
+		if d.Signbit() {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	var dSigInt uint
+	if l10+int(dExp) >= 0 {
+		sig := dSig
+		exp := dExp
+		dSig = uint128{}
+
+		for exp < 0 {
+			var rem uint64
+			sig, rem = sig.div10()
+
+			dSig = dSig.mul64(10)
+			dSig = dSig.add64(rem)
+			exp++
+		}
+
+		dSigInt = uint(sig[0])
+
+		for exp > 0 {
+			dSigInt *= 10
+			exp--
+		}
+
+		if dSigInt > maxUnbiasedExponent+39 {
+			if d.Signbit() {
+				return zero(false)
+			}
+
+			return inf(false)
+		}
+
+		sig = dSig
+		dSig = uint128{}
+		dExp = 0
+
+		for sig != (uint128{}) {
+			var rem uint64
+			sig, rem = sig.div10()
+
+			dSig = dSig.mul64(10)
+			dSig = dSig.add64(rem)
+			dExp--
+		}
+	}
+
+	var res decomposed128
+	var trunc int8
+
+	var sigInt uint128
+	var expInt int16
+
+	if dSigInt != 0 {
+		sigInt = uint128{1, 0}
+
+		for dSigInt > maxUnbiasedExponent {
+			sigInt = sigInt.mul64(10)
+			dSigInt--
+		}
+
+		expInt = int16(dSigInt)
+	}
+
+	if dSig != (uint128{}) {
+		res, trunc = decomposed128{
+			sig: dSig,
+			exp: dExp,
+		}.mul(ln10, int8(0))
+
+		res, trunc = res.epow(int16(l10), trunc)
+
+		if res.exp > maxUnbiasedExponent+39 {
+			if d.Signbit() {
+				return zero(false)
+			}
+
+			return inf(false)
+		}
+
+		if expInt != 0 {
+			res.exp += expInt
+		}
+	} else {
+		res = decomposed128{
+			sig: uint128{1, 0},
+			exp: expInt,
+		}
+	}
+
+	if res.exp > maxUnbiasedExponent+39 {
+		if d.Signbit() {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	if d.Signbit() {
+		res, trunc = decomposed128{
+			sig: uint128{1, 0},
+			exp: 0,
+		}.quo(res, trunc)
+	}
+
+	sig, exp := DefaultRoundingMode.reduce128(false, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		if d.Signbit() {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	return compose(false, sig, exp)
+}
+
 // Exp2 returns 2**d, the base-2 exponential of d.
 func Exp2(d Decimal) Decimal {
 	if d.isSpecial() {
