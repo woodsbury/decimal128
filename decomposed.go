@@ -11,6 +11,48 @@ var (
 		exp: math.MaxInt16,
 	}
 
+	oneE10 = [...]uint128{
+		{1, 0},
+		{0x0000_0000_0000_000a, 0x0000_0000_0000_0000},
+		{0x0000_0000_0000_0064, 0x0000_0000_0000_0000},
+		{0x0000_0000_0000_03e8, 0x0000_0000_0000_0000},
+		{0x0000_0000_0000_2710, 0x0000_0000_0000_0000},
+		{0x0000_0000_0001_86a0, 0x0000_0000_0000_0000},
+		{0x0000_0000_000f_4240, 0x0000_0000_0000_0000},
+		{0x0000_0000_0098_9680, 0x0000_0000_0000_0000},
+		{0x0000_0000_05f5_e100, 0x0000_0000_0000_0000},
+		{0x0000_0000_3b9a_ca00, 0x0000_0000_0000_0000},
+		{0x0000_0002_540b_e400, 0x0000_0000_0000_0000},
+		{0x0000_0017_4876_e800, 0x0000_0000_0000_0000},
+		{0x0000_00e8_d4a5_1000, 0x0000_0000_0000_0000},
+		{0x0000_0918_4e72_a000, 0x0000_0000_0000_0000},
+		{0x0000_5af3_107a_4000, 0x0000_0000_0000_0000},
+		{0x0003_8d7e_a4c6_8000, 0x0000_0000_0000_0000},
+		{0x0023_86f2_6fc1_0000, 0x0000_0000_0000_0000},
+		{0x0163_4578_5d8a_0000, 0x0000_0000_0000_0000},
+		{0x0de0_b6b3_a764_0000, 0x0000_0000_0000_0000},
+		{0x8ac7_2304_89e8_0000, 0x0000_0000_0000_0000},
+		{0x6bc7_5e2d_6310_0000, 0x0000_0000_0000_0005},
+		{0x35c9_adc5_dea0_0000, 0x0000_0000_0000_0036},
+		{0x19e0_c9ba_b240_0000, 0x0000_0000_0000_021e},
+		{0x02c7_e14a_f680_0000, 0x0000_0000_0000_152d},
+		{0x1bce_cced_a100_0000, 0x0000_0000_0000_d3c2},
+		{0x1614_0148_4a00_0000, 0x0000_0000_0008_4595},
+		{0xdcc8_0cd2_e400_0000, 0x0000_0000_0052_b7d2},
+		{0x9fd0_803c_e800_0000, 0x0000_0000_033b_2e3c},
+		{0x3e25_0261_1000_0000, 0x0000_0000_204f_ce5e},
+		{0x6d72_17ca_a000_0000, 0x0000_0001_431e_0fae},
+		{0x4674_edea_4000_0000, 0x0000_000c_9f2c_9cd0},
+		{0xc091_4b26_8000_0000, 0x0000_007e_37be_2022},
+		{0x85ac_ef81_0000_0000, 0x0000_04ee_2d6d_415b},
+		{0x38c1_5b0a_0000_0000, 0x0000_314d_c644_8d93},
+		{0x378d_8e64_0000_0000, 0x0001_ed09_bead_87c0},
+		{0x2b87_8fe8_0000_0000, 0x0013_4261_72c7_4d82},
+		{0xb34b_9f10_0000_0000, 0x00c0_97ce_7bc9_0715},
+		{0x00f4_36a0_0000_0000, 0x0785_ee10_d5da_46d9},
+		{0x098a_2240_0000_0000, 0x4b3b_4ca8_5a86_c47a},
+	}
+
 	ln10 = decomposed128{
 		sig: uint128{0x09bb_c25b_3ca8_1898, 0xad3a_2d01_4ad4_7d7a},
 		exp: -38,
@@ -265,6 +307,100 @@ func (d decomposed128) add(o decomposed128, trunc int8) (decomposed128, int8) {
 	}.round(trunc, digit)
 }
 
+func (d decomposed128) add1(trunc int8) (decomposed128, int8) {
+	if d.sig == (uint128{}) {
+		return decomposed128{
+			sig: uint128{1, 0},
+			exp: 0,
+		}, trunc
+	}
+
+	if d.exp < -76 {
+		return decomposed128{
+			sig: uint128{1, 0},
+			exp: 0,
+		}, 1
+	}
+
+	if d.exp > 38 {
+		return d, 1
+	}
+
+	var sig192 uint192
+	var digit uint64
+
+	if d.exp <= 0 {
+		for d.exp < -41 {
+			var rem uint64
+			d.sig, rem = d.sig.div1000()
+			if rem != 0 {
+				trunc = 1
+			}
+
+			if d.sig == (uint128{}) {
+				return decomposed128{
+					sig: uint128{1, 0},
+					exp: 0,
+				}, trunc
+			}
+
+			d.exp += 3
+		}
+
+		for d.exp < -38 {
+			if digit != 0 {
+				trunc = 1
+			}
+
+			d.sig, digit = d.sig.div10()
+			d.exp++
+
+			if d.sig == (uint128{}) && d.exp < -38 {
+				if digit != 0 {
+					trunc = 1
+				}
+
+				return decomposed128{
+					sig: uint128{1, 0},
+					exp: 0,
+				}, trunc
+			}
+		}
+
+		sig192 = d.sig.add(oneE10[-d.exp])
+	} else {
+		for d.exp > 4 && d.sig[1] <= 0x0002_7fff_ffff_ffff {
+			d.sig = d.sig.mul64(10_000)
+			d.exp -= 4
+		}
+
+		for d.exp > 0 && d.sig[1] <= 0x18ff_ffff_ffff_ffff {
+			d.sig = d.sig.mul64(10)
+			d.exp--
+		}
+
+		if d.exp != 0 {
+			return d, 1
+		}
+
+		sig192 = d.sig.add(uint128{1, 0})
+	}
+
+	if sig192[2] != 0 {
+		if digit != 0 {
+			trunc = 1
+		}
+
+		sig192, digit = sig192.div10()
+		d.exp++
+	}
+
+	return decomposed128{
+		sig: uint128{sig192[0], sig192[1]},
+		exp: d.exp,
+	}.round(trunc, digit)
+}
+
 func (d decomposed128) epow(l10 int16, trunc int8) (decomposed128, int8) {
 	exp := d.exp + l10 + 1
 	if exp < 0 {
@@ -273,28 +409,14 @@ func (d decomposed128) epow(l10 int16, trunc int8) (decomposed128, int8) {
 		d.exp = -l10 - 1
 	}
 
-	oneSig := uint128{1, 0}
-	oneExp := int16(0)
-
 	for d.sig[1] <= 0x0002_7fff_ffff_ffff {
 		d.sig = d.sig.mul64(10_000)
 		d.exp -= 4
-
-		oneSig = oneSig.mul64(10_000)
-		oneExp -= 4
 	}
 
 	for d.sig[1] <= 0x18ff_ffff_ffff_ffff {
 		d.sig = d.sig.mul64(10)
 		d.exp--
-
-		oneSig = oneSig.mul64(10)
-		oneExp--
-	}
-
-	one := decomposed128{
-		sig: oneSig,
-		exp: oneExp,
 	}
 
 	res, trunc := d.quo(decomposed128{
@@ -309,11 +431,11 @@ func (d decomposed128) epow(l10 int16, trunc int8) (decomposed128, int8) {
 		}, int8(0))
 
 		res, trunc = res.mul(tmp, trunc)
-		res, trunc = res.add(one, trunc)
+		res, trunc = res.add1(trunc)
 	}
 
 	res, trunc = res.mul(d, trunc)
-	res, trunc = res.add(one, trunc)
+	res, trunc = res.add1(trunc)
 
 	return res.powexp10(exp, trunc)
 }
@@ -324,23 +446,15 @@ func (d decomposed128) log() (bool, decomposed128, int8) {
 	d.exp = -l10
 
 	msd := d.sig.msd2()
-	oneSig := uint128{1, 0}
-	oneExp := int16(0)
 
 	for d.sig[1] <= 0x0002_7fff_ffff_ffff {
 		d.sig = d.sig.mul64(10_000)
 		d.exp -= 4
-
-		oneSig = oneSig.mul64(10_000)
-		oneExp -= 4
 	}
 
 	for d.sig[1] <= 0x18ff_ffff_ffff_ffff {
 		d.sig = d.sig.mul64(10)
 		d.exp--
-
-		oneSig = oneSig.mul64(10)
-		oneExp--
 	}
 
 	if msd < 10 {
@@ -355,13 +469,8 @@ func (d decomposed128) log() (bool, decomposed128, int8) {
 		}, 0)
 	}
 
-	one := decomposed128{
-		sig: oneSig,
-		exp: oneExp,
-	}
-
-	_, num, _ := d.sub(one, int8(0))
-	den, _ := d.add(one, int8(0))
+	_, num, _ := d.sub1(int8(0))
+	den, _ := d.add1(int8(0))
 	frc, trunc := num.quo(den, trunc)
 	sqr, _ := frc.mul(frc, int8(0))
 
@@ -742,5 +851,95 @@ func (d decomposed128) sub(o decomposed128, trunc int8) (bool, decomposed128, in
 	return neg, decomposed128{
 		sig: sig,
 		exp: exp,
+	}, trunc
+}
+
+func (d decomposed128) sub1(trunc int8) (bool, decomposed128, int8) {
+	if d.sig == (uint128{}) {
+		return true, decomposed128{
+			sig: uint128{1, 0},
+			exp: 0,
+		}, trunc
+	}
+
+	if d.exp < -76 {
+		return true, decomposed128{
+			sig: uint128{1, 0},
+			exp: 0,
+		}, 1
+	}
+
+	if d.exp > 38 {
+		return false, d, 1
+	}
+
+	var sig uint128
+	var brw uint
+
+	if d.exp <= 0 {
+		for d.exp < -41 {
+			var rem uint64
+			d.sig, rem = d.sig.div1000()
+			if rem != 0 {
+				trunc = 1
+			}
+
+			if d.sig == (uint128{}) {
+				return true, decomposed128{
+					sig: uint128{1, 0},
+					exp: 0,
+				}, trunc
+			}
+
+			d.exp += 3
+		}
+
+		for d.exp < -38 {
+			var rem uint64
+			d.sig, rem = d.sig.div10()
+			if rem != 0 {
+				trunc = 1
+			}
+
+			d.exp++
+
+			if d.sig == (uint128{}) && d.exp < -38 {
+				return true, decomposed128{
+					sig: uint128{1, 0},
+					exp: 0,
+				}, trunc
+			}
+		}
+
+		sig, brw = d.sig.sub(oneE10[-d.exp])
+	} else {
+		for d.exp > 4 && d.sig[1] <= 0x0002_7fff_ffff_ffff {
+			d.sig = d.sig.mul64(10_000)
+			d.exp -= 4
+		}
+
+		for d.exp > 0 && d.sig[1] <= 0x18ff_ffff_ffff_ffff {
+			d.sig = d.sig.mul64(10)
+			d.exp--
+		}
+
+		if d.exp != 0 {
+			return false, d, 1
+		}
+
+		sig, brw = d.sig.sub(uint128{1, 0})
+	}
+
+	neg := false
+
+	if brw != 0 {
+		sig = sig.twos()
+		neg = true
+		trunc *= -1
+	}
+
+	return neg, decomposed128{
+		sig: sig,
+		exp: d.exp,
 	}, trunc
 }
