@@ -296,6 +296,16 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16, trunc int8
 
 	sig192 := uint192{sig256[0], sig256[1], sig256[2]}
 
+	if sig192[2] > 10000 {
+		var rem uint64
+		sig192, rem = sig192.div1e8()
+		exp += 8
+
+		if rem != 0 {
+			trunc = 1
+		}
+	}
+
 	for sig192[2] > 0 {
 		var rem uint64
 		sig192, rem = sig192.div10000()
@@ -309,6 +319,15 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16, trunc int8
 	sig := uint128{sig192[0], sig192[1]}
 
 	var digit uint64
+
+	if sig[1] > 0x00f9_ffff_ffff_fff9c {
+		if digit != 0 {
+			trunc = 1
+		}
+
+		sig, digit = sig.div100()
+		exp += 2
+	}
 
 	for sig[1] > 0x0002_7fff_ffff_ffff {
 		if digit != 0 {
@@ -351,6 +370,16 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16, trunc int8
 }
 
 func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8) (uint128, int16) {
+	if sig192[2] > 10000 {
+		var rem uint64
+		sig192, rem = sig192.div1e8()
+		exp += 8
+
+		if rem != 0 {
+			trunc = 1
+		}
+	}
+
 	for sig192[2] > 0 {
 		var rem uint64
 		sig192, rem = sig192.div10000()
@@ -364,6 +393,15 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8
 	sig := uint128{sig192[0], sig192[1]}
 
 	var digit uint64
+
+	if sig[1] > 0x00f9_ffff_ffff_fff9c {
+		if digit != 0 {
+			trunc = 1
+		}
+
+		sig, digit = sig.div100()
+		exp += 2
+	}
 
 	for sig[1] > 0x0002_7fff_ffff_ffff {
 		if digit != 0 {
@@ -407,6 +445,15 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8
 
 func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (uint128, int16) {
 	var digit uint64
+
+	if sig[1] > 0x00f9_ffff_ffff_fff9c {
+		if digit != 0 {
+			trunc = 1
+		}
+
+		sig, digit = sig.div100()
+		exp += 2
+	}
 
 	for sig[1] > 0x0002_7fff_ffff_ffff {
 		if digit != 0 {

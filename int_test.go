@@ -690,6 +690,30 @@ func TestUint192Div10000(t *testing.T) {
 	}
 }
 
+func TestUint192Div1e8(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	c := big.NewInt(100_000_000)
+
+	bigval := new(big.Int)
+	bigrem := new(big.Int)
+	tmpquo := new(big.Int)
+	tmprem := new(big.Int)
+
+	for _, val := range uint192Values {
+		quo, rem := val.div1e8()
+
+		uint192ToBig(val, bigval)
+		bigquo, bigrem := bigval.QuoRem(bigval, c, bigrem)
+
+		if uint192ToBig(quo, tmpquo).Cmp(bigquo) != 0 || tmprem.SetUint64(rem).Cmp(bigrem) != 0 {
+			t.Errorf("%v.div1e8() = (%v, %v), want (%v, %v)", val, quo, rem, bigquo, bigrem)
+		}
+	}
+}
+
 func TestUint192String(t *testing.T) {
 	t.Parallel()
 

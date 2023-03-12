@@ -360,6 +360,14 @@ func (n uint192) div10000() (uint192, uint64) {
 	return uint192{r0, r1, r2}, rem
 }
 
+func (n uint192) div1e8() (uint192, uint64) {
+	r2, rem := bits.Div64(0, n[2], 100_000_000)
+	r1, rem := bits.Div64(rem, n[1], 100_000_000)
+	r0, rem := bits.Div64(rem, n[0], 100_000_000)
+
+	return uint192{r0, r1, r2}, rem
+}
+
 type uint256 [4]uint64
 
 func (n uint256) String() string {

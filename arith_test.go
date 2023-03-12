@@ -254,3 +254,32 @@ func TestDecimalSub(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkOperations(b *testing.B) {
+	initDecimalValues()
+
+	values := make([]Decimal, 0, len(decimalValues))
+	for _, val := range decimalValues {
+		if val.form != regularForm {
+			continue
+		}
+
+		if val.sig == (uint128{}) {
+			continue
+		}
+
+		values = append(values, val.Decimal())
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, lhs := range values {
+			for _, rhs := range values {
+				lhs.Add(rhs)
+				lhs.Mul(rhs)
+				lhs.Quo(rhs)
+				lhs.Sub(rhs)
+			}
+		}
+	}
+}
