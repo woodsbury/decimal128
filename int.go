@@ -145,7 +145,7 @@ func (n uint128) div10() (uint128, uint64) {
 
 func (n uint128) div100() (uint128, uint64) {
 	var r0, r1, rem uint64
-	if n[1] < 10 {
+	if n[1] < 100 {
 		r0, rem = bits.Div64(n[1], n[0], 100)
 	} else {
 		r1, rem = bits.Div64(0, n[1], 100)
@@ -345,24 +345,42 @@ func (n uint192) String() string {
 }
 
 func (n uint192) div10() (uint192, uint64) {
-	r2, rem := bits.Div64(0, n[2], 10)
-	r1, rem := bits.Div64(rem, n[1], 10)
+	var r1, r2, rem uint64
+	if n[2] < 10 {
+		r1, rem = bits.Div64(n[2], n[1], 10)
+	} else {
+		r2, rem = bits.Div64(0, n[2], 10)
+		r1, rem = bits.Div64(rem, n[1], 10)
+	}
+
 	r0, rem := bits.Div64(rem, n[0], 10)
 
 	return uint192{r0, r1, r2}, rem
 }
 
 func (n uint192) div10000() (uint192, uint64) {
-	r2, rem := bits.Div64(0, n[2], 10000)
-	r1, rem := bits.Div64(rem, n[1], 10000)
+	var r1, r2, rem uint64
+	if n[2] < 10000 {
+		r1, rem = bits.Div64(n[2], n[1], 10000)
+	} else {
+		r2, rem = bits.Div64(0, n[2], 10000)
+		r1, rem = bits.Div64(rem, n[1], 10000)
+	}
+
 	r0, rem := bits.Div64(rem, n[0], 10000)
 
 	return uint192{r0, r1, r2}, rem
 }
 
 func (n uint192) div1e8() (uint192, uint64) {
-	r2, rem := bits.Div64(0, n[2], 100_000_000)
-	r1, rem := bits.Div64(rem, n[1], 100_000_000)
+	var r1, r2, rem uint64
+	if n[2] < 100_000_000 {
+		r1, rem = bits.Div64(n[2], n[1], 100_000_000)
+	} else {
+		r2, rem = bits.Div64(0, n[2], 100_000_000)
+		r1, rem = bits.Div64(rem, n[1], 100_000_000)
+	}
+
 	r0, rem := bits.Div64(rem, n[0], 100_000_000)
 
 	return uint192{r0, r1, r2}, rem
@@ -389,8 +407,14 @@ func (n uint256) String() string {
 }
 
 func (n uint256) div10() (uint256, uint64) {
-	r3, rem := bits.Div64(0, n[3], 10)
-	r2, rem := bits.Div64(rem, n[2], 10)
+	var r2, r3, rem uint64
+	if n[3] < 10 {
+		r2, rem = bits.Div64(n[3], n[2], 10)
+	} else {
+		r3, rem = bits.Div64(0, n[3], 10)
+		r2, rem = bits.Div64(rem, n[2], 10)
+	}
+
 	r1, rem := bits.Div64(rem, n[1], 10)
 	r0, rem := bits.Div64(rem, n[0], 10)
 
@@ -398,8 +422,14 @@ func (n uint256) div10() (uint256, uint64) {
 }
 
 func (n uint256) div1e19() (uint256, uint64) {
-	r3, rem := bits.Div64(0, n[3], 10_000_000_000_000_000_000)
-	r2, rem := bits.Div64(rem, n[2], 10_000_000_000_000_000_000)
+	var r2, r3, rem uint64
+	if n[3] < 10_000_000_000_000_000_000 {
+		r2, rem = bits.Div64(n[3], n[2], 10_000_000_000_000_000_000)
+	} else {
+		r3, rem = bits.Div64(0, n[3], 10_000_000_000_000_000_000)
+		r2, rem = bits.Div64(rem, n[2], 10_000_000_000_000_000_000)
+	}
+
 	r1, rem := bits.Div64(rem, n[1], 10_000_000_000_000_000_000)
 	r0, rem := bits.Div64(rem, n[0], 10_000_000_000_000_000_000)
 
