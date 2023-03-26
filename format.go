@@ -40,7 +40,7 @@ var (
 
 // Append formats the Decimal according to the provided format specifier and
 // appends the result to the provided byte slice, returning the updated byte
-// slice. The format specifier can be any value supported by [Format], without
+// slice. The format specifier can be any value supported by [Decimal.Format], without
 // the leading %.
 func (d Decimal) Append(buf []byte, format string) []byte {
 	var args formatArgs

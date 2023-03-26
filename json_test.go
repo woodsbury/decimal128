@@ -63,3 +63,18 @@ func TestDecimalUnmarshalJSON(t *testing.T) {
 		}
 	}
 }
+
+func FuzzDecimalUnmarshalJSON(f *testing.F) {
+	f.Add([]byte("123456.789e10"))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		t.Parallel()
+
+		var dec Decimal
+		if err := dec.UnmarshalJSON(data); err != nil {
+			return
+		}
+
+		_, _ = dec.MarshalJSON()
+	})
+}
