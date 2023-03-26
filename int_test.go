@@ -279,6 +279,30 @@ func TestUint128Div1000(t *testing.T) {
 	}
 }
 
+func TestUint128Div10000(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	c := big.NewInt(10000)
+
+	bigval := new(big.Int)
+	bigrem := new(big.Int)
+	tmpquo := new(big.Int)
+	tmprem := new(big.Int)
+
+	for _, val := range uint128Values {
+		quo, rem := val.div10000()
+
+		uint128ToBig(val, bigval)
+		bigquo, bigrem := bigval.QuoRem(bigval, c, bigrem)
+
+		if uint128ToBig(quo, tmpquo).Cmp(bigquo) != 0 || tmprem.SetUint64(rem).Cmp(bigrem) != 0 {
+			t.Errorf("%v.div10000() = (%v, %v), want (%v, %v)", val, quo, rem, bigquo, bigrem)
+		}
+	}
+}
+
 func TestUint128Div1e8(t *testing.T) {
 	t.Parallel()
 

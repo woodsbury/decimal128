@@ -320,13 +320,42 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16, trunc int8
 
 	var digit uint64
 
-	if sig[1] > 0x00f9_ffff_ffff_fff9c {
-		if digit != 0 {
-			trunc = 1
-		}
+	if sig[1] > 0x09c4_0000_0000_0000 {
+		var rem uint64
+		sig, rem = sig.div10000()
+		exp += 4
 
-		sig, digit = sig.div100()
+		if rem != 0 {
+			digit = rem / 1000
+
+			if rem%1000 != 0 {
+				trunc = 1
+			}
+		}
+	} else if sig[1] > 0x00fa_0000_0000_0000 {
+		var rem uint64
+		sig, rem = sig.div1000()
+		exp += 3
+
+		if rem != 0 {
+			digit = rem / 100
+
+			if rem%100 != 0 {
+				trunc = 1
+			}
+		}
+	} else if sig[1] > 0x0019_0000_0000_0000 {
+		var rem uint64
+		sig, rem = sig.div100()
 		exp += 2
+
+		if rem != 0 {
+			digit = rem / 10
+
+			if rem%10 != 0 {
+				trunc = 1
+			}
+		}
 	}
 
 	for sig[1] > 0x0002_7fff_ffff_ffff {
@@ -394,13 +423,42 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8
 
 	var digit uint64
 
-	if sig[1] > 0x00f9_ffff_ffff_fff9c {
-		if digit != 0 {
-			trunc = 1
-		}
+	if sig[1] > 0x09c4_0000_0000_0000 {
+		var rem uint64
+		sig, rem = sig.div10000()
+		exp += 4
 
-		sig, digit = sig.div100()
+		if rem != 0 {
+			digit = rem / 1000
+
+			if rem%1000 != 0 {
+				trunc = 1
+			}
+		}
+	} else if sig[1] > 0x00fa_0000_0000_0000 {
+		var rem uint64
+		sig, rem = sig.div1000()
+		exp += 3
+
+		if rem != 0 {
+			digit = rem / 100
+
+			if rem%100 != 0 {
+				trunc = 1
+			}
+		}
+	} else if sig[1] > 0x0019_0000_0000_0000 {
+		var rem uint64
+		sig, rem = sig.div100()
 		exp += 2
+
+		if rem != 0 {
+			digit = rem / 10
+
+			if rem%10 != 0 {
+				trunc = 1
+			}
+		}
 	}
 
 	for sig[1] > 0x0002_7fff_ffff_ffff {
@@ -446,13 +504,42 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8
 func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (uint128, int16) {
 	var digit uint64
 
-	if sig[1] > 0x00f9_ffff_ffff_fff9c {
-		if digit != 0 {
-			trunc = 1
-		}
+	if sig[1] > 0x09c4_0000_0000_0000 {
+		var rem uint64
+		sig, rem = sig.div10000()
+		exp += 4
 
-		sig, digit = sig.div100()
+		if rem != 0 {
+			digit = rem / 1000
+
+			if rem%1000 != 0 {
+				trunc = 1
+			}
+		}
+	} else if sig[1] > 0x00fa_0000_0000_0000 {
+		var rem uint64
+		sig, rem = sig.div1000()
+		exp += 3
+
+		if rem != 0 {
+			digit = rem / 100
+
+			if rem%100 != 0 {
+				trunc = 1
+			}
+		}
+	} else if sig[1] > 0x0019_0000_0000_0000 {
+		var rem uint64
+		sig, rem = sig.div100()
 		exp += 2
+
+		if rem != 0 {
+			digit = rem / 10
+
+			if rem%10 != 0 {
+				trunc = 1
+			}
+		}
 	}
 
 	for sig[1] > 0x0002_7fff_ffff_ffff {

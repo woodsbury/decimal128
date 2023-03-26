@@ -167,6 +167,18 @@ func (n uint128) div1000() (uint128, uint64) {
 	return uint128{r0, r1}, rem
 }
 
+func (n uint128) div10000() (uint128, uint64) {
+	var r0, r1, rem uint64
+	if n[1] < 10_000 {
+		r0, rem = bits.Div64(n[1], n[0], 10_000)
+	} else {
+		r1, rem = bits.Div64(0, n[1], 10_000)
+		r0, rem = bits.Div64(rem, n[0], 10_000)
+	}
+
+	return uint128{r0, r1}, rem
+}
+
 func (n uint128) div1e8() (uint128, uint64) {
 	var r0, r1, rem uint64
 	if n[1] < 100_000_000 {
