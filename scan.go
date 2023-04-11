@@ -142,6 +142,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 	saweof := false
 	sawexp := false
 
+ReadRunes64:
 	for !sawexp && sig64 < 0x18ff_ffff_ffff_ffff {
 		r, _, err = f.ReadRune()
 		if err != nil {
@@ -196,7 +197,10 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			cansep = false
 			cansgn = false
 		default:
-			return &scanError{}
+			f.UnreadRune()
+			saweof = true
+
+			break ReadRunes64
 		}
 	}
 
@@ -204,6 +208,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 	var exp int16
 
 	if !saweof {
+	ReadRunes:
 		for {
 			r, _, err = f.ReadRune()
 			if err != nil {
@@ -317,7 +322,10 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 				cansep = false
 				cansgn = false
 			default:
-				return &scanError{}
+				f.UnreadRune()
+				saweof = true
+
+				break ReadRunes
 			}
 		}
 	}

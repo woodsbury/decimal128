@@ -52,8 +52,10 @@ func initUintValues() {
 				val = val.mul64(100_000_000)
 				uint128Values = append(uint128Values, val)
 
-				val, _ = val.sub(uint128{1, 0})
-				uint128Values = append(uint128Values, val)
+				if l0 > 10 || l1 > 0 {
+					val, _ = val.sub(uint128{1, 0})
+					uint128Values = append(uint128Values, val)
+				}
 
 				for _, l2 := range uint64Values {
 					uint192Values = append(uint192Values, uint192{l0, l1, l2})

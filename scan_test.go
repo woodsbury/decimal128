@@ -33,11 +33,44 @@ func TestDecimalScan(t *testing.T) {
 	t.Parallel()
 
 	for val, num := range textValues {
+		if val == "-Infinity" {
+			// Scan only accepts "Inf" for infinity
+			continue
+		}
+
 		var res Decimal
 		_, err := fmt.Sscan(val, &res)
 		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
-			t.Errorf("fmt.Sscan(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
+			t.Errorf("fmt.Sscan(%q) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
+
+		_, err = fmt.Sscanf(val, "%g", &res)
+		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+			t.Errorf("fmt.Sscanf(%q, \"%%g\") = (%v, %v), want (%v, <nil>)", val, res, err, num)
+		}
+
+		val += "\n"
+
+		_, err = fmt.Sscanf(val, "%g\n", &res)
+		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+			t.Errorf("fmt.Sscanf(%q, \"%%g\\n\") = (%v, %v), want (%v, <nil>)", val, res, err, num)
+		}
+
+		_, err = fmt.Sscanln(val, &res)
+		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+			t.Errorf("fmt.Sscanln(%q) = (%v, %v), want (%v, <nil>)", val, res, err, num)
+		}
+	}
+
+	var res1, res2 Decimal
+	n, err := fmt.Sscanf("1 2", "%g %g", &res1, &res2)
+	if n != 2 || !res1.Equal(FromUint64(1)) || !res2.Equal(FromUint64(2)) || err != nil {
+		t.Errorf("fmt.Sscanf(\"1 2\") = (%v, %v, %v), want (1, 2, <nil>)", res1, res2, err)
+	}
+
+	n, err = fmt.Sscanln("1 2\n", &res1, &res2)
+	if n != 2 || !res1.Equal(FromUint64(1)) || !res2.Equal(FromUint64(2)) || err != nil {
+		t.Errorf("fmt.Sscanln(\"1 2\\n\") = (%v, %v, %v), want (1, 2, <nil>)", res1, res2, err)
 	}
 }
 
