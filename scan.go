@@ -172,7 +172,10 @@ ReadRunes64:
 			}
 		case r == '.':
 			if sawdot {
-				return &scanError{}
+				f.UnreadRune()
+				saweof = true
+
+				break ReadRunes64
 			}
 
 			caneof = true
@@ -280,7 +283,10 @@ ReadRunes64:
 				}
 			case r == '.':
 				if sawdot || sawexp {
-					return &scanError{}
+					f.UnreadRune()
+					saweof = true
+
+					break ReadRunes
 				}
 
 				caneof = true
@@ -288,8 +294,15 @@ ReadRunes64:
 				cansgn = false
 				sawdot = true
 			case r == 'E' || r == 'e':
-				if !sawdig || sawexp {
+				if !sawdig {
 					return &scanError{}
+				}
+
+				if sawexp {
+					f.UnreadRune()
+					saweof = true
+
+					break ReadRunes
 				}
 
 				caneof = false

@@ -1,8 +1,14 @@
 package decimal128
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"math"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"unsafe"
@@ -151,6 +157,235 @@ func (td testDec) String() string {
 		return "nan"
 	default:
 		panic("unhandled test decimal form")
+	}
+}
+
+type testDataReader struct {
+	t     *testing.T
+	files []string
+	f     *os.File
+	r     *bufio.Reader
+}
+
+func openTestData(t *testing.T) *testDataReader {
+	dir := filepath.Join("testdata", t.Name())
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("error reading testdata directory %s: %v", dir, err)
+	}
+
+	files := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			files = append(files, filepath.Join(dir, entry.Name()))
+		}
+	}
+
+	return &testDataReader{
+		t:     t,
+		files: files,
+	}
+}
+
+func (tr *testDataReader) close() {
+	if tr.f != nil {
+		if err := tr.f.Close(); err != nil {
+			tr.t.Fatalf("error closing file %s: %v", tr.f.Name(), err)
+		}
+
+		tr.f = nil
+		tr.r = nil
+	}
+
+	tr.files = nil
+}
+
+func (tr *testDataReader) openNext() bool {
+	if len(tr.files) == 0 {
+		return false
+	}
+
+	if tr.f != nil {
+		if err := tr.f.Close(); err != nil {
+			tr.t.Fatalf("error closing file %s: %v", tr.f.Name(), err)
+		}
+	}
+
+	var err error
+	tr.f, err = os.Open(tr.files[0])
+	if err != nil {
+		tr.t.Fatalf("error opening file %s: %v", tr.files[0], err)
+	}
+
+	if tr.r == nil {
+		tr.r = bufio.NewReader(tr.f)
+	} else {
+		tr.r.Reset(tr.f)
+	}
+
+	tr.files = tr.files[1:]
+
+	return true
+}
+
+func (tr *testDataReader) scan(format string, args ...any) bool {
+	for {
+		if tr.f == nil {
+			if tr.openNext() {
+				continue
+			}
+
+			return false
+		}
+
+		n, err := fmt.Fscanf(tr.r, format, args...)
+		if err != nil {
+			if errors.Is(err, io.ErrUnexpectedEOF) {
+				if n != 0 {
+					tr.t.Fatalf("error reading file %s: %v", tr.f.Name(), err)
+				}
+
+				if tr.openNext() {
+					continue
+				}
+
+				return false
+			}
+
+			tr.t.Fatalf("error reading file %s: %v", tr.f.Name(), err)
+		}
+
+		return true
+	}
+}
+
+type testDataResult struct {
+	ToNearestEven Decimal
+	ToNearestAway Decimal
+	ToZero        Decimal
+	AwayFromZero  Decimal
+	ToNegativeInf Decimal
+	ToPositiveInf Decimal
+}
+
+func (tr *testDataResult) Scan(f fmt.ScanState, verb rune) error {
+	if verb != 'v' {
+		return errors.New("bad verb '%" + string(verb) + "' for testResult")
+	}
+
+	tok, err := f.Token(true, nil)
+	if err != nil {
+		return err
+	}
+
+	index := bytes.IndexByte(tok, ';')
+
+	var data []byte
+	if index == -1 {
+		data = tok
+	} else {
+		data = tok[:index]
+	}
+
+	var res Decimal
+	if err := res.UnmarshalText(data); err != nil {
+		return err
+	}
+
+	tr.ToNearestEven = res
+	tr.ToNearestAway = res
+	tr.ToZero = res
+	tr.AwayFromZero = res
+	tr.ToNegativeInf = res
+	tr.ToPositiveInf = res
+
+	for index != -1 {
+		tok = tok[index+1:]
+
+		sep := bytes.IndexByte(tok, ':')
+		if sep == -1 {
+			return errors.New("invalid value")
+		}
+
+		index = bytes.IndexByte(tok[sep+1:], ';')
+
+		if index == -1 {
+			data = tok[sep+1:]
+		} else {
+			data = tok[sep+1 : index]
+		}
+
+		if err := res.UnmarshalText(data); err != nil {
+			return err
+		}
+
+		modes := tok[:sep]
+
+		for sep != -1 {
+			sep = bytes.IndexByte(modes, ',')
+
+			var mode []byte
+			if sep == -1 {
+				mode = modes
+			} else {
+				mode = modes[:sep]
+			}
+
+			modes = modes[sep+1:]
+
+			switch string(mode) {
+			case "NE":
+				tr.ToNearestEven = res
+			case "NA":
+				tr.ToNearestAway = res
+			case "Z":
+				tr.ToZero = res
+			case "FZ":
+				tr.AwayFromZero = res
+			case "NI":
+				tr.ToNegativeInf = res
+			case "PI":
+				tr.ToPositiveInf = res
+			default:
+				return errors.New("invalid value \"" + string(mode) + "\"")
+			}
+		}
+	}
+
+	return nil
+}
+
+func (tr *testDataResult) equal(val Decimal, mode RoundingMode) bool {
+	res := tr.result(mode)
+
+	if val.IsNaN() && res.IsNaN() {
+		return true
+	}
+
+	if val.Signbit() != res.Signbit() {
+		return false
+	}
+
+	return val.Equal(res)
+}
+
+func (tr *testDataResult) result(mode RoundingMode) Decimal {
+	switch mode {
+	case ToNearestEven:
+		return tr.ToNearestEven
+	case ToNearestAway:
+		return tr.ToNearestAway
+	case ToZero:
+		return tr.ToZero
+	case AwayFromZero:
+		return tr.AwayFromZero
+	case ToNegativeInf:
+		return tr.ToNegativeInf
+	case ToPositiveInf:
+		return tr.ToPositiveInf
+	default:
+		panic("invalid rounding mode " + mode.String())
 	}
 }
 
