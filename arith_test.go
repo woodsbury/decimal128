@@ -1,10 +1,6 @@
 package decimal128
 
-import (
-	"testing"
-
-	"github.com/cockroachdb/apd/v3"
-)
+import "testing"
 
 func TestDecimalAdd(t *testing.T) {
 	t.Parallel()
@@ -72,53 +68,23 @@ func TestDecimalQuo(t *testing.T) {
 func TestDecimalQuoRem(t *testing.T) {
 	t.Parallel()
 
-	initDecimalValues()
+	r := openTestData(t)
+	defer r.close()
 
-	for _, mode := range roundingModes {
-		mode := mode
+	var lhs Decimal
+	var rhs Decimal
+	var res testDataResultPair
 
-		t.Run(mode.String(), func(t *testing.T) {
-			t.Parallel()
+	res.sep = 'r'
 
-			biglhs := new(apd.Decimal)
-			bigrhs := new(apd.Decimal)
-			bigquo := new(apd.Decimal)
-			bigrem := new(apd.Decimal)
-			bigctx := apd.Context{
-				Precision:   38,
-				MaxExponent: 6145,
-				MinExponent: -6176,
-				Rounding:    roundingModeToBig(mode),
+	for r.scan("%v / %v = %v\n", &lhs, &rhs, &res) {
+		for _, mode := range roundingModes {
+			quo, rem := lhs.QuoRemWithMode(rhs, mode)
+
+			if !res.equal(quo, rem, mode) {
+				t.Errorf("%v.QuoRemWithMode(%v, %v) = (%v, %v), want (%v, %v)", lhs, rhs, mode, quo, rem, res.first.result(mode), res.second.result(mode))
 			}
-
-			for _, lhs := range decimalValues {
-				for _, rhs := range decimalValues {
-					if dexp := lhs.exp - rhs.exp; dexp < -128 || dexp > 128 {
-						// apd is very slow at finding the integer quotient or
-						// remainder of two values when their exponents differ
-						// by too much, skip these for now.
-						continue
-					}
-
-					declhs := lhs.Decimal()
-					decrhs := rhs.Decimal()
-					quo, rem := declhs.QuoRemWithMode(decrhs, mode)
-
-					lhs.Big(biglhs)
-					rhs.Big(bigrhs)
-					bigctx.Precision = 12325
-					bigctx.QuoInteger(bigquo, biglhs, bigrhs)
-					bigctx.Rem(bigrem, biglhs, bigrhs)
-					bigctx.Precision = 38
-					bigctx.Round(bigquo, bigquo)
-					bigctx.Round(bigrem, bigrem)
-
-					if !decimalsEqual(quo, bigquo, bigctx.Rounding) || !decimalsEqual(rem, bigrem, bigctx.Rounding) {
-						t.Errorf("%v.QuoRemWithMode(%v, %v) = (%v, %v), want (%v, %v)", lhs, rhs, mode, quo, rem, bigquo, bigrem)
-					}
-				}
-			}
-		})
+		}
 	}
 }
 

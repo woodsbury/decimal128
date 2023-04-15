@@ -271,7 +271,7 @@ type testDataResult struct {
 
 func (tr *testDataResult) Scan(f fmt.ScanState, verb rune) error {
 	if verb != 'v' {
-		return errors.New("bad verb '%" + string(verb) + "' for testResult")
+		return errors.New("bad verb '%" + string(verb) + "' for testDataResult")
 	}
 
 	tok, err := f.Token(true, nil)
@@ -330,9 +330,8 @@ func (tr *testDataResult) Scan(f fmt.ScanState, verb rune) error {
 				mode = modes
 			} else {
 				mode = modes[:sep]
+				modes = modes[sep+1:]
 			}
-
-			modes = modes[sep+1:]
 
 			switch string(mode) {
 			case "NE":
@@ -387,6 +386,134 @@ func (tr *testDataResult) result(mode RoundingMode) Decimal {
 	default:
 		panic("invalid rounding mode " + mode.String())
 	}
+}
+
+type testDataResultPair struct {
+	first  testDataResult
+	second testDataResult
+	sep    byte
+}
+
+func (tr *testDataResultPair) Scan(f fmt.ScanState, verb rune) error {
+	if verb != 'v' {
+		return errors.New("bad verb '%" + string(verb) + "' for testDataResultPair")
+	}
+
+	tok, err := f.Token(true, nil)
+	if err != nil {
+		return err
+	}
+
+	index := bytes.IndexByte(tok, ';')
+
+	var data []byte
+	if index == -1 {
+		data = tok
+	} else {
+		data = tok[:index]
+	}
+
+	pairSep := bytes.IndexByte(data, tr.sep)
+	if pairSep == -1 {
+		return errors.New("invalid value")
+	}
+
+	var firstRes Decimal
+	if err := firstRes.UnmarshalText(data[:pairSep]); err != nil {
+		return err
+	}
+
+	var secondRes Decimal
+	if err := secondRes.UnmarshalText(data[pairSep+1:]); err != nil {
+		return err
+	}
+
+	tr.first.ToNearestEven = firstRes
+	tr.first.ToNearestAway = firstRes
+	tr.first.ToZero = firstRes
+	tr.first.AwayFromZero = firstRes
+	tr.first.ToNegativeInf = firstRes
+	tr.first.ToPositiveInf = firstRes
+
+	tr.second.ToNearestEven = secondRes
+	tr.second.ToNearestAway = secondRes
+	tr.second.ToZero = secondRes
+	tr.second.AwayFromZero = secondRes
+	tr.second.ToNegativeInf = secondRes
+	tr.second.ToPositiveInf = secondRes
+
+	for index != -1 {
+		tok = tok[index+1:]
+
+		sep := bytes.IndexByte(tok, ':')
+		if sep == -1 {
+			return errors.New("invalid value")
+		}
+
+		index = bytes.IndexByte(tok[sep+1:], ';')
+
+		if index == -1 {
+			data = tok[sep+1:]
+		} else {
+			data = tok[sep+1 : index]
+		}
+
+		pairSep = bytes.IndexByte(data, tr.sep)
+		if pairSep == -1 {
+			return errors.New("invalid value")
+		}
+
+		if err := firstRes.UnmarshalText(data[:pairSep]); err != nil {
+			return err
+		}
+
+		if err := secondRes.UnmarshalText(data[pairSep+1:]); err != nil {
+			return err
+		}
+
+		modes := tok[:sep]
+
+		for sep != -1 {
+			sep = bytes.IndexByte(modes, ',')
+
+			var mode []byte
+			if sep == -1 {
+				mode = modes
+			} else {
+				mode = modes[:sep]
+				modes = modes[sep+1:]
+			}
+
+			switch string(mode) {
+			case "NE":
+				tr.first.ToNearestEven = firstRes
+				tr.second.ToNearestEven = secondRes
+			case "NA":
+				tr.first.ToNearestAway = firstRes
+				tr.second.ToNearestAway = secondRes
+			case "Z":
+				tr.first.ToZero = firstRes
+				tr.second.ToZero = secondRes
+			case "FZ":
+				tr.first.AwayFromZero = firstRes
+				tr.second.AwayFromZero = secondRes
+			case "NI":
+				tr.first.ToNegativeInf = firstRes
+				tr.second.ToNegativeInf = secondRes
+			case "PI":
+				tr.first.ToPositiveInf = firstRes
+				tr.second.ToPositiveInf = secondRes
+			default:
+				return errors.New("invalid value \"" + string(mode) + "\"")
+			}
+		}
+	}
+
+	return nil
+}
+
+func (tr *testDataResultPair) equal(first, second Decimal, mode RoundingMode) bool {
+	return tr.first.equal(first, mode) && tr.second.equal(second, mode)
 }
 
 var (
