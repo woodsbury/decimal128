@@ -1,0 +1,3 @@
+sqrt(Inf) = +Inf
+sqrt(-Inf) = NaN
+sqrt(NaN) = NaN

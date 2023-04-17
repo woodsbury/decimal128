@@ -189,27 +189,17 @@ func TestLog2(t *testing.T) {
 func TestSqrt(t *testing.T) {
 	t.Parallel()
 
-	initDecimalValues()
+	r := openTestData(t)
+	defer r.close()
 
-	bigval := new(apd.Decimal)
-	bigres := new(apd.Decimal)
-	bigctx := apd.Context{
-		Precision:   39,
-		MaxExponent: 6145,
-		MinExponent: -6176,
-		Rounding:    apd.RoundHalfEven,
-	}
+	var val Decimal
+	var res Decimal
 
-	for _, val := range decimalValues {
-		decval := val.Decimal()
-		res := Sqrt(decval)
+	for r.scan("sqrt(%v) = %v\n", &val, &res) {
+		root := Sqrt(val)
 
-		val.Big(bigval)
-
-		bigctx.Sqrt(bigres, bigval)
-
-		if !decimalsEqual(res, bigres, bigctx.Rounding) {
-			t.Errorf("Sqrt(%v) = %v, want %v", val, res, bigres)
+		if !resultEqual(root, res) {
+			t.Errorf("Sqrt(%v) = %v, want %v", val, root, res)
 		}
 	}
 }

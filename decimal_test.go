@@ -356,17 +356,7 @@ func (tr *testDataResult) Scan(f fmt.ScanState, verb rune) error {
 }
 
 func (tr *testDataResult) equal(val Decimal, mode RoundingMode) bool {
-	res := tr.result(mode)
-
-	if val.IsNaN() && res.IsNaN() {
-		return true
-	}
-
-	if val.Signbit() != res.Signbit() {
-		return false
-	}
-
-	return val.Equal(res)
+	return resultEqual(val, tr.result(mode))
 }
 
 func (tr *testDataResult) result(mode RoundingMode) Decimal {
@@ -514,6 +504,18 @@ func (tr *testDataResultPair) Scan(f fmt.ScanState, verb rune) error {
 
 func (tr *testDataResultPair) equal(first, second Decimal, mode RoundingMode) bool {
 	return tr.first.equal(first, mode) && tr.second.equal(second, mode)
+}
+
+func resultEqual(x, y Decimal) bool {
+	if x.IsNaN() && y.IsNaN() {
+		return true
+	}
+
+	if x.Signbit() != y.Signbit() {
+		return false
+	}
+
+	return x.Equal(y)
 }
 
 var (
