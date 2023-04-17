@@ -283,6 +283,14 @@ func Exp2(d Decimal) Decimal {
 	var expInt int16
 
 	if dSigInt != 0 {
+		if dSigInt > exponentBias+maxDigits {
+			if d.Signbit() {
+				return zero(false)
+			}
+
+			return inf(false)
+		}
+
 		shift := dSigInt
 
 		if shift < 64 {
