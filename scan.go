@@ -234,9 +234,11 @@ ReadRunes64:
 				sawdig = true
 
 				if sawexp {
-					if exp < exponentBias+39 {
+					if exp < exponentBias/10+1 {
 						exp *= 10
 						exp += int16(r - '0')
+					} else {
+						exp = exponentBias + 1
 					}
 				} else {
 					if sig[1] <= 0x18ff_ffff_ffff_ffff {
@@ -485,9 +487,11 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			sawdig = true
 
 			if sawexp {
-				if exp < exponentBias+39 {
+				if exp < exponentBias/10+1 {
 					exp *= 10
 					exp += int16(c - '0')
+				} else {
+					exp = exponentBias + 1
 				}
 			} else {
 				if sig[1] <= 0x18ff_ffff_ffff_ffff {
