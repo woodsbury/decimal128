@@ -9,8 +9,6 @@ import (
 	"io"
 	"math/big"
 	"testing"
-
-	"github.com/cockroachdb/apd/v3"
 )
 
 type sqlConn struct{}
@@ -115,6 +113,7 @@ func TestDecimalCompose(t *testing.T) {
 			}
 		case infForm:
 			form = 1
+			neg = val.neg
 		case nanForm:
 			form = 2
 		}
@@ -122,25 +121,14 @@ func TestDecimalCompose(t *testing.T) {
 		var dec Decimal
 		err := dec.Compose(form, neg, sig, exp)
 
-		if err != nil {
-			t.Errorf("Decimal.Compose(%d, %t, %x, %d) = %v, want <nil>", form, neg, sig, exp, err)
+		if !resultEqual(dec, val.Decimal()) || err != nil {
+			t.Errorf("Decimal.Compose(%d, %t, %x, %d) = (%v, %v), want (%v, <nil>)", form, neg, sig, exp, dec, err, val)
 		}
 
 		decform, decneg, decsig, decexp := dec.Decompose(nil)
 
 		if decform != form || decneg != neg || !bytes.Equal(decsig, sig) || decexp != exp {
 			t.Errorf("%v.Decompose() = (%d, %t, %x, %d), want (%d, %t, %x, %d)", dec, decform, decneg, decsig, decexp, form, neg, sig, exp)
-		}
-
-		bigdec := new(apd.Decimal)
-		err = bigdec.Compose(form, neg, sig, exp)
-
-		if err != nil {
-			t.Errorf("apd.Decimal.Compose(%d, %t, %x, %d) = %v, want <nil>", form, neg, sig, exp, err)
-		}
-
-		if !decimalsEqual(dec, bigdec, apd.RoundHalfEven) {
-			t.Errorf("apd.Decimal.Compose(%v.Decompose()) = %v, want %v", dec, bigdec, dec)
 		}
 	}
 }
@@ -167,7 +155,7 @@ func TestDecimalComposeSQL(t *testing.T) {
 		var resval Decimal
 		err = rows.Scan(&resval)
 
-		if !(decval.Equal(resval) || decval.IsNaN() == resval.IsNaN()) || err != nil {
+		if !resultEqual(resval, decval) || err != nil {
 			t.Errorf("sql.Rows.Scan() = (%v, %v), want (%v, <nil>)", resval, err, resval)
 		}
 	}

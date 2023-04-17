@@ -1,6 +1,6 @@
 package decimal128
 
-// Add adds d and o, rounded using the DefaultRoundingMode, and returns the
+// Add adds d and o, rounded using the [DefaultRoundingMode], and returns the
 // result.
 func (d Decimal) Add(o Decimal) Decimal {
 	return d.AddWithMode(o, DefaultRoundingMode)
@@ -41,8 +41,8 @@ func (d Decimal) AddWithMode(o Decimal, mode RoundingMode) Decimal {
 	return d.add(o, mode, false)
 }
 
-// Mul multiplies d and o, rounding using the DefaultRoundingMode, and returns
-// the result.
+// Mul multiplies d and o, rounding using the [DefaultRoundingMode], and
+// returns the result.
 func (d Decimal) Mul(o Decimal) Decimal {
 	return d.MulWithMode(o, DefaultRoundingMode)
 }
@@ -115,8 +115,8 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 	return compose(neg, sig, exp)
 }
 
-// Quo divides d by o, rounding using the DefaultRoundingMode, and returns the
-// result.
+// Quo divides d by o, rounding using the [DefaultRoundingMode], and returns
+// the result.
 func (d Decimal) Quo(o Decimal) Decimal {
 	return d.QuoWithMode(o, DefaultRoundingMode)
 }
@@ -244,7 +244,7 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 	return compose(neg, sig, exp)
 }
 
-// QuoRem divides d by o, rounding using the DefaultRoundingMode, and returns
+// QuoRem divides d by o, rounding using the [DefaultRoundingMode], and returns
 // the result as an integer quotient and a remainder.
 func (d Decimal) QuoRem(o Decimal) (Decimal, Decimal) {
 	return d.QuoRemWithMode(o, DefaultRoundingMode)
@@ -449,8 +449,8 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 	return quo, compose(rneg, rsig, rexp)
 }
 
-// Sub subtracts o from d, rounding using the DefaultRoundingMode, and returns
-// the result.
+// Sub subtracts o from d, rounding using the [DefaultRoundingMode], and
+// returns the result.
 func (d Decimal) Sub(o Decimal) Decimal {
 	return d.SubWithMode(o, DefaultRoundingMode)
 }

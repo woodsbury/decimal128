@@ -131,12 +131,20 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 			sawdig = true
 
 			if sawexp {
-				if exp < exponentBias/10+1 {
-					exp *= 10
-					exp += int16(c - '0')
-				} else {
-					exp = exponentBias + 1
+				if exp > exponentBias/10+1 {
+					if eneg {
+						*d = zero(neg)
+						return nil
+					}
+
+					return &json.UnmarshalTypeError{
+						Value: "number " + string(data),
+						Type:  reflect.TypeOf(Decimal{}),
+					}
 				}
+
+				exp *= 10
+				exp += int16(c - '0')
 			} else {
 				if sig[1] <= 0x18ff_ffff_ffff_ffff {
 					if sig[1] <= 0x027f_ffff_ffff_ffff && i < l-1 {
@@ -247,8 +255,10 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 	exp -= nfrac
 
 	if exp > maxUnbiasedExponent+39 {
-		*d = inf(neg)
-		return nil
+		return &json.UnmarshalTypeError{
+			Value: "number " + string(data),
+			Type:  reflect.TypeOf(Decimal{}),
+		}
 	}
 
 	if exp < minUnbiasedExponent-39 {
@@ -259,8 +269,10 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 	sig, exp = DefaultRoundingMode.reduce128(neg, sig, exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
-		*d = inf(neg)
-		return nil
+		return &json.UnmarshalTypeError{
+			Value: "number " + string(data),
+			Type:  reflect.TypeOf(Decimal{}),
+		}
 	}
 
 	*d = compose(neg, sig, exp)
