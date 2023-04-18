@@ -1,0 +1,3 @@
+log(Inf) = +Inf
+log(-Inf) = NaN
+log(NaN) = NaN

@@ -87,27 +87,17 @@ func TestExp2(t *testing.T) {
 func TestLog(t *testing.T) {
 	t.Parallel()
 
-	initDecimalValues()
+	r := openTestData(t)
+	defer r.close()
 
-	bigval := new(apd.Decimal)
-	bigres := new(apd.Decimal)
-	bigctx := apd.Context{
-		Precision:   39,
-		MaxExponent: 6145,
-		MinExponent: -6176,
-		Rounding:    apd.RoundHalfEven,
-	}
+	var val Decimal
+	var res Decimal
 
-	for _, val := range decimalValues {
-		decval := val.Decimal()
-		res := Log(decval)
+	for r.scan("log(%v) = %v\n", &val, &res) {
+		log := Log(val)
 
-		val.Big(bigval)
-
-		bigctx.Ln(bigres, bigval)
-
-		if !decimalsEqual(res, bigres, bigctx.Rounding) {
-			t.Errorf("Log(%v) = %v, want %v", val, res, bigres)
+		if !resultEqual(log, res) {
+			t.Errorf("Log(%v) = %v, want %v", val, log, res)
 		}
 	}
 }
@@ -143,31 +133,17 @@ func TestLog10(t *testing.T) {
 func TestLog2(t *testing.T) {
 	t.Parallel()
 
-	initDecimalValues()
+	r := openTestData(t)
+	defer r.close()
 
-	bigval := new(apd.Decimal)
-	bigres := new(apd.Decimal)
-	bigctx := apd.Context{
-		Precision:   39,
-		MaxExponent: 6145,
-		MinExponent: -6176,
-		Rounding:    apd.RoundHalfEven,
-	}
+	var val Decimal
+	var res Decimal
 
-	bigln2 := new(apd.Decimal)
-	bigctx.Ln(bigln2, apd.New(2, 0))
+	for r.scan("log2(%v) = %v\n", &val, &res) {
+		log := Log2(val)
 
-	for _, val := range decimalValues {
-		decval := val.Decimal()
-		res := Log2(decval)
-
-		val.Big(bigval)
-
-		bigctx.Ln(bigres, bigval)
-		bigctx.Quo(bigres, bigres, bigln2)
-
-		if !decimalsEqual(res, bigres, bigctx.Rounding) {
-			t.Errorf("Log2(%v) = %v, want %v", val, res, bigres)
+		if !resultEqual(log, res) {
+			t.Errorf("Log2(%v) = %v, want %v", val, log, res)
 		}
 	}
 }
