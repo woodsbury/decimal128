@@ -13,6 +13,7 @@ var (
 	uint128Values  []uint128
 	uint192Values  []uint192
 	uint256Values  []uint256
+	uint384Values  []uint384
 )
 
 func initUintValues() {
@@ -40,16 +41,14 @@ func initUintValues() {
 
 		n := len(uint64Values)
 
-		uint128Values = make([]uint128, 0, n*n)
+		uint128Values = make([]uint128, 0, n*n*4)
 		uint192Values = make([]uint192, 0, n*n*n)
-		uint256Values = make([]uint256, 0, n*n*n*n)
+		uint256Values = make([]uint256, 0, n*n*n)
+		uint384Values = make([]uint384, 0, n*n*n)
 
 		for _, l0 := range uint64Values {
 			for _, l1 := range uint64Values {
 				val := uint128{l0, l1}
-				uint128Values = append(uint128Values, val)
-
-				val = val.mul64(100_000_000)
 				uint128Values = append(uint128Values, val)
 
 				if l0 > 10 || l1 > 0 {
@@ -57,12 +56,16 @@ func initUintValues() {
 					uint128Values = append(uint128Values, val)
 				}
 
+				val = val.mul64(100_000_000)
+				uint128Values = append(uint128Values, val)
+
+				val, _ = val.sub(uint128{1, 0})
+				uint128Values = append(uint128Values, val)
+
 				for _, l2 := range uint64Values {
 					uint192Values = append(uint192Values, uint192{l0, l1, l2})
-
-					for _, l3 := range uint64Values {
-						uint256Values = append(uint256Values, uint256{l0, l1, l2, l3})
-					}
+					uint256Values = append(uint256Values, uint256{l0, l1, l2, l1})
+					uint384Values = append(uint384Values, uint384{l0, l1, l2, l2, l1, l0})
 				}
 			}
 		}
@@ -92,6 +95,23 @@ func uint192ToBig(v uint192, r *big.Int) *big.Int {
 func uint256ToBig(v uint256, r *big.Int) *big.Int {
 	u := new(big.Int)
 	r.SetUint64(v[3])
+	u.SetUint64(v[2])
+	r.Lsh(r, 64).Add(r, u)
+	u.SetUint64(v[1])
+	r.Lsh(r, 64).Add(r, u)
+	u.SetUint64(v[0])
+	r.Lsh(r, 64).Add(r, u)
+
+	return r
+}
+
+func uint384ToBig(v uint384, r *big.Int) *big.Int {
+	u := new(big.Int)
+	r.SetUint64(v[5])
+	u.SetUint64(v[4])
+	r.Lsh(r, 64).Add(r, u)
+	u.SetUint64(v[3])
+	r.Lsh(r, 64).Add(r, u)
 	u.SetUint64(v[2])
 	r.Lsh(r, 64).Add(r, u)
 	u.SetUint64(v[1])
@@ -564,7 +584,7 @@ func TestUint128Rsh(t *testing.T) {
 			bigres := biglhs.Rsh(biglhs, rhs)
 
 			if uint128ToBig(res, tmpres).Cmp(bigres) != 0 {
-				t.Errorf("%v.lsh(%d) = %v, want %v", lhs, rhs, res, bigres)
+				t.Errorf("%v.rsh(%d) = %v, want %v", lhs, rhs, res, bigres)
 			}
 		}
 	}
@@ -668,6 +688,113 @@ func TestUint128Sub64(t *testing.T) {
 	}
 }
 
+func TestUint192Add(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	tmpsum := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for _, rhs := range uint192Values {
+			sum := lhs.add(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			uint192ToBig(rhs, bigrhs)
+			bigsum := biglhs.Add(biglhs, bigrhs)
+
+			if uint256ToBig(sum, tmpsum).Cmp(bigsum) != 0 {
+				t.Errorf("%v.add(%v) = %v, want %v", lhs, rhs, sum, bigsum)
+			}
+		}
+	}
+}
+
+func TestUint192Add64(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	tmpsum := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for _, rhs := range uint64Values {
+			sum := lhs.add64(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			bigrhs.SetUint64(rhs)
+			bigsum := biglhs.Add(biglhs, bigrhs)
+			if bigsum.BitLen() > 192 {
+				bigsum.SetBytes(bigsum.Bytes()[1:])
+			}
+
+			if uint192ToBig(sum, tmpsum).Cmp(bigsum) != 0 {
+				t.Errorf("%v.add64(%v) = %v, want %v", lhs, rhs, sum, bigsum)
+			}
+		}
+	}
+}
+
+func TestUint192Cmp(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for _, rhs := range uint192Values {
+			lhs := lhs
+			rhs := rhs
+
+			res := lhs.cmp(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			uint192ToBig(rhs, bigrhs)
+			bigres := biglhs.Cmp(bigrhs)
+
+			if res != bigres {
+				t.Errorf("%v.cmp(%v) = %d, want %d", lhs, rhs, res, bigres)
+			}
+		}
+	}
+}
+
+func TestUint192Div(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	bigrem := new(big.Int)
+	tmpquo := new(big.Int)
+	tmprem := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for _, rhs := range uint192Values {
+			if rhs == (uint192{}) {
+				continue
+			}
+
+			quo, rem := lhs.div(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			uint192ToBig(rhs, bigrhs)
+			bigquo, bigrem := biglhs.QuoRem(biglhs, bigrhs, bigrem)
+
+			if uint192ToBig(quo, tmpquo).Cmp(bigquo) != 0 || uint192ToBig(rem, tmprem).Cmp(bigrem) != 0 {
+				t.Errorf("%v.div(%v) = (%v, %v), want (%v, %v)", lhs, rhs, quo, rem, bigquo, bigrem)
+			}
+		}
+	}
+}
+
 func TestUint192Div10(t *testing.T) {
 	t.Parallel()
 
@@ -740,6 +867,98 @@ func TestUint192Div1e8(t *testing.T) {
 	}
 }
 
+func TestUint192Lsh(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	tmpres := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for rhs := uint(0); rhs < 200; rhs += 10 {
+			res := lhs.lsh(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			bigres := biglhs.Lsh(biglhs, rhs)
+			if bigres.BitLen() > 192 {
+				b := bigres.Bytes()
+				bigres.SetBytes(b[len(b)-24:])
+			}
+
+			if uint192ToBig(res, tmpres).Cmp(bigres) != 0 {
+				t.Errorf("%v.lsh(%d) = %v, want %v", lhs, rhs, res, bigres)
+			}
+		}
+	}
+}
+
+func TestUint192Mul(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	tmpprd := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for _, rhs := range uint192Values {
+			prd := lhs.mul(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			uint192ToBig(rhs, bigrhs)
+			bigprd := biglhs.Mul(biglhs, bigrhs)
+
+			if uint384ToBig(prd, tmpprd).Cmp(bigprd) != 0 {
+				t.Errorf("%v.mul(%v) = %v, want %v", lhs, rhs, prd, bigprd)
+			}
+		}
+	}
+}
+
+func TestUint192Pow2(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	bigval := new(big.Int)
+	tmpprd := new(big.Int)
+
+	for _, val := range uint192Values {
+		prd := val.pow2()
+
+		uint192ToBig(val, bigval)
+		bigprd := bigval.Mul(bigval, bigval)
+
+		if uint384ToBig(prd, tmpprd).Cmp(bigprd) != 0 {
+			t.Errorf("%v.pow2() = %v, want %v", val, prd, bigprd)
+		}
+	}
+}
+
+func TestUint192Rsh(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	tmpres := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for rhs := uint(0); rhs < 200; rhs += 10 {
+			res := lhs.rsh(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			bigres := biglhs.Rsh(biglhs, rhs)
+
+			if uint192ToBig(res, tmpres).Cmp(bigres) != 0 {
+				t.Errorf("%v.rsh(%d) = %v, want %v", lhs, rhs, res, bigres)
+			}
+		}
+	}
+}
+
 func TestUint192String(t *testing.T) {
 	t.Parallel()
 
@@ -755,6 +974,85 @@ func TestUint192String(t *testing.T) {
 
 		if res != bigres {
 			t.Errorf("%v.String() = %s, want %s", val, res, bigres)
+		}
+	}
+}
+
+func TestUint192Sub(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	one := big.NewInt(1)
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	tmpdif := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for _, rhs := range uint192Values {
+			dif, brw := lhs.sub(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			uint192ToBig(rhs, bigrhs)
+			bigdif := biglhs.Sub(biglhs, bigrhs)
+			bigbrw := uint(0)
+			if bigdif.Sign() == -1 {
+				bigbrw = 1
+
+				b := make([]byte, 24)
+				c := bigdif.Bytes()
+				copy(b[24-len(c):], c)
+
+				for i := range b {
+					b[i] = ^b[i]
+				}
+
+				bigdif.SetBytes(b)
+				bigdif.Add(bigdif, one)
+			}
+
+			if uint192ToBig(dif, tmpdif).Cmp(bigdif) != 0 || brw != bigbrw {
+				t.Errorf("%v.sub(%v) = (%v, %v), want (%v, %v)", lhs, rhs, dif, brw, bigdif, bigbrw)
+			}
+		}
+	}
+}
+
+func TestUint192Sub64(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	one := big.NewInt(1)
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	tmpdif := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for _, rhs := range uint64Values {
+			dif := lhs.sub64(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			bigrhs.SetUint64(rhs)
+			bigdif := biglhs.Sub(biglhs, bigrhs)
+			if bigdif.Sign() == -1 {
+				b := make([]byte, 24)
+				c := bigdif.Bytes()
+				copy(b[24-len(c):], c)
+
+				for i := range b {
+					b[i] = ^b[i]
+				}
+
+				bigdif.SetBytes(b)
+				bigdif.Add(bigdif, one)
+			}
+
+			if uint192ToBig(dif, tmpdif).Cmp(bigdif) != 0 {
+				t.Errorf("%v.sub64(%v) = %v, want %v", lhs, rhs, dif, bigdif)
+			}
 		}
 	}
 }

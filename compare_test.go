@@ -141,17 +141,17 @@ func TestDecimalIsZero(t *testing.T) {
 
 	initDecimalValues()
 
-	bigval := new(apd.Decimal)
-
 	for _, val := range decimalValues {
 		decval := val.Decimal()
-		res := decval.IsZero()
+		zero := decval.IsZero()
 
-		val.Big(bigval)
-		bigres := bigval.IsZero()
+		var res bool
+		if val.form == regularForm && val.sig == (uint128{}) {
+			res = true
+		}
 
-		if res != bigres {
-			t.Errorf("%v.IsZero() = %t, want %t", val, res, bigres)
+		if zero != res {
+			t.Errorf("%v.IsZero() = %t, want %t", val, zero, res)
 		}
 	}
 }

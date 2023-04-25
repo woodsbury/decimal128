@@ -1,6 +1,9 @@
 package decimal128
 
-import "math/bits"
+import (
+	"math"
+	"math/bits"
+)
 
 var uint128PowersOf10 = [...]uint128{
 	{0x0000_0000_0000_0001, 0x0000_0000_0000_0000},
@@ -256,16 +259,16 @@ func (n uint128) msd2() int {
 }
 
 func (n uint128) mul(o uint128) uint256 {
-	u1, r0 := bits.Mul64(n[0], o[0])
-	v1, v0 := bits.Mul64(n[1], o[0])
-	w1, w0 := bits.Mul64(n[0], o[1])
-	x1, x0 := bits.Mul64(n[1], o[1])
+	s1, r0 := bits.Mul64(n[0], o[0])
+	t2, t1 := bits.Mul64(n[1], o[0])
+	u2, u1 := bits.Mul64(n[0], o[1])
+	v3, v2 := bits.Mul64(n[1], o[1])
 
-	r1, carry := bits.Add64(u1, v0, 0)
-	r2, y0 := bits.Add64(v1, w1, carry)
-	r1, carry = bits.Add64(r1, w0, 0)
-	r2, y1 := bits.Add64(r2, x0, carry)
-	r3, _ := bits.Add64(x1, y0, y1)
+	r1, carry := bits.Add64(s1, t1, 0)
+	r2, w3 := bits.Add64(t2, u2, carry)
+	r1, carry = bits.Add64(r1, u1, 0)
+	r2, x3 := bits.Add64(r2, v2, carry)
+	r3, _ := bits.Add64(v3, w3, x3)
 
 	return uint256{r0, r1, r2, r3}
 }
@@ -274,16 +277,16 @@ func (n uint128) mul1e38() uint256 {
 	const o0 = 687399551400673280
 	const o1 = 5421010862427522170
 
-	u1, r0 := bits.Mul64(n[0], o0)
-	v1, v0 := bits.Mul64(n[1], o0)
-	w1, w0 := bits.Mul64(n[0], o1)
-	x1, x0 := bits.Mul64(n[1], o1)
+	s1, r0 := bits.Mul64(n[0], o0)
+	t2, t1 := bits.Mul64(n[1], o0)
+	u2, u1 := bits.Mul64(n[0], o1)
+	v3, v2 := bits.Mul64(n[1], o1)
 
-	r1, carry := bits.Add64(u1, v0, 0)
-	r2, y0 := bits.Add64(v1, w1, carry)
-	r1, carry = bits.Add64(r1, w0, 0)
-	r2, y1 := bits.Add64(r2, x0, carry)
-	r3, _ := bits.Add64(x1, y0, y1)
+	r1, carry := bits.Add64(s1, t1, 0)
+	r2, w3 := bits.Add64(t2, u2, carry)
+	r1, carry = bits.Add64(r1, u1, 0)
+	r2, x3 := bits.Add64(r2, v2, carry)
+	r3, _ := bits.Add64(v3, w3, x3)
 
 	return uint256{r0, r1, r2, r3}
 }
@@ -356,6 +359,204 @@ func (n uint192) String() string {
 	return string(buf[i:])
 }
 
+func (n uint192) add(o uint192) uint256 {
+	r0, carry := bits.Add64(n[0], o[0], 0)
+	r1, carry := bits.Add64(n[1], o[1], carry)
+	r2, r3 := bits.Add64(n[2], o[2], carry)
+
+	return uint256{r0, r1, r2, r3}
+}
+
+func (n uint192) add64(o uint64) uint192 {
+	r0, carry := bits.Add64(n[0], o, 0)
+	r1, carry := bits.Add64(n[1], 0, carry)
+	r2 := n[2] + carry
+
+	return uint192{r0, r1, r2}
+}
+
+func (n uint192) cmp(o uint192) int {
+	if n[2] == o[2] {
+		if n[1] == o[1] {
+			if n[0] == o[0] {
+				return 0
+			}
+
+			if n[0] < o[0] {
+				return -1
+			}
+
+			return 1
+		}
+
+		if n[1] < o[1] {
+			return -1
+		}
+
+		return 1
+	}
+
+	if n[2] < o[2] {
+		return -1
+	}
+
+	return 1
+}
+
+func (n uint192) div(o uint192) (uint192, uint192) {
+	if o[2] == 0 {
+		if o[1] == 0 {
+			var r0, r1, r2, rem uint64
+			if n[2] < o[0] {
+				r1, rem = bits.Div64(n[2], n[1], o[0])
+				r0, rem = bits.Div64(rem, n[0], o[0])
+			} else {
+				r2, rem = bits.Div64(0, n[2], o[0])
+				r1, rem = bits.Div64(rem, n[1], o[0])
+				r0, rem = bits.Div64(rem, n[0], o[0])
+			}
+
+			return uint192{r0, r1, r2}, uint192{rem, 0, 0}
+		}
+
+		i := uint(bits.LeadingZeros64(o[1]))
+		u := o.lsh(i)
+
+		if n[2] == 0 {
+			v := n.rsh(1)
+			r0, _ := bits.Div64(v[1], v[0], u[1])
+			r0 >>= 63 - i
+			if r0 != 0 {
+				r0--
+			}
+
+			r := uint192{r0, 0, 0}
+			rem, _ := n.sub(o.mul64(r0))
+
+			if rem.cmp(o) >= 0 {
+				r = r.add64(1)
+				rem, _ = rem.sub(o)
+			}
+
+			return r, rem
+		}
+
+		if n[2] < o[1] {
+			v := n.lsh(i)
+			r0, ur := bits.Div64(v[2], v[1], u[1])
+
+			p1, p0 := bits.Mul64(r0, u[0])
+			if p1 > ur || (p1 == ur && p0 > v[0]) {
+				r0--
+				ur, carry := bits.Add64(ur, u[1], 0)
+
+				if carry == 0 {
+					p1, p0 = bits.Mul64(r0, u[0])
+					if p1 > ur || (p1 == ur && p0 > v[0]) {
+						r0--
+					}
+				}
+			}
+
+			r := uint192{r0, 0, 0}
+
+			q := o.mul(r)
+			rem, _ := n.sub(uint192{q[0], q[1], q[2]})
+
+			if rem.cmp(o) >= 0 {
+				rem, _ = rem.sub(o)
+				r = r.add64(1)
+			}
+
+			return r, rem
+		}
+
+		v := uint256{n[0], n[1], n[2], 0}.lsh(i)
+		r1, ur := bits.Div64(v[3], v[2], u[1])
+
+		p1, p0 := bits.Mul64(r1, u[0])
+		if p1 > ur || (p1 == ur && p0 > v[1]) {
+			ur, carry := bits.Add64(ur, u[1], 0)
+			r1--
+
+			if carry == 0 {
+				p1, p0 = bits.Mul64(r1, u[0])
+				if p1 > ur || (p1 == ur && p0 > v[1]) {
+					r1--
+				}
+			}
+		}
+
+		q192 := u.mul64(r1)
+		rem, _ := uint192{v[1], v[2], v[3]}.sub(q192)
+
+		if rem.cmp(u) >= 0 {
+			rem, _ = rem.sub(u)
+			r1++
+		}
+
+		var r0 uint64
+		if rem[1] == u[1] {
+			r0, ur = math.MaxUint64, rem[0]
+		} else {
+			r0, ur = bits.Div64(rem[1], rem[0], u[1])
+		}
+
+		p1, p0 = bits.Mul64(r0, u[0])
+		if p1 > ur || (p1 == ur && p0 > v[0]) {
+			var carry uint64
+			ur, carry = bits.Add64(ur, u[1], 0)
+			r0--
+
+			if carry == 0 {
+				p1, p0 = bits.Mul64(r0, u[0])
+				if p1 > ur || (p1 == ur && p0 > v[0]) {
+					r0--
+				}
+			}
+		}
+
+		r := uint192{r0, r1, 0}
+
+		q := o.mul(r)
+		rem, _ = n.sub(uint192{q[0], q[1], q[2]})
+
+		if rem.cmp(o) >= 0 {
+			rem, _ = rem.sub(o)
+			r = r.add64(1)
+		}
+
+		return r, rem
+	}
+
+	i := uint(bits.LeadingZeros64(o[2]))
+	u := o.lsh(i)
+	v := n.rsh(1)
+	r0, ur := bits.Div64(v[2], v[1], u[2])
+
+	p1, p0 := bits.Mul64(r0, u[1])
+	if p1 > ur || (p1 == ur && p0 > v[0]) {
+		r0--
+	}
+
+	r0 >>= 63 - i
+	if r0 != 0 {
+		r0--
+	}
+
+	r := uint192{r0, 0, 0}
+
+	q := o.mul(r)
+	rem, _ := n.sub(uint192{q[0], q[1], q[2]})
+
+	if rem.cmp(o) >= 0 {
+		rem, _ = rem.sub(o)
+		r = r.add64(1)
+	}
+
+	return r, rem
+}
+
 func (n uint192) div10() (uint192, uint64) {
 	var r1, r2, rem uint64
 	if n[2] < 10 {
@@ -396,6 +597,123 @@ func (n uint192) div1e8() (uint192, uint64) {
 	r0, rem := bits.Div64(rem, n[0], 100_000_000)
 
 	return uint192{r0, r1, r2}, rem
+}
+
+func (n uint192) lsh(o uint) uint192 {
+	var r0, r1, r2 uint64
+	if o > 128 {
+		r2 = n[0] << (o - 128)
+	} else if o > 64 {
+		r1 = n[0] << (o - 64)
+		r2 = n[1]<<(o-64) | n[0]>>(128-o)
+	} else {
+		r0 = n[0] << o
+		r1 = n[1]<<o | n[0]>>(64-o)
+		r2 = n[2]<<o | n[1]>>(64-o)
+	}
+
+	return uint192{r0, r1, r2}
+}
+
+func (n uint192) mul(o uint192) uint384 {
+	s1, r0 := bits.Mul64(n[0], o[0])
+	t2, t1 := bits.Mul64(n[1], o[0])
+	s3, s2 := bits.Mul64(n[2], o[0])
+	u2, u1 := bits.Mul64(n[0], o[1])
+	v3, v2 := bits.Mul64(n[1], o[1])
+	u4, u3 := bits.Mul64(n[2], o[1])
+	w3, w2 := bits.Mul64(n[0], o[2])
+	x4, x3 := bits.Mul64(n[1], o[2])
+	w5, w4 := bits.Mul64(n[2], o[2])
+
+	r1, carry := bits.Add64(s1, t1, 0)
+	r2, a3 := bits.Add64(s2, t2, carry)
+	r1, carry = bits.Add64(r1, u1, 0)
+	r2, b3 := bits.Add64(r2, u2, carry)
+	r2, carry = bits.Add64(r2, v2, 0)
+	r3, a4 := bits.Add64(s3, u3, a3)
+	r3, b4 := bits.Add64(r3, v3, b3)
+	r3, c4 := bits.Add64(r3, w3, carry)
+	r2, carry = bits.Add64(r2, w2, 0)
+	r3, carry = bits.Add64(r3, x3, carry)
+	r4, a5 := bits.Add64(u4, w4, a4)
+	r4, b5 := bits.Add64(r4, x4, b4)
+	r4, carry = bits.Add64(r4, c4+carry, 0)
+	r5, _ := bits.Add64(w5, a5+b5+carry, 0)
+
+	return uint384{r0, r1, r2, r3, r4, r5}
+}
+
+func (n uint192) mul64(o uint64) uint192 {
+	s1, r0 := bits.Mul64(n[0], o)
+	t2, t1 := bits.Mul64(n[1], o)
+	u2 := n[2] * o
+
+	r1, carry := bits.Add64(s1, t1, 0)
+	r2, _ := bits.Add64(t2, u2, carry)
+
+	return uint192{r0, r1, r2}
+}
+
+func (n uint192) pow2() uint384 {
+	s1, r0 := bits.Mul64(n[0], n[0])
+	t2, t1 := bits.Mul64(n[1], n[0])
+	s3, s2 := bits.Mul64(n[2], n[0])
+	u2, u1 := bits.Mul64(n[0], n[1])
+	v3, v2 := bits.Mul64(n[1], n[1])
+	u4, u3 := bits.Mul64(n[2], n[1])
+	w3, w2 := bits.Mul64(n[0], n[2])
+	x4, x3 := bits.Mul64(n[1], n[2])
+	w5, w4 := bits.Mul64(n[2], n[2])
+
+	r1, carry := bits.Add64(s1, t1, 0)
+	r2, a3 := bits.Add64(s2, t2, carry)
+	r1, carry = bits.Add64(r1, u1, 0)
+	r2, b3 := bits.Add64(r2, u2, carry)
+	r2, carry = bits.Add64(r2, v2, 0)
+	r3, a4 := bits.Add64(s3, u3, a3)
+	r3, b4 := bits.Add64(r3, v3, b3)
+	r3, c4 := bits.Add64(r3, w3, carry)
+	r2, carry = bits.Add64(r2, w2, 0)
+	r3, carry = bits.Add64(r3, x3, carry)
+	r4, a5 := bits.Add64(u4, w4, a4)
+	r4, b5 := bits.Add64(r4, x4, b4)
+	r4, carry = bits.Add64(r4, c4+carry, 0)
+	r5, _ := bits.Add64(w5, a5+b5+carry, 0)
+
+	return uint384{r0, r1, r2, r3, r4, r5}
+}
+
+func (n uint192) rsh(o uint) uint192 {
+	var r0, r1, r2 uint64
+	if o > 128 {
+		r0 = n[2] >> (o - 128)
+	} else if o > 64 {
+		r0 = n[1]>>(o-64) | n[2]<<(128-o)
+		r1 = n[2] >> (o - 64)
+	} else {
+		r0 = n[0]>>o | n[1]<<(64-o)
+		r1 = n[1]>>o | n[2]<<(64-o)
+		r2 = n[2] >> o
+	}
+
+	return uint192{r0, r1, r2}
+}
+
+func (n uint192) sub(o uint192) (uint192, uint) {
+	r0, borrow := bits.Sub64(n[0], o[0], 0)
+	r1, borrow := bits.Sub64(n[1], o[1], borrow)
+	r2, borrow := bits.Sub64(n[2], o[2], borrow)
+
+	return uint192{r0, r1, r2}, uint(borrow)
+}
+
+func (n uint192) sub64(o uint64) uint192 {
+	r0, borrow := bits.Sub64(n[0], o, 0)
+	r1, borrow := bits.Sub64(n[1], 0, borrow)
+	r2 := n[2] - borrow
+
+	return uint192{r0, r1, r2}
 }
 
 type uint256 [4]uint64
@@ -470,14 +788,14 @@ func (n uint256) lsh(o uint) uint256 {
 }
 
 func (n uint256) mul64(o uint64) uint256 {
-	u1, r0 := bits.Mul64(n[0], o)
-	v1, v0 := bits.Mul64(n[1], o)
-	w1, w0 := bits.Mul64(n[2], o)
-	x0 := n[3] * o
+	s1, r0 := bits.Mul64(n[0], o)
+	t2, t1 := bits.Mul64(n[1], o)
+	u3, u2 := bits.Mul64(n[2], o)
+	v3 := n[3] * o
 
-	r1, carry := bits.Add64(u1, v0, 0)
-	r2, carry := bits.Add64(v1, w0, carry)
-	r3, _ := bits.Add64(w1, x0, carry)
+	r1, carry := bits.Add64(s1, t1, 0)
+	r2, carry := bits.Add64(t2, u2, carry)
+	r3, _ := bits.Add64(u3, v3, carry)
 
 	return uint256{r0, r1, r2, r3}
 }
@@ -501,4 +819,58 @@ func (n uint256) rsh(o uint) uint256 {
 	}
 
 	return uint256{r0, r1, r2, r3}
+}
+
+type uint384 [6]uint64
+
+func (n uint384) String() string {
+	if n == (uint384{}) {
+		return "0"
+	}
+
+	var buf [116]byte
+
+	i := 116
+	for n != (uint384{}) {
+		var d uint64
+		n, d = n.div10()
+		i--
+		buf[i] = '0' + byte(d)
+	}
+
+	return string(buf[i:])
+}
+
+func (n uint384) div10() (uint384, uint64) {
+	var r5, r4, rem uint64
+	if n[5] < 10 {
+		r4, rem = bits.Div64(n[5], n[4], 10)
+	} else {
+		r5, rem = bits.Div64(0, n[5], 10)
+		r4, rem = bits.Div64(rem, n[4], 10)
+	}
+
+	r3, rem := bits.Div64(rem, n[3], 10)
+	r2, rem := bits.Div64(rem, n[2], 10)
+	r1, rem := bits.Div64(rem, n[1], 10)
+	r0, rem := bits.Div64(rem, n[0], 10)
+
+	return uint384{r0, r1, r2, r3, r4, r5}, rem
+}
+
+func (n uint384) div1e19() (uint384, uint64) {
+	var r5, r4, rem uint64
+	if n[5] < 10_000_000_000_000_000_000 {
+		r4, rem = bits.Div64(n[5], n[4], 10_000_000_000_000_000_000)
+	} else {
+		r5, rem = bits.Div64(0, n[5], 10_000_000_000_000_000_000)
+		r4, rem = bits.Div64(rem, n[4], 10_000_000_000_000_000_000)
+	}
+
+	r3, rem := bits.Div64(rem, n[3], 10_000_000_000_000_000_000)
+	r2, rem := bits.Div64(rem, n[2], 10_000_000_000_000_000_000)
+	r1, rem := bits.Div64(rem, n[1], 10_000_000_000_000_000_000)
+	r0, rem := bits.Div64(rem, n[0], 10_000_000_000_000_000_000)
+
+	return uint384{r0, r1, r2, r3, r4, r5}, rem
 }
