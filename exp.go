@@ -32,12 +32,12 @@ func Exp(d Decimal) Decimal {
 		return inf(false)
 	}
 
-	res, trunc := decomposed128{
-		sig: dSig,
+	res, trunc := decomposed192{
+		sig: uint192{dSig[0], dSig[1], 0},
 		exp: dExp,
 	}.epow(int16(l10), int8(0))
 
-	if res.exp > maxUnbiasedExponent+39 {
+	if res.exp > maxUnbiasedExponent+58 {
 		if d.Signbit() {
 			return zero(false)
 		}
@@ -46,13 +46,13 @@ func Exp(d Decimal) Decimal {
 	}
 
 	if d.Signbit() {
-		res, trunc = decomposed128{
-			sig: uint128{1, 0},
+		res, trunc = decomposed192{
+			sig: uint192{1, 0, 0},
 			exp: 0,
 		}.quo(res, trunc)
 	}
 
-	sig, exp := DefaultRoundingMode.reduce128(false, res.sig, res.exp+exponentBias, trunc)
+	sig, exp := DefaultRoundingMode.reduce192(false, res.sig, res.exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
 		if d.Signbit() {
@@ -117,7 +117,7 @@ func Exp10(d Decimal) Decimal {
 			exp--
 		}
 
-		if dSigInt > maxUnbiasedExponent+39 {
+		if dSigInt > maxUnbiasedExponent+58 {
 			if d.Signbit() {
 				return zero(false)
 			}
@@ -139,7 +139,7 @@ func Exp10(d Decimal) Decimal {
 		}
 	}
 
-	var res decomposed128
+	var res decomposed192
 	var trunc int8
 
 	var sigInt uint128
@@ -157,14 +157,14 @@ func Exp10(d Decimal) Decimal {
 	}
 
 	if dSig != (uint128{}) {
-		res, trunc = decomposed128{
-			sig: dSig,
+		res, trunc = decomposed192{
+			sig: uint192{dSig[0], dSig[1], 0},
 			exp: dExp,
 		}.mul(ln10, int8(0))
 
-		res, trunc = res.epow(int16(l10), trunc)
+		res, trunc = res.epow(int16(res.sig.log10()), trunc)
 
-		if res.exp > maxUnbiasedExponent+39 {
+		if res.exp > maxUnbiasedExponent+58 {
 			if d.Signbit() {
 				return zero(false)
 			}
@@ -176,13 +176,13 @@ func Exp10(d Decimal) Decimal {
 			res.exp += expInt
 		}
 	} else {
-		res = decomposed128{
-			sig: uint128{1, 0},
+		res = decomposed192{
+			sig: uint192{1, 0, 0},
 			exp: expInt,
 		}
 	}
 
-	if res.exp > maxUnbiasedExponent+39 {
+	if res.exp > maxUnbiasedExponent+58 {
 		if d.Signbit() {
 			return zero(false)
 		}
@@ -191,13 +191,13 @@ func Exp10(d Decimal) Decimal {
 	}
 
 	if d.Signbit() {
-		res, trunc = decomposed128{
-			sig: uint128{1, 0},
+		res, trunc = decomposed192{
+			sig: uint192{1, 0, 0},
 			exp: 0,
 		}.quo(res, trunc)
 	}
 
-	sig, exp := DefaultRoundingMode.reduce128(false, res.sig, res.exp+exponentBias, trunc)
+	sig, exp := DefaultRoundingMode.reduce192(false, res.sig, res.exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
 		if d.Signbit() {
@@ -276,10 +276,10 @@ func Exp2(d Decimal) Decimal {
 		}
 	}
 
-	var res decomposed128
+	var res decomposed192
 	var trunc int8
 
-	var sigInt uint128
+	var sigInt uint192
 	var expInt int16
 
 	if dSigInt != 0 {
@@ -337,41 +337,19 @@ func Exp2(d Decimal) Decimal {
 				}
 			}
 
-			sigInt192 := uint192{sigInt256[0], sigInt256[1], sigInt256[2]}
-
-			for sigInt192[2] >= 0x0000_0000_0000_ffff {
-				var rem uint64
-				sigInt192, rem = sigInt192.div10000()
-				expInt += 4
-
-				if rem != 0 {
-					trunc = 1
-				}
-			}
-
-			for sigInt192[2] > 0 {
-				var rem uint64
-				sigInt192, rem = sigInt192.div10()
-				expInt++
-
-				if rem != 0 {
-					trunc = 1
-				}
-			}
-
-			sigInt = uint128{sigInt192[0], sigInt192[1]}
+			sigInt = uint192{sigInt256[0], sigInt256[1], sigInt256[2]}
 		}
 	}
 
 	if dSig != (uint128{}) {
-		res, trunc = decomposed128{
-			sig: dSig,
+		res, trunc = decomposed192{
+			sig: uint192{dSig[0], dSig[1], 0},
 			exp: dExp,
 		}.mul(ln2, int8(0))
 
-		res, trunc = res.epow(int16(l10), trunc)
+		res, trunc = res.epow(int16(res.sig.log10()), trunc)
 
-		if res.exp > maxUnbiasedExponent+39 {
+		if res.exp > maxUnbiasedExponent+58 {
 			if d.Signbit() {
 				return zero(false)
 			}
@@ -380,13 +358,13 @@ func Exp2(d Decimal) Decimal {
 		}
 
 		if dSigInt != 0 {
-			res, trunc = decomposed128{
+			res, trunc = decomposed192{
 				sig: sigInt,
 				exp: expInt,
 			}.mul(res, trunc)
 		}
 	} else {
-		res = decomposed128{
+		res = decomposed192{
 			sig: sigInt,
 			exp: expInt,
 		}
@@ -401,13 +379,13 @@ func Exp2(d Decimal) Decimal {
 	}
 
 	if d.Signbit() {
-		res, trunc = decomposed128{
-			sig: uint128{1, 0},
+		res, trunc = decomposed192{
+			sig: uint192{1, 0, 0},
 			exp: 0,
 		}.quo(res, trunc)
 	}
 
-	sig, exp := DefaultRoundingMode.reduce128(false, res.sig, res.exp+exponentBias, trunc)
+	sig, exp := DefaultRoundingMode.reduce192(false, res.sig, res.exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
 		if d.Signbit() {
@@ -444,12 +422,12 @@ func Log(d Decimal) Decimal {
 
 	dSig, dExp := d.decompose()
 
-	neg, res, trunc := decomposed128{
-		sig: dSig,
+	neg, res, trunc := decomposed192{
+		sig: uint192{dSig[0], dSig[1], 0},
 		exp: dExp - exponentBias,
 	}.log()
 
-	sig, exp := DefaultRoundingMode.reduce128(neg, res.sig, res.exp+exponentBias, trunc)
+	sig, exp := DefaultRoundingMode.reduce192(neg, res.sig, res.exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
 		return inf(neg)
@@ -482,14 +460,14 @@ func Log10(d Decimal) Decimal {
 
 	dSig, dExp := d.decompose()
 
-	neg, res, trunc := decomposed128{
-		sig: dSig,
+	neg, res, trunc := decomposed192{
+		sig: uint192{dSig[0], dSig[1], 0},
 		exp: dExp - exponentBias,
 	}.log()
 
 	res, trunc = res.mul(invLn10, trunc)
 
-	sig, exp := DefaultRoundingMode.reduce128(neg, res.sig, res.exp+exponentBias, trunc)
+	sig, exp := DefaultRoundingMode.reduce192(neg, res.sig, res.exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
 		return inf(neg)
@@ -522,14 +500,14 @@ func Log2(d Decimal) Decimal {
 
 	dSig, dExp := d.decompose()
 
-	neg, res, trunc := decomposed128{
-		sig: dSig,
+	neg, res, trunc := decomposed192{
+		sig: uint192{dSig[0], dSig[1], 0},
 		exp: dExp - exponentBias,
 	}.log()
 
 	res, trunc = res.mul(invLn2, trunc)
 
-	sig, exp := DefaultRoundingMode.reduce128(neg, res.sig, res.exp+exponentBias, trunc)
+	sig, exp := DefaultRoundingMode.reduce192(neg, res.sig, res.exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
 		return inf(neg)
@@ -564,37 +542,37 @@ func Sqrt(d Decimal) Decimal {
 	l10 := int16(dSig.log10())
 	dExp = (dExp - exponentBias) + l10
 
-	var add decomposed128
-	var mul decomposed128
-	var nrm decomposed128
+	var add decomposed192
+	var mul decomposed192
+	var nrm decomposed192
 	if dExp&1 == 0 {
-		add = decomposed128{
-			sig: uint128{259, 0},
+		add = decomposed192{
+			sig: uint192{259, 0, 0},
 			exp: -3,
 		}
 
-		mul = decomposed128{
-			sig: uint128{819, 0},
+		mul = decomposed192{
+			sig: uint192{819, 0, 0},
 			exp: -3,
 		}
 
-		nrm = decomposed128{
-			sig: dSig,
+		nrm = decomposed192{
+			sig: uint192{dSig[0], dSig[1], 0},
 			exp: -l10,
 		}
 	} else {
-		add = decomposed128{
-			sig: uint128{819, 0},
+		add = decomposed192{
+			sig: uint192{819, 0, 0},
 			exp: -4,
 		}
 
-		mul = decomposed128{
-			sig: uint128{259, 0},
+		mul = decomposed192{
+			sig: uint192{259, 0, 0},
 			exp: -2,
 		}
 
-		nrm = decomposed128{
-			sig: dSig,
+		nrm = decomposed192{
+			sig: uint192{dSig[0], dSig[1], 0},
 			exp: -l10 - 1,
 		}
 
@@ -604,9 +582,9 @@ func Sqrt(d Decimal) Decimal {
 	res, trunc := nrm.mul(mul, int8(0))
 	res, trunc = res.add(add, trunc)
 
-	var tmp decomposed128
-	half := decomposed128{
-		sig: uint128{5, 0},
+	var tmp decomposed192
+	half := decomposed192{
+		sig: uint192{5, 0, 0},
 		exp: -1,
 	}
 
@@ -617,7 +595,7 @@ func Sqrt(d Decimal) Decimal {
 	}
 
 	res.exp += dExp / 2
-	sig, exp := DefaultRoundingMode.reduce128(false, res.sig, res.exp+exponentBias, trunc)
+	sig, exp := DefaultRoundingMode.reduce192(false, res.sig, res.exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
 		return inf(false)

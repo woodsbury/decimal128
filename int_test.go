@@ -18,25 +18,23 @@ var (
 
 func initUintValues() {
 	uintValuesOnce.Do(func() {
-		if testing.Short() {
-			uint64Values = []uint64{
-				0,
-				5,
-				10,
-				0x0002_7fff_ffff_ffff,
-			}
-		} else {
-			uint64Values = []uint64{
-				0,
-				1,
-				5,
-				10,
-				2500,
-				math.MaxUint32,
-				0x0001_ffff_ffff_ffff,
-				0x0002_7fff_ffff_ffff,
-				math.MaxUint64,
-			}
+		uint64Values = []uint64{
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7,
+			8,
+			9,
+			10,
+			2500,
+			math.MaxUint32,
+			0x0001_ffff_ffff_ffff,
+			0x0002_7fff_ffff_ffff,
+			math.MaxUint64,
 		}
 
 		n := len(uint64Values)
@@ -418,30 +416,6 @@ func TestUint128Lsh(t *testing.T) {
 	}
 }
 
-func TestUint128Msd2(t *testing.T) {
-	t.Parallel()
-
-	initUintValues()
-
-	bigval := new(big.Int)
-
-	for _, val := range uint128Values {
-		res := val.msd2()
-
-		uint128ToBig(val, bigval)
-		bigtxt := bigval.Text(10)
-		bigres := int(bigtxt[0]) - '0'
-		if len(bigtxt) > 1 {
-			bigres *= 10
-			bigres += int(bigtxt[1]) - '0'
-		}
-
-		if res != bigres {
-			t.Errorf("%v.msd2() = %v, want %v", val, res, bigres)
-		}
-	}
-}
-
 func TestUint128Mul(t *testing.T) {
 	t.Parallel()
 
@@ -512,34 +486,6 @@ func TestUint128Mul64(t *testing.T) {
 			if uint128ToBig(prd, tmpprd).Cmp(bigprd) != 0 {
 				t.Errorf("%v.mul64(%d) = %v, want %v", lhs, rhs, prd, bigprd)
 			}
-		}
-	}
-}
-
-func TestUint128Not(t *testing.T) {
-	t.Parallel()
-
-	initUintValues()
-
-	bigval := new(big.Int)
-	tmpres := new(big.Int)
-
-	for _, val := range uint128Values {
-		res := val.not()
-
-		uint128ToBig(val, bigval)
-		b := make([]byte, 16)
-		c := bigval.Bytes()
-		copy(b[16-len(c):], c)
-
-		for i := range b {
-			b[i] = ^b[i]
-		}
-
-		bigres := bigval.SetBytes(b)
-
-		if uint128ToBig(res, tmpres).Cmp(bigres) != 0 {
-			t.Errorf("%v.not() = %v, want %v", val, res, bigres)
 		}
 	}
 }
@@ -684,6 +630,41 @@ func TestUint128Sub64(t *testing.T) {
 			if uint128ToBig(dif, tmpdif).Cmp(bigdif) != 0 {
 				t.Errorf("%v.sub64(%v) = %v, want %v", lhs, rhs, dif, bigdif)
 			}
+		}
+	}
+}
+
+func TestUint128Twos(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	one := big.NewInt(1)
+
+	bigval := new(big.Int)
+	tmpres := new(big.Int)
+
+	for _, val := range uint128Values {
+		res := val.twos()
+
+		uint128ToBig(val, bigval)
+		b := make([]byte, 16)
+		c := bigval.Bytes()
+		copy(b[16-len(c):], c)
+
+		for i := range b {
+			b[i] = ^b[i]
+		}
+
+		bigval.SetBytes(b)
+		bigres := bigval.Add(bigval, one)
+		if bigres.BitLen() > 128 {
+			b = bigres.Bytes()
+			bigres.SetBytes(b[len(b)-16:])
+		}
+
+		if uint128ToBig(res, tmpres).Cmp(bigres) != 0 {
+			t.Errorf("%v.twos() = %v, want %v", val, res, bigres)
 		}
 	}
 }
@@ -867,6 +848,49 @@ func TestUint192Div1e8(t *testing.T) {
 	}
 }
 
+func TestUint192Div1e19(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	c := new(big.Int).SetUint64(10_000_000_000_000_000_000)
+
+	bigval := new(big.Int)
+	bigrem := new(big.Int)
+	tmpquo := new(big.Int)
+	tmprem := new(big.Int)
+
+	for _, val := range uint192Values {
+		quo, rem := val.div1e19()
+
+		uint192ToBig(val, bigval)
+		bigquo, bigrem := bigval.QuoRem(bigval, c, bigrem)
+
+		if uint192ToBig(quo, tmpquo).Cmp(bigquo) != 0 || tmprem.SetUint64(rem).Cmp(bigrem) != 0 {
+			t.Errorf("%v.div1e8() = (%v, %v), want (%v, %v)", val, quo, rem, bigquo, bigrem)
+		}
+	}
+}
+
+func TestUint192Log10(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	bigval := new(big.Int)
+
+	for _, val := range uint192Values {
+		res := val.log10()
+
+		uint192ToBig(val, bigval)
+		bigres := len(bigval.Text(10)) - 1
+
+		if res != bigres {
+			t.Errorf("%v.log10() = %v, want %v", val, res, bigres)
+		}
+	}
+}
+
 func TestUint192Lsh(t *testing.T) {
 	t.Parallel()
 
@@ -913,6 +937,58 @@ func TestUint192Mul(t *testing.T) {
 			if uint384ToBig(prd, tmpprd).Cmp(bigprd) != 0 {
 				t.Errorf("%v.mul(%v) = %v, want %v", lhs, rhs, prd, bigprd)
 			}
+		}
+	}
+}
+
+func TestUint192Mul64(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	biglhs := new(big.Int)
+	bigrhs := new(big.Int)
+	tmpprd := new(big.Int)
+
+	for _, lhs := range uint192Values {
+		for _, rhs := range uint64Values {
+			prd := lhs.mul64(rhs)
+
+			uint192ToBig(lhs, biglhs)
+			bigrhs.SetUint64(rhs)
+			bigprd := biglhs.Mul(biglhs, bigrhs)
+			if bigprd.BitLen() > 192 {
+				b := bigprd.Bytes()
+				bigprd.SetBytes(b[len(b)-24:])
+			}
+
+			if uint192ToBig(prd, tmpprd).Cmp(bigprd) != 0 {
+				t.Errorf("%v.mul64(%v) = %v, want %v", lhs, rhs, prd, bigprd)
+			}
+		}
+	}
+}
+
+func TestUint192Msd2(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	bigval := new(big.Int)
+
+	for _, val := range uint192Values {
+		res := val.msd2()
+
+		uint192ToBig(val, bigval)
+		bigtxt := bigval.Text(10)
+		bigres := int(bigtxt[0]) - '0'
+		if len(bigtxt) > 1 {
+			bigres *= 10
+			bigres += int(bigtxt[1]) - '0'
+		}
+
+		if res != bigres {
+			t.Errorf("%v.msd2() = %v, want %v", val, res, bigres)
 		}
 	}
 }
@@ -1057,6 +1133,41 @@ func TestUint192Sub64(t *testing.T) {
 	}
 }
 
+func TestUint192Twos(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	one := big.NewInt(1)
+
+	bigval := new(big.Int)
+	tmpres := new(big.Int)
+
+	for _, val := range uint192Values {
+		res := val.twos()
+
+		uint192ToBig(val, bigval)
+		b := make([]byte, 24)
+		c := bigval.Bytes()
+		copy(b[24-len(c):], c)
+
+		for i := range b {
+			b[i] = ^b[i]
+		}
+
+		bigval.SetBytes(b)
+		bigres := bigval.Add(bigval, one)
+		if bigres.BitLen() > 192 {
+			b = bigres.Bytes()
+			bigres.SetBytes(b[len(b)-24:])
+		}
+
+		if uint192ToBig(res, tmpres).Cmp(bigres) != 0 {
+			t.Errorf("%v.twos() = %v, want %v", val, res, bigres)
+		}
+	}
+}
+
 func TestUint256Div10(t *testing.T) {
 	t.Parallel()
 
@@ -1077,6 +1188,30 @@ func TestUint256Div10(t *testing.T) {
 
 		if uint256ToBig(quo, tmpquo).Cmp(bigquo) != 0 || tmprem.SetUint64(rem).Cmp(bigrem) != 0 {
 			t.Errorf("%v.div10() = (%v, %v), want (%v, %v)", val, quo, rem, bigquo, bigrem)
+		}
+	}
+}
+
+func TestUint256Div10000(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	c := big.NewInt(10_000)
+
+	bigval := new(big.Int)
+	bigrem := new(big.Int)
+	tmpquo := new(big.Int)
+	tmprem := new(big.Int)
+
+	for _, val := range uint256Values {
+		quo, rem := val.div10000()
+
+		uint256ToBig(val, bigval)
+		bigquo, bigrem := bigval.QuoRem(bigval, c, bigrem)
+
+		if uint256ToBig(quo, tmpquo).Cmp(bigquo) != 0 || tmprem.SetUint64(rem).Cmp(bigrem) != 0 {
+			t.Errorf("%v.div10000() = (%v, %v), want (%v, %v)", val, quo, rem, bigquo, bigrem)
 		}
 	}
 }
@@ -1196,6 +1331,54 @@ func TestUint256String(t *testing.T) {
 
 		if res != bigres {
 			t.Errorf("%v.String() = %s, want %s", val, res, bigres)
+		}
+	}
+}
+
+func TestUint384Div10(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	c := big.NewInt(10)
+
+	bigval := new(big.Int)
+	bigrem := new(big.Int)
+	tmpquo := new(big.Int)
+	tmprem := new(big.Int)
+
+	for _, val := range uint384Values {
+		quo, rem := val.div10()
+
+		uint384ToBig(val, bigval)
+		bigquo, bigrem := bigval.QuoRem(bigval, c, bigrem)
+
+		if uint384ToBig(quo, tmpquo).Cmp(bigquo) != 0 || tmprem.SetUint64(rem).Cmp(bigrem) != 0 {
+			t.Errorf("%v.div10() = (%v, %v), want (%v, %v)", val, quo, rem, bigquo, bigrem)
+		}
+	}
+}
+
+func TestUint384Div1e19(t *testing.T) {
+	t.Parallel()
+
+	initUintValues()
+
+	c := new(big.Int).SetUint64(10_000_000_000_000_000_000)
+
+	bigval := new(big.Int)
+	bigrem := new(big.Int)
+	tmpquo := new(big.Int)
+	tmprem := new(big.Int)
+
+	for _, val := range uint384Values {
+		quo, rem := val.div1e19()
+
+		uint384ToBig(val, bigval)
+		bigquo, bigrem := bigval.QuoRem(bigval, c, bigrem)
+
+		if uint384ToBig(quo, tmpquo).Cmp(bigquo) != 0 || tmprem.SetUint64(rem).Cmp(bigrem) != 0 {
+			t.Errorf("%v.div1e19() = (%v, %v), want (%v, %v)", val, quo, rem, bigquo, bigrem)
 		}
 	}
 }
