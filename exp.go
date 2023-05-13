@@ -46,10 +46,7 @@ func Exp(d Decimal) Decimal {
 	}
 
 	if d.Signbit() {
-		res, trunc = decomposed192{
-			sig: uint192{1, 0, 0},
-			exp: 0,
-		}.quo(res, trunc)
+		res, trunc = res.rcp(trunc)
 	}
 
 	sig, exp := DefaultRoundingMode.reduce192(false, res.sig, res.exp+exponentBias, trunc)
@@ -191,10 +188,7 @@ func Exp10(d Decimal) Decimal {
 	}
 
 	if d.Signbit() {
-		res, trunc = decomposed192{
-			sig: uint192{1, 0, 0},
-			exp: 0,
-		}.quo(res, trunc)
+		res, trunc = res.rcp(trunc)
 	}
 
 	sig, exp := DefaultRoundingMode.reduce192(false, res.sig, res.exp+exponentBias, trunc)
@@ -379,10 +373,7 @@ func Exp2(d Decimal) Decimal {
 	}
 
 	if d.Signbit() {
-		res, trunc = decomposed192{
-			sig: uint192{1, 0, 0},
-			exp: 0,
-		}.quo(res, trunc)
+		res, trunc = res.rcp(trunc)
 	}
 
 	sig, exp := DefaultRoundingMode.reduce192(false, res.sig, res.exp+exponentBias, trunc)

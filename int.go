@@ -877,6 +877,21 @@ func (n uint256) div10000() (uint256, uint64) {
 	return uint256{r0, r1, r2, r3}, rem
 }
 
+func (n uint256) div1e8() (uint256, uint64) {
+	var r2, r3, rem uint64
+	if n[3] < 100_000_000 {
+		r2, rem = bits.Div64(n[3], n[2], 100_000_000)
+	} else {
+		r3, rem = bits.Div64(0, n[3], 100_000_000)
+		r2, rem = bits.Div64(rem, n[2], 100_000_000)
+	}
+
+	r1, rem := bits.Div64(rem, n[1], 100_000_000)
+	r0, rem := bits.Div64(rem, n[0], 100_000_000)
+
+	return uint256{r0, r1, r2, r3}, rem
+}
+
 func (n uint256) div1e19() (uint256, uint64) {
 	var r2, r3, rem uint64
 	if n[3] < 10_000_000_000_000_000_000 {

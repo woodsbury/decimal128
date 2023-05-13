@@ -3,9 +3,9 @@ package decimal128
 // CmpResult represents the result from comparing two Decimals. When the values
 // being compared aren't NaNs, the integer value of the CmpResult will be:
 //
-//   -1 if lhs < rhs
-//    0 if lhs == rhs
-//   +1 if lhs > rhs
+//	-1 if lhs < rhs
+//	 0 if lhs == rhs
+//	+1 if lhs > rhs
 //
 // The Equal, Greater, and Less methods can also be used to determine the
 // result. If either value is a NaN, then these methods will still behave
@@ -476,4 +476,18 @@ func (d Decimal) IsZero() bool {
 	} else {
 		return d.lo == 0 && d.hi&0x0001_ffff_ffff_ffff == 0
 	}
+}
+
+func (d Decimal) isOne() bool {
+	if d.isSpecial() {
+		return false
+	}
+
+	sig, exp := d.decompose()
+
+	if exp < int16(-len(uint128PowersOf10)+exponentBias) || exp > exponentBias {
+		return false
+	}
+
+	return sig == uint128PowersOf10[-(exp-exponentBias)]
 }

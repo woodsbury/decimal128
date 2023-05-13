@@ -115,6 +115,304 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 	return compose(neg, sig, exp)
 }
 
+// Pow raises d to the power of o, rounding using the [DefaultRoundingMode],
+// and returns the result.
+func (d Decimal) Pow(o Decimal) Decimal {
+	return d.PowWithMode(o, DefaultRoundingMode)
+}
+
+// PowWithMode raises d to the power of o, rounding using the provided rounding
+// mode, and returns the result.
+func (d Decimal) PowWithMode(o Decimal, mode RoundingMode) Decimal {
+	if o.IsZero() {
+		return one(false)
+	}
+
+	if d.isOne() {
+		if !d.Signbit() || o.isInf() {
+			return one(false)
+		}
+	}
+
+	if o.isOne() {
+		if o.Signbit() {
+			return one(false).QuoWithMode(d, mode)
+		}
+
+		return d
+	}
+
+	if d.IsNaN() {
+		return d
+	}
+
+	if o.IsNaN() {
+		return o
+	}
+
+	dNeg := d.Signbit()
+	oNeg := o.Signbit()
+
+	if o.isInf() {
+		if d.IsZero() {
+			if oNeg {
+				return inf(false)
+			}
+
+			return zero(false)
+		}
+
+		if d.isInf() {
+			if oNeg {
+				return zero(false)
+			}
+
+			return inf(false)
+		}
+
+		dSig, dExp := d.decompose()
+		dExp -= exponentBias
+
+		if dExp > -maxDigits {
+			l10 := int16(dSig.log10())
+			if l10 > -dExp {
+				if oNeg {
+					return zero(false)
+				}
+
+				return inf(false)
+			}
+		}
+
+		if oNeg {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	oSig, oExp := o.decompose()
+
+	for {
+		sig, rem := oSig.div10()
+		if rem != 0 {
+			break
+		}
+
+		oSig = sig
+		oExp++
+	}
+
+	if d.IsZero() {
+		neg := false
+
+		if d.Signbit() && oExp == exponentBias {
+			_, digit := oSig.div10()
+			if digit&1 != 0 {
+				neg = true
+			}
+		}
+
+		if oNeg {
+			return inf(neg)
+		}
+
+		return zero(neg)
+	}
+
+	if d.isInf() {
+		if dNeg {
+			neg := false
+
+			if oExp == exponentBias {
+				_, digit := oSig.div10()
+				if digit&1 != 0 {
+					neg = true
+				}
+			}
+
+			if oNeg {
+				return zero(neg)
+			}
+
+			return inf(neg)
+		}
+
+		if oNeg {
+			return zero(false)
+		}
+
+		return inf(false)
+	}
+
+	dSig, dExp := d.decompose()
+
+	for {
+		sig, rem := dSig.div10()
+		if rem != 0 {
+			break
+		}
+
+		dSig = sig
+		dExp++
+	}
+
+	neg := false
+
+	if dNeg {
+		if oExp < exponentBias {
+			rhs := payloadValPosFinite
+			if oNeg {
+				rhs = payloadValNegFinite
+			}
+
+			return nan(payloadOpPow, payloadValNegFinite, rhs)
+		}
+
+		if oExp == exponentBias {
+			_, digit := oSig.div10()
+			if digit&1 != 0 {
+				neg = true
+			}
+		}
+	}
+
+	if !oNeg && oExp >= exponentBias && dSig == (uint128{1, 0}) {
+		if oSig[1] != 0 || oSig[0] > maxUnbiasedExponent {
+			if dExp == exponentBias {
+				return one(neg)
+			}
+
+			if dExp < exponentBias {
+				return zero(neg)
+			}
+
+			return inf(neg)
+		}
+
+		var p10 int64
+		switch oExp {
+		case exponentBias:
+			p10 = 1
+		case 1 + exponentBias:
+			p10 = 10
+		case 2 + exponentBias:
+			p10 = 100
+		case 3 + exponentBias:
+			p10 = 1_000
+		case 4 + exponentBias:
+			p10 = 10_000
+		case 5 + exponentBias:
+			p10 = 100_000
+		case 6 + exponentBias:
+			p10 = 1_000_000
+		case 7 + exponentBias:
+			p10 = 10_000_000
+		default:
+			if dExp == exponentBias {
+				return one(neg)
+			}
+
+			if dExp < exponentBias {
+				return zero(neg)
+			}
+
+			return inf(neg)
+		}
+
+		exp64 := int64(dExp-exponentBias)*p10*int64(oSig[0]) + exponentBias
+
+		if exp64 < minBiasedExponent-maxDigits {
+			return zero(neg)
+		}
+
+		if exp64 > maxBiasedExponent+maxDigits {
+			return inf(neg)
+		}
+
+		sig, exp := mode.reduce128(dNeg, dSig, int16(exp64), 0)
+
+		if exp > maxBiasedExponent {
+			return inf(neg)
+		}
+
+		return compose(neg, sig, exp)
+	}
+
+	if dExp&1 == 0 && oExp == exponentBias-1 && dSig == (uint128{1, 0}) && oSig == (uint128{5, 0}) {
+		exp := (dExp - exponentBias) / 2
+
+		if oNeg {
+			exp *= -1
+		}
+
+		return compose(neg, dSig, exp+exponentBias)
+	}
+
+	inv, res, trunc := decomposed192{
+		sig: uint192{dSig[0], dSig[1], 0},
+		exp: dExp - exponentBias,
+	}.log()
+
+	if res.sig == (uint192{}) {
+		return one(neg)
+	}
+
+	if int64(res.exp)+int64(oExp) > maxBiasedExponent+maxDigits {
+		if oNeg != inv {
+			return zero(neg)
+		}
+
+		return inf(neg)
+	}
+
+	res, trunc = res.mul(decomposed192{
+		sig: uint192{oSig[0], oSig[1], 0},
+		exp: oExp - exponentBias,
+	}, trunc)
+
+	if res.sig == (uint192{}) {
+		return one(neg)
+	}
+
+	l10 := res.sig.log10()
+
+	if int(res.exp) > 5-l10 {
+		if oNeg != inv {
+			return zero(neg)
+		}
+
+		return inf(neg)
+	}
+
+	if res.sig == (uint192{}) {
+		return one(neg)
+	}
+
+	res, trunc = res.epow(int16(l10), trunc)
+
+	if res.exp > maxUnbiasedExponent+58 {
+		if oNeg != inv {
+			return zero(neg)
+		}
+
+		return inf(neg)
+	}
+
+	if oNeg != inv {
+		res, trunc = res.rcp(trunc)
+		trunc *= -1
+	}
+
+	sig, exp := mode.reduce192(neg, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
+
+	return compose(neg, sig, exp)
+}
+
 // Quo divides d by o, rounding using the [DefaultRoundingMode], and returns
 // the result.
 func (d Decimal) Quo(o Decimal) Decimal {

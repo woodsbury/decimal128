@@ -241,7 +241,7 @@ func (d Decimal) Round(dp int, mode RoundingMode) Decimal {
 	}
 
 	neg := d.Signbit()
-	sig, exp = mode.round(neg, sig, int16(iexp), trunc, digit)
+	sig, exp = mode.round(false, neg, sig, int16(iexp), trunc, digit)
 
 	if exp > maxBiasedExponent {
 		return inf(neg)
@@ -395,7 +395,7 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16, trunc int8
 		}
 	}
 
-	return rm.round(neg, sig, exp, trunc, digit)
+	return rm.round(true, neg, sig, exp, trunc, digit)
 }
 
 func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8) (uint128, int16) {
@@ -498,7 +498,7 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8
 		}
 	}
 
-	return rm.round(neg, sig, exp, trunc, digit)
+	return rm.round(true, neg, sig, exp, trunc, digit)
 }
 
 func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (uint128, int16) {
@@ -579,7 +579,7 @@ func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (
 		}
 	}
 
-	return rm.round(neg, sig, exp, trunc, digit)
+	return rm.round(true, neg, sig, exp, trunc, digit)
 }
 
 func (rm RoundingMode) reduce64(neg bool, sig64 uint64, exp int16) (uint128, int16) {
@@ -617,10 +617,10 @@ func (rm RoundingMode) reduce64(neg bool, sig64 uint64, exp int16) (uint128, int
 		}
 	}
 
-	return rm.round(neg, sig, exp, trunc, digit)
+	return rm.round(true, neg, sig, exp, trunc, digit)
 }
 
-func (rm RoundingMode) round(neg bool, sig uint128, exp int16, trunc int8, digit uint64) (uint128, int16) {
+func (rm RoundingMode) round(shift, neg bool, sig uint128, exp int16, trunc int8, digit uint64) (uint128, int16) {
 	for {
 		var adjust int
 		switch rm {
@@ -675,8 +675,44 @@ func (rm RoundingMode) round(neg bool, sig uint128, exp int16, trunc int8, digit
 		if adjust != 0 {
 			var tsig uint128
 			if adjust == 1 {
+				if shift {
+					if sig != (uint128{}) {
+						if exp >= minBiasedExponent+19 && sig[1] == 0 {
+							sig = sig.mul64(10_000_000_000_000_000_000)
+							exp -= 19
+						}
+
+						for exp > minBiasedExponent && sig[1] < 0x0002_7fff_ffff_ffff/10 {
+							sig = sig.mul64(10)
+							exp--
+						}
+					} else {
+						exp = minBiasedExponent
+					}
+
+					shift = false
+				}
+
 				tsig = sig.add64(1)
 			} else {
+				if shift {
+					if sig != (uint128{}) {
+						if exp >= minBiasedExponent+19 && sig[1] == 0 {
+							sig = sig.mul64(10_000_000_000_000_000_000)
+							exp -= 19
+						}
+
+						for exp > minBiasedExponent && sig[1] <= 0x0002_7fff_ffff_ffff/10 {
+							sig = sig.mul64(10)
+							exp--
+						}
+					} else {
+						exp = minBiasedExponent
+					}
+
+					shift = false
+				}
+
 				tsig = sig.sub64(1)
 			}
 

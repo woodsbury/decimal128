@@ -157,7 +157,17 @@ func (d decomposed192) add(o decomposed192, trunc int8) (decomposed192, int8) {
 			exp++
 		}
 
-		if exp < -4 {
+		if exp < -57 {
+			if d.sig != (uint192{}) {
+				d.sig = uint192{}
+				trunc = 1
+			}
+
+			d.exp = o.exp
+			exp = 0
+		}
+
+		for exp <= -4 {
 			var rem uint64
 			d.sig, rem = d.sig.div10000()
 			if rem != 0 {
@@ -183,7 +193,7 @@ func (d decomposed192) add(o decomposed192, trunc int8) (decomposed192, int8) {
 			}
 		}
 	} else if exp > 0 {
-		if exp >= 19 && d.sig[2] == 0 {
+		for exp >= 19 && d.sig[2] == 0 {
 			d.sig = d.sig.mul64(10_000_000_000_000_000_000)
 			d.exp -= 19
 			exp -= 19
@@ -201,7 +211,16 @@ func (d decomposed192) add(o decomposed192, trunc int8) (decomposed192, int8) {
 			exp--
 		}
 
-		if exp > 4 {
+		if exp > 57 {
+			if o.sig != (uint192{}) {
+				o.sig = uint192{}
+				trunc = -1
+			}
+
+			exp = 0
+		}
+
+		for exp >= 4 {
 			var rem uint64
 			o.sig, rem = o.sig.div10000()
 			if rem != 0 {
@@ -499,6 +518,16 @@ func (d decomposed192) mul(o decomposed192, trunc int8) (decomposed192, int8) {
 
 	sig256 := uint256{sig384[0], sig384[1], sig384[2], sig384[3]}
 
+	for sig256[3] >= 0x0000_0000_0fff_ffff {
+		var rem uint64
+		sig256, rem = sig256.div1e8()
+		exp += 8
+
+		if rem != 0 {
+			trunc = 1
+		}
+	}
+
 	for sig256[3] >= 0x0000_0000_0000_ffff {
 		var rem uint64
 		sig256, rem = sig256.div10000()
@@ -607,7 +636,7 @@ func (d decomposed192) powexp10(o int16, trunc int8) (decomposed192, int8) {
 	}
 
 	for p10 > 1 {
-		if int64(d.exp)*2 > math.MaxInt16 {
+		if int64(d.exp)*2 > math.MaxInt16-58*2 {
 			return dinf, trunc
 		}
 
@@ -639,7 +668,7 @@ func (d decomposed192) quo(o decomposed192, trunc int8) (decomposed192, int8) {
 		}, trunc
 	}
 
-	if d.sig[2] == 0 {
+	for d.sig[2] == 0 {
 		d.sig = d.sig.mul64(10_000_000_000_000_000_000)
 		d.exp -= 19
 	}
@@ -707,6 +736,62 @@ func (d decomposed192) quo(o decomposed192, trunc int8) (decomposed192, int8) {
 	}, trunc
 }
 
+func (d decomposed192) rcp(trunc int8) (decomposed192, int8) {
+	oneSig := uint192{0x4a00_0000_0000_0000, 0xebfd_cb54_864a_da83, 0x28c8_7cb5_c89a_2571}
+
+	for d.sig[2] >= 0x18ff_ffff_ffff_ffff {
+		var rem uint64
+		d.sig, rem = d.sig.div10()
+		d.exp++
+
+		if rem != 0 {
+			trunc = 1
+		}
+	}
+
+	sig, rem := oneSig.div(d.sig)
+	exp := -57 - d.exp
+
+	for rem != (uint192{}) && sig[2] <= 0x18ff_ffff_ffff_ffff {
+		for rem[2] <= 0x0002_7fff_ffff_ffff && sig[2] <= 0x0002_7fff_ffff_ffff {
+			rem = rem.mul64(10_000)
+			sig = sig.mul64(10_000)
+			exp -= 4
+		}
+
+		for rem[2] <= 0x18ff_ffff_ffff_ffff && sig[2] <= 0x18ff_ffff_ffff_ffff {
+			rem = rem.mul64(10)
+			sig = sig.mul64(10)
+			exp--
+		}
+
+		var tmp uint192
+		tmp, rem = rem.div(d.sig)
+		sig256 := sig.add(tmp)
+
+		for sig256[3] != 0 {
+			var rem uint64
+			sig256, rem = sig256.div10()
+			exp++
+
+			if rem != 0 {
+				trunc = 1
+			}
+		}
+
+		sig = uint192{sig256[0], sig256[1], sig256[2]}
+	}
+
+	if rem != (uint192{}) {
+		trunc = 1
+	}
+
+	return decomposed192{
+		sig: sig,
+		exp: exp,
+	}, trunc
+}
+
 func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, int8) {
 	exp := d.exp - o.exp
 
@@ -729,7 +814,17 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 			exp++
 		}
 
-		if exp <= -4 {
+		if exp < -57 {
+			if d.sig != (uint192{}) {
+				d.sig = uint192{}
+				trunc = 1
+			}
+
+			d.exp = o.exp
+			exp = 0
+		}
+
+		for exp <= -4 {
 			var rem uint64
 			d.sig, rem = d.sig.div10000()
 			if rem != 0 {
@@ -762,7 +857,7 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 			exp++
 		}
 	} else if exp > 0 {
-		if exp >= 19 && d.sig[2] == 0 {
+		for exp >= 19 && d.sig[2] == 0 {
 			d.sig = d.sig.mul64(10_000_000_000_000_000_000)
 			d.exp -= 19
 			exp -= 19
@@ -780,7 +875,16 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 			exp--
 		}
 
-		if exp >= 4 {
+		if exp > 57 {
+			if o.sig != (uint192{}) {
+				o.sig = uint192{}
+				trunc = -1
+			}
+
+			exp = 0
+		}
+
+		for exp >= 4 {
 			var rem uint64
 			o.sig, rem = o.sig.div10000()
 			if rem != 0 {

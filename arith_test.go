@@ -44,6 +44,27 @@ func TestDecimalMul(t *testing.T) {
 	}
 }
 
+func TestDecimalPow(t *testing.T) {
+	t.Parallel()
+
+	r := openTestData(t)
+	defer r.close()
+
+	var lhs Decimal
+	var rhs Decimal
+	var res testDataResult
+
+	for r.scan("%v ^ %v = %v\n", &lhs, &rhs, &res) {
+		for _, mode := range roundingModes {
+			pwr := lhs.PowWithMode(rhs, mode)
+
+			if !res.equal(pwr, mode) {
+				t.Errorf("%v.PowWithMode(%v, %v) = %v, want %v", lhs, rhs, mode, pwr, res.result(mode))
+			}
+		}
+	}
+}
+
 func TestDecimalQuo(t *testing.T) {
 	t.Parallel()
 

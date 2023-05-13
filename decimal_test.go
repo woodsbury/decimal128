@@ -88,6 +88,19 @@ func (td testDec) Decimal() Decimal {
 }
 
 func (td testDec) Float64() (float64, bool) {
+	if td.form == nanForm {
+		return math.NaN(), true
+	}
+
+	if td.form == infForm {
+		sign := 1
+		if td.neg {
+			sign = -1
+		}
+
+		return math.Inf(sign), true
+	}
+
 	if td.sig[1] != 0 {
 		return 0.0, false
 	}
