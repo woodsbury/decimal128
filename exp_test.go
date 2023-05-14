@@ -1,35 +1,21 @@
 package decimal128
 
-import (
-	"testing"
-
-	"github.com/cockroachdb/apd/v3"
-)
+import "testing"
 
 func TestExp(t *testing.T) {
 	t.Parallel()
 
-	initDecimalValues()
+	r := openTestData(t)
+	defer r.close()
 
-	bigval := new(apd.Decimal)
-	bigres := new(apd.Decimal)
-	bigctx := apd.Context{
-		Precision:   49,
-		MaxExponent: 6145,
-		MinExponent: -6176,
-		Rounding:    apd.RoundHalfEven,
-	}
+	var val Decimal
+	var res Decimal
 
-	for _, val := range decimalValues {
-		decval := val.Decimal()
-		res := Exp(decval)
+	for r.scan("exp(%v) = %v\n", &val, &res) {
+		exp := Exp(val)
 
-		val.Big(bigval)
-
-		bigctx.Exp(bigres, bigval)
-
-		if !decimalsEqual(res, bigres, bigctx.Rounding) {
-			t.Errorf("Exp(%v) = %v, want %v", val, res, bigres)
+		if !resultEqual(exp, res) {
+			t.Errorf("Exp(%v) = %v, want %v", val, exp, res)
 		}
 	}
 }
@@ -37,31 +23,17 @@ func TestExp(t *testing.T) {
 func TestExp10(t *testing.T) {
 	t.Parallel()
 
-	initDecimalValues()
+	r := openTestData(t)
+	defer r.close()
 
-	bigval := new(apd.Decimal)
-	bigres := new(apd.Decimal)
-	bigctx := apd.Context{
-		Precision:   42,
-		MaxExponent: 6145,
-		MinExponent: -6176,
-		Rounding:    apd.RoundHalfEven,
-	}
+	var val Decimal
+	var res Decimal
 
-	bigln10 := new(apd.Decimal)
-	bigctx.Ln(bigln10, apd.New(10, 0))
+	for r.scan("exp10(%v) = %v\n", &val, &res) {
+		exp := Exp10(val)
 
-	for _, val := range decimalValues {
-		decval := val.Decimal()
-		res := Exp10(decval)
-
-		val.Big(bigval)
-
-		bigctx.Mul(bigres, bigval, bigln10)
-		bigctx.Exp(bigres, bigres)
-
-		if !decimalsEqual(res, bigres, bigctx.Rounding) {
-			t.Errorf("Exp10(%v) = %v, want %v", val, res, bigres)
+		if !resultEqual(exp, res) {
+			t.Errorf("Exp10(%v) = %v, want %v", val, exp, res)
 		}
 	}
 }
@@ -105,27 +77,17 @@ func TestLog(t *testing.T) {
 func TestLog10(t *testing.T) {
 	t.Parallel()
 
-	initDecimalValues()
+	r := openTestData(t)
+	defer r.close()
 
-	bigval := new(apd.Decimal)
-	bigres := new(apd.Decimal)
-	bigctx := apd.Context{
-		Precision:   39,
-		MaxExponent: 6145,
-		MinExponent: -6176,
-		Rounding:    apd.RoundHalfEven,
-	}
+	var val Decimal
+	var res Decimal
 
-	for _, val := range decimalValues {
-		decval := val.Decimal()
-		res := Log10(decval)
+	for r.scan("log10(%v) = %v\n", &val, &res) {
+		log := Log10(val)
 
-		val.Big(bigval)
-
-		bigctx.Log10(bigres, bigval)
-
-		if !decimalsEqual(res, bigres, bigctx.Rounding) {
-			t.Errorf("Log10(%v) = %v, want %v", val, res, bigres)
+		if !resultEqual(log, res) {
+			t.Errorf("Log10(%v) = %v, want %v", val, log, res)
 		}
 	}
 }

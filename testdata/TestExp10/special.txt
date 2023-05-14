@@ -1,0 +1,3 @@
+exp10(Inf) = +Inf
+exp10(-Inf) = 0
+exp10(NaN) = NaN

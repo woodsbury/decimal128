@@ -1,0 +1,3 @@
+log10(Inf) = +Inf
+log10(-Inf) = NaN
+log10(NaN) = NaN
