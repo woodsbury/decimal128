@@ -12,8 +12,6 @@ import (
 	"sync"
 	"testing"
 	"unsafe"
-
-	"github.com/cockroachdb/apd/v3"
 )
 
 type testForm uint8
@@ -29,37 +27,6 @@ type testDec struct {
 	neg  bool
 	sig  uint128
 	exp  int16
-}
-
-func (td testDec) Big(dec *apd.Decimal) *apd.Decimal {
-	switch td.form {
-	case regularForm:
-		dec.Form = apd.Finite
-		dec.Negative = td.neg
-		dec.Exponent = int32(td.exp - exponentBias)
-
-		if td.sig[1] == 0 {
-			dec.Coeff.SetUint64(td.sig[0])
-		} else {
-			lo := new(apd.BigInt)
-			lo.SetUint64(td.sig[0])
-
-			dec.Coeff.SetUint64(td.sig[1])
-			dec.Coeff.Lsh(&dec.Coeff, 64).Or(&dec.Coeff, lo)
-		}
-
-		dec.Reduce(dec)
-		dec.Negative = td.neg
-	case infForm:
-		dec.Form = apd.Infinite
-		dec.Negative = td.neg
-	case nanForm:
-		dec.Form = apd.NaN
-	default:
-		panic("unhandled test decimal form")
-	}
-
-	return dec
 }
 
 func (td testDec) Decimal() Decimal {

@@ -1,55 +1,82 @@
 package decimal128
 
 import (
+	"errors"
+	"fmt"
 	"testing"
-
-	"github.com/cockroachdb/apd/v3"
 )
+
+type testCmpResult int8
+
+func (tcr *testCmpResult) Scan(f fmt.ScanState, verb rune) error {
+	if verb != 'v' {
+		return errors.New("bad verb '%" + string(verb) + "' for testCmpResult")
+	}
+
+	tok, err := f.Token(true, nil)
+	if err != nil {
+		return err
+	}
+
+	if len(tok) != 1 {
+		return errors.New("invalid value")
+	}
+
+	switch tok[0] {
+	case '!':
+		*tcr = -2
+	case '<':
+		*tcr = -1
+	case '=':
+		*tcr = 0
+	case '>':
+		*tcr = 1
+	default:
+		return errors.New("invalid value")
+	}
+
+	return nil
+}
+
+func (tcr testCmpResult) equal() bool {
+	return tcr == 0
+}
+
+func (tcr testCmpResult) greater() bool {
+	return tcr == 1
+}
+
+func (tcr testCmpResult) less() bool {
+	return tcr == -1
+}
 
 func TestDecimalCmp(t *testing.T) {
 	t.Parallel()
 
-	initDecimalValues()
+	r := openTestData(t)
+	defer r.close()
 
-	biglhs := new(apd.Decimal)
-	bigrhs := new(apd.Decimal)
+	var lhs Decimal
+	var rhs Decimal
+	var res testCmpResult
 
-	for _, lhs := range decimalValues {
-		for _, rhs := range decimalValues {
-			declhs := lhs.Decimal()
-			decrhs := rhs.Decimal()
-			res := declhs.Cmp(decrhs)
+	for r.scan("%v cmp %v = %v\n", &lhs, &rhs, &res) {
+		cmp := lhs.Cmp(rhs)
 
-			if lhs.form == nanForm || rhs.form == nanForm {
-				if res.Equal() {
-					t.Errorf("%v.Cmp(%v).Equal() = %t, want %t", lhs, rhs, true, false)
-				}
+		if ceq, req := cmp.Equal(), res.equal(); ceq != req {
+			t.Errorf("%v.Cmp(%v).Equal() = %t, want %t", lhs, rhs, ceq, req)
+		}
 
-				if res.Greater() {
-					t.Errorf("%v.Cmp(%v).Greater() = %t, want %t", lhs, rhs, true, false)
-				}
+		if cgt, rgt := cmp.Greater(), res.greater(); cgt != rgt {
+			t.Errorf("%v.Cmp(%v).Greater() = %t, want %t", lhs, rhs, cgt, rgt)
+		}
 
-				if res.Less() {
-					t.Errorf("%v.Cmp(%v).Less() = %t, want %t", lhs, rhs, true, false)
-				}
-			} else {
-				lhs.Big(biglhs)
-				rhs.Big(bigrhs)
+		if clt, rlt := cmp.Less(), res.less(); clt != rlt {
+			t.Errorf("%v.Cmp(%v).Less() = %t, want %t", lhs, rhs, clt, rlt)
+		}
 
-				bigres := biglhs.Cmp(bigrhs)
-
-				if (bigres == 0) != res.Equal() {
-					t.Errorf("%v.Cmp(%v).Equal() == %t, want %t", lhs, rhs, res.Equal(), bigres == 0)
-				}
-
-				if (bigres > 0) != res.Greater() {
-					t.Errorf("%v.Cmp(%v).Greater() = %t, want %t", lhs, rhs, res.Greater(), bigres > 0)
-				}
-
-				if (bigres < 0) != res.Less() {
-					t.Errorf("%v.Cmp(%v).Less() = %t, want %t", lhs, rhs, res.Less(), bigres < 0)
-				}
-			}
+		if ceq, req := lhs.Equal(rhs), res.equal(); ceq != req {
+			t.Errorf("%v.Equal(%v) = %t, want %t", lhs, rhs, ceq, req)
 		}
 	}
 }
@@ -57,81 +84,30 @@ func TestDecimalCmp(t *testing.T) {
 func TestDecimalCmpAbs(t *testing.T) {
 	t.Parallel()
 
-	initDecimalValues()
+	r := openTestData(t)
+	defer r.close()
 
-	biglhs := new(apd.Decimal)
-	bigrhs := new(apd.Decimal)
+	var lhs Decimal
+	var rhs Decimal
+	var res testCmpResult
 
-	for _, lhs := range decimalValues {
-		for _, rhs := range decimalValues {
-			declhs := lhs.Decimal()
-			decrhs := rhs.Decimal()
-			res := declhs.CmpAbs(decrhs)
+	for r.scan("%v cmpabs %v = %v\n", &lhs, &rhs, &res) {
+		cmp := lhs.CmpAbs(rhs)
 
-			if lhs.form == nanForm || rhs.form == nanForm {
-				if res.Equal() {
-					t.Errorf("%v.CmpAbs(%v).Equal() = %t, want %t", lhs, rhs, true, false)
-				}
-
-				if res.Greater() {
-					t.Errorf("%v.CmpAbs(%v).Greater() = %t, want %t", lhs, rhs, true, false)
-				}
-
-				if res.Less() {
-					t.Errorf("%v.CmpAbs(%v).Less() = %t, want %t", lhs, rhs, true, false)
-				}
-			} else {
-				lhs.Big(biglhs)
-				rhs.Big(bigrhs)
-
-				biglhs.Abs(biglhs)
-				bigrhs.Abs(bigrhs)
-
-				bigres := biglhs.Cmp(bigrhs)
-
-				if (bigres == 0) != res.Equal() {
-					t.Errorf("%v.CmpAbs(%v).Equal() == %t, want %t", lhs, rhs, res.Equal(), bigres == 0)
-				}
-
-				if (bigres > 0) != res.Greater() {
-					t.Errorf("%v.CmpAbs(%v).Greater() = %t, want %t", lhs, rhs, res.Greater(), bigres > 0)
-				}
-
-				if (bigres < 0) != res.Less() {
-					t.Errorf("%v.CmpAbs(%v).Less() = %t, want %t", lhs, rhs, res.Less(), bigres < 0)
-				}
-			}
+		if ceq, req := cmp.Equal(), res.equal(); ceq != req {
+			t.Errorf("%v.CmpAbs(%v).Equal() = %t, want %t", lhs, rhs, ceq, req)
 		}
-	}
-}
 
-func TestDecimalEqual(t *testing.T) {
-	t.Parallel()
+		if cgt, rgt := cmp.Greater(), res.greater(); cgt != rgt {
+			t.Errorf("%v.CmpAbs(%v).Greater() = %t, want %t", lhs, rhs, cgt, rgt)
+		}
 
-	initDecimalValues()
+		if clt, rlt := cmp.Less(), res.less(); clt != rlt {
+			t.Errorf("%v.CmpAbs(%v).Less() = %t, want %t", lhs, rhs, clt, rlt)
+		}
 
-	biglhs := new(apd.Decimal)
-	bigrhs := new(apd.Decimal)
-
-	for _, lhs := range decimalValues {
-		for _, rhs := range decimalValues {
-			declhs := lhs.Decimal()
-			decrhs := rhs.Decimal()
-			res := declhs.Equal(decrhs)
-
-			var bigres bool
-			if lhs.form == nanForm || rhs.form == nanForm {
-				bigres = false
-			} else {
-				lhs.Big(biglhs)
-				rhs.Big(bigrhs)
-
-				bigres = biglhs.Cmp(bigrhs) == 0
-			}
-
-			if res != bigres {
-				t.Errorf("%v.Equal(%v) = %t, want %t", lhs, rhs, res, bigres)
-			}
+		if ceq, req := Abs(lhs).Equal(Abs(rhs)), res.equal(); ceq != req {
+			t.Errorf("Abs(%v).Equal(Abs(%v)) = %t, want %t", lhs, rhs, ceq, req)
 		}
 	}
 }
