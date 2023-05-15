@@ -79,10 +79,9 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 	}
 
 	dSig, dExp := d.decompose()
-	oSig, oExp := o.decompose()
 
 	if dSig == (uint128{}) {
-		if oSig == (uint128{}) {
+		if o.IsZero() {
 			return cmpEqual
 		}
 
@@ -92,6 +91,8 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 
 		return cmpLess
 	}
+
+	oSig, oExp := o.decompose()
 
 	if oSig == (uint128{}) {
 		if d.Signbit() {
@@ -161,7 +162,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		exp -= 19
 	}
 
-	for exp > 8 {
+	if exp > 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
 		if oSig == (uint128{}) {
@@ -175,9 +176,110 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		exp -= 8
 	}
 
-	for exp > 3 {
+	if oSig[1] == 0 {
+		if dSig[1] != 0 {
+			return res
+		}
+
+		oSig64 := oSig[0]
+
+		if exp > 8 {
+			if oSig64%100_000_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 100_000_000
+			if oSig64 == 0 {
+				return res
+			}
+
+			exp -= 8
+		}
+
+		switch exp {
+		case 7:
+			if oSig64%10_000_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 10_000_000
+			if oSig64 == 0 {
+				return res
+			}
+		case 6:
+			if oSig64%1_000_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 1_000_000
+			if oSig64 == 0 {
+				return res
+			}
+		case 5:
+			if oSig64%100_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 100_000
+			if oSig64 == 0 {
+				return res
+			}
+		case 4:
+			if oSig64%10_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 10_000
+			if oSig64 == 0 {
+				return res
+			}
+		case 3:
+			if oSig64%1000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 1000
+			if oSig64 == 0 {
+				return res
+			}
+		case 2:
+			if oSig64%100 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 100
+			if oSig64 == 0 {
+				return res
+			}
+		case 1:
+			if oSig64%10 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 10
+			if oSig64 == 0 {
+				return res
+			}
+		}
+
+		if dSig[0] == oSig64 {
+			if trunc {
+				return res * -1
+			}
+
+			return cmpEqual
+		}
+
+		if dSig[0] < oSig64 {
+			return res * -1
+		}
+
+		return res
+	}
+
+	if exp > 8 {
 		var rem uint64
-		oSig, rem = oSig.div1000()
+		oSig, rem = oSig.div1e8()
 		if oSig == (uint128{}) {
 			return res
 		}
@@ -186,11 +288,12 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 			trunc = true
 		}
 
-		exp -= 3
+		exp -= 8
 	}
 
-	for exp > 0 {
-		var rem uint64
+	var rem uint64
+	switch exp {
+	case 7:
 		oSig, rem = oSig.div10()
 		if oSig == (uint128{}) {
 			return res
@@ -200,7 +303,74 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 			trunc = true
 		}
 
-		exp--
+		fallthrough
+	case 6:
+		oSig, rem = oSig.div1000()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+
+		oSig, rem = oSig.div1000()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+	case 5:
+		oSig, rem = oSig.div10()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+
+		fallthrough
+	case 4:
+		oSig, rem = oSig.div10000()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+	case 3:
+		oSig, rem = oSig.div1000()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+	case 2:
+		oSig, rem = oSig.div10()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+
+		fallthrough
+	case 1:
+		oSig, rem = oSig.div10()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
 	}
 
 	sres := dSig.cmp(oSig)
@@ -247,15 +417,16 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 	}
 
 	dSig, dExp := d.decompose()
-	oSig, oExp := o.decompose()
 
 	if dSig == (uint128{}) {
-		if oSig == (uint128{}) {
+		if o.IsZero() {
 			return cmpEqual
 		}
 
 		return cmpLess
 	}
+
+	oSig, oExp := o.decompose()
 
 	if oSig == (uint128{}) {
 		return cmpGreater
@@ -305,7 +476,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		exp -= 19
 	}
 
-	for exp > 8 {
+	if exp > 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
 		if oSig == (uint128{}) {
@@ -319,9 +490,110 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		exp -= 8
 	}
 
-	for exp > 3 {
+	if oSig[1] == 0 {
+		if dSig[1] != 0 {
+			return res
+		}
+
+		oSig64 := oSig[0]
+
+		if exp > 8 {
+			if oSig64%100_000_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 100_000_000
+			if oSig64 == 0 {
+				return res
+			}
+
+			exp -= 8
+		}
+
+		switch exp {
+		case 7:
+			if oSig64%10_000_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 10_000_000
+			if oSig64 == 0 {
+				return res
+			}
+		case 6:
+			if oSig64%1_000_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 1_000_000
+			if oSig64 == 0 {
+				return res
+			}
+		case 5:
+			if oSig64%100_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 100_000
+			if oSig64 == 0 {
+				return res
+			}
+		case 4:
+			if oSig64%10_000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 10_000
+			if oSig64 == 0 {
+				return res
+			}
+		case 3:
+			if oSig64%1000 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 1000
+			if oSig64 == 0 {
+				return res
+			}
+		case 2:
+			if oSig64%100 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 100
+			if oSig64 == 0 {
+				return res
+			}
+		case 1:
+			if oSig64%10 != 0 {
+				trunc = true
+			}
+
+			oSig64 /= 10
+			if oSig64 == 0 {
+				return res
+			}
+		}
+
+		if dSig[0] == oSig64 {
+			if trunc {
+				return res * -1
+			}
+
+			return cmpEqual
+		}
+
+		if dSig[0] < oSig64 {
+			return res * -1
+		}
+
+		return res
+	}
+
+	if exp > 8 {
 		var rem uint64
-		oSig, rem = oSig.div1000()
+		oSig, rem = oSig.div1e8()
 		if oSig == (uint128{}) {
 			return res
 		}
@@ -330,11 +602,12 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 			trunc = true
 		}
 
-		exp -= 3
+		exp -= 8
 	}
 
-	for exp > 0 {
-		var rem uint64
+	var rem uint64
+	switch exp {
+	case 7:
 		oSig, rem = oSig.div10()
 		if oSig == (uint128{}) {
 			return res
@@ -344,7 +617,74 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 			trunc = true
 		}
 
-		exp--
+		fallthrough
+	case 6:
+		oSig, rem = oSig.div1000()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+
+		oSig, rem = oSig.div1000()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+	case 5:
+		oSig, rem = oSig.div10()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+
+		fallthrough
+	case 4:
+		oSig, rem = oSig.div10000()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+	case 3:
+		oSig, rem = oSig.div1000()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+	case 2:
+		oSig, rem = oSig.div10()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
+
+		fallthrough
+	case 1:
+		oSig, rem = oSig.div10()
+		if oSig == (uint128{}) {
+			return res
+		}
+
+		if rem != 0 {
+			trunc = true
+		}
 	}
 
 	sres := dSig.cmp(oSig)
@@ -384,11 +724,12 @@ func (d Decimal) Equal(o Decimal) bool {
 	}
 
 	dSig, dExp := d.decompose()
-	oSig, oExp := o.decompose()
 
 	if dSig == (uint128{}) {
-		return oSig == (uint128{})
+		return o.IsZero()
 	}
+
+	oSig, oExp := o.decompose()
 
 	if oSig == (uint128{}) {
 		return false
@@ -431,7 +772,7 @@ func (d Decimal) Equal(o Decimal) bool {
 		exp -= 19
 	}
 
-	for exp > 8 {
+	if exp > 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
 		if rem != 0 {
@@ -441,24 +782,128 @@ func (d Decimal) Equal(o Decimal) bool {
 		exp -= 8
 	}
 
-	for exp > 3 {
+	if oSig[1] == 0 {
+		if dSig[1] != 0 {
+			return false
+		}
+
+		oSig64 := oSig[0]
+
+		if exp > 8 {
+			if oSig64%100_000_000 != 0 {
+				return false
+			}
+
+			oSig64 /= 100_000_000
+			exp -= 8
+		}
+
+		switch exp {
+		case 7:
+			if oSig64%10_000_000 != 0 {
+				return false
+			}
+
+			oSig64 /= 10_000_000
+		case 6:
+			if oSig64%1_000_000 != 0 {
+				return false
+			}
+
+			oSig64 /= 1_000_000
+		case 5:
+			if oSig64%100_000 != 0 {
+				return false
+			}
+
+			oSig64 /= 100_000
+		case 4:
+			if oSig64%10_000 != 0 {
+				return false
+			}
+
+			oSig64 /= 10_000
+		case 3:
+			if oSig64%1000 != 0 {
+				return false
+			}
+
+			oSig64 /= 1000
+		case 2:
+			if oSig64%100 != 0 {
+				return false
+			}
+
+			oSig64 /= 100
+		case 1:
+			if oSig64%10 != 0 {
+				return false
+			}
+
+			oSig64 /= 10
+		}
+
+		return dSig[0] == oSig64
+	}
+
+	if exp > 8 {
 		var rem uint64
-		oSig, rem = oSig.div1000()
+		oSig, rem = oSig.div1e8()
 		if rem != 0 {
 			return false
 		}
 
-		exp -= 3
+		exp -= 8
 	}
 
-	for exp > 0 {
-		var rem uint64
+	var rem uint64
+	switch exp {
+	case 7:
 		oSig, rem = oSig.div10()
 		if rem != 0 {
 			return false
 		}
 
-		exp--
+		fallthrough
+	case 6:
+		oSig, rem = oSig.div1000()
+		if rem != 0 {
+			return false
+		}
+
+		oSig, rem = oSig.div1000()
+		if rem != 0 {
+			return false
+		}
+	case 5:
+		oSig, rem = oSig.div10()
+		if rem != 0 {
+			return false
+		}
+
+		fallthrough
+	case 4:
+		oSig, rem = oSig.div10000()
+		if rem != 0 {
+			return false
+		}
+	case 3:
+		oSig, rem = oSig.div1000()
+		if rem != 0 {
+			return false
+		}
+	case 2:
+		oSig, rem = oSig.div10()
+		if rem != 0 {
+			return false
+		}
+
+		fallthrough
+	case 1:
+		oSig, rem = oSig.div10()
+		if rem != 0 {
+			return false
+		}
 	}
 
 	return dSig == oSig

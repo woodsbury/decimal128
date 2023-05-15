@@ -131,3 +131,57 @@ func TestDecimalIsZero(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkDecimalCmp(b *testing.B) {
+	initDecimalValues()
+
+	values := make([]Decimal, len(decimalValues))
+	for i, val := range decimalValues {
+		values[i] = val.Decimal()
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, lhs := range values {
+			for _, rhs := range values {
+				lhs.Cmp(rhs)
+			}
+		}
+	}
+}
+
+func BenchmarkDecimalCmpAbs(b *testing.B) {
+	initDecimalValues()
+
+	values := make([]Decimal, len(decimalValues))
+	for i, val := range decimalValues {
+		values[i] = val.Decimal()
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, lhs := range values {
+			for _, rhs := range values {
+				lhs.Cmp(rhs)
+			}
+		}
+	}
+}
+
+func BenchmarkDecimalEqual(b *testing.B) {
+	initDecimalValues()
+
+	values := make([]Decimal, len(decimalValues))
+	for i, val := range decimalValues {
+		values[i] = val.Decimal()
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, lhs := range values {
+			for _, rhs := range values {
+				lhs.Equal(rhs)
+			}
+		}
+	}
+}
