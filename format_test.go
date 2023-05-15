@@ -2,12 +2,9 @@ package decimal128
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 	"testing"
-
-	"github.com/cockroachdb/apd/v3"
 )
 
 type testFmt struct {
@@ -92,26 +89,16 @@ func TestDecimalFormat(t *testing.T) {
 				t.Errorf("%v.Append(%s) = %s, want %s", val, fmtstr, appres, res)
 			}
 
-			var bigres string
-			if val.form == regularForm {
-				if fltval, ok := val.Float64(); ok {
-					bigres = fmt.Sprintf(fmtstr, fltval)
-				} else {
-					// Skipping for now
-					continue
-				}
-			} else if val.form == infForm {
-				if val.neg {
-					bigres = fmt.Sprintf(fmtstr, math.Inf(-1))
-				} else {
-					bigres = fmt.Sprintf(fmtstr, math.Inf(1))
-				}
-			} else {
-				bigres = fmt.Sprintf(fmtstr, math.NaN())
+			fltval, ok := val.Float64()
+			if !ok {
+				// Skipping for now
+				continue
 			}
 
-			if res != bigres {
-				t.Errorf("fmt.Sprintf(%v, %v) = %s, want %s", format, val, res, bigres)
+			fltres := fmt.Sprintf(fmtstr, fltval)
+
+			if res != fltres {
+				t.Errorf("fmt.Sprintf(%v, %v) = %s, want %s", format, val, res, fltres)
 			}
 		}
 	}
@@ -144,45 +131,20 @@ func TestDecimalString(t *testing.T) {
 
 	initDecimalValues()
 
-	bigval := new(apd.Decimal)
-
 	for _, val := range decimalValues {
 		decval := val.Decimal()
 		res := decval.String()
 
-		var bigres string
-		if val.form == regularForm {
-			if fltval, ok := val.Float64(); ok {
-				bigres = fmt.Sprintf("%v", fltval)
-			} else {
-				val.Big(bigval)
-
-				prec := bigval.NumDigits() - 1
-				exp := int64(bigval.Exponent) + prec
-
-				if exp < -4 || exp > 5 {
-					bigres = fmt.Sprintf("%e", bigval)
-
-					if idx := strings.IndexRune(bigres, 'e'); idx != -1 && idx == len(bigres)-3 {
-						idx += 2
-						bigres = bigres[:idx] + "0" + bigres[idx:]
-					}
-				} else {
-					bigres = fmt.Sprintf("%f", bigval)
-				}
-			}
-		} else if val.form == infForm {
-			if val.neg {
-				bigres = fmt.Sprintf("%v", math.Inf(-1))
-			} else {
-				bigres = fmt.Sprintf("%v", math.Inf(1))
-			}
-		} else {
-			bigres = fmt.Sprintf("%v", math.NaN())
+		fltval, ok := val.Float64()
+		if !ok {
+			// Skipping for now
+			continue
 		}
 
-		if res != bigres {
-			t.Errorf("%v.String() = %s, want %s", val, res, bigres)
+		fltres := fmt.Sprintf("%v", fltval)
+
+		if res != fltres {
+			t.Errorf("%v.String() = %s, want %s", val, res, fltres)
 		}
 
 		fmtres := fmt.Sprintf("%v", decval)

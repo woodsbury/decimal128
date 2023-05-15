@@ -16,18 +16,6 @@ import (
 	"github.com/cockroachdb/apd/v3"
 )
 
-var maxDecimal *apd.Decimal
-
-func init() {
-	lo := new(apd.BigInt)
-	lo.SetUint64(math.MaxUint64)
-
-	maxDecimal = new(apd.Decimal)
-	maxDecimal.Exponent = maxUnbiasedExponent
-	maxDecimal.Coeff.SetUint64(0x0002_7fff_ffff_ffff)
-	maxDecimal.Coeff.Lsh(&maxDecimal.Coeff, 64).Or(&maxDecimal.Coeff, lo)
-}
-
 type testForm uint8
 
 const (
@@ -594,102 +582,6 @@ func initDecimalValues() {
 		decimalValues = append(decimalValues, testDec{infForm, true, uint128{}, 0})
 		decimalValues = append(decimalValues, testDec{nanForm, false, uint128{}, 0})
 	})
-}
-
-func decimalToBig(v Decimal) *apd.Decimal {
-	r := new(apd.Decimal)
-
-	if v.isInf() {
-		r.Form = apd.Infinite
-		r.Negative = v.Signbit()
-		return r
-	}
-
-	if v.IsNaN() {
-		r.Form = apd.NaN
-		return r
-	}
-
-	r.Negative = v.Signbit()
-
-	sig, exp := v.decompose()
-	r.Exponent = int32(exp - exponentBias)
-
-	if sig[1] == 0 {
-		r.Coeff.SetUint64(sig[0])
-	} else {
-		lo := new(apd.BigInt)
-		lo.SetUint64(sig[0])
-
-		r.Coeff.SetUint64(sig[1])
-		r.Coeff.Lsh(&r.Coeff, 64).Or(&r.Coeff, lo)
-	}
-
-	r.Reduce(r)
-	return r
-}
-
-func decimalsEqual(x Decimal, y *apd.Decimal, mode apd.Rounder) bool {
-	if x.isSpecial() {
-		if x.IsNaN() {
-			return y.Form == apd.NaN || y.Form == apd.NaNSignaling
-		}
-
-		if x.isInf() {
-			if y.Negative != x.Signbit() {
-				return false
-			}
-
-			if y.Form == apd.Infinite {
-				return true
-			}
-
-			neg := y.Negative
-			y.Negative = false
-			cmp := y.Cmp(maxDecimal)
-			y.Negative = neg
-
-			return cmp > 0
-		}
-	} else if y.Form != apd.Finite {
-		return false
-	}
-
-	if x.Signbit() != y.Negative {
-		// apd appears to always return -0 when rounding towards -infinity,
-		// even if the operands are themselves zero.
-		if x.IsZero() && y.Coeff.IsInt64() && y.Coeff.Int64() == 0 && mode == apd.RoundFloor {
-			return true
-		}
-
-		return false
-	}
-
-	bigx := decimalToBig(x)
-
-	bigctx := apd.Context{
-		Precision:   uint32(bigx.NumDigits()),
-		MaxExponent: 6145,
-		MinExponent: -6176,
-		Rounding:    mode,
-	}
-
-	bigctx.Round(y, y)
-
-	// apd appears to return the wrong result during rounding in some scenarios
-	// when the result underflows, returning +/-1e-6176 instead of 0.
-	if x.IsZero() && y.Exponent <= -6176 && y.Coeff.IsInt64() && y.Coeff.Int64() == 1 {
-		return true
-	}
-
-	// apd appears to return the wrong result during rounding in some scenarios
-	// when the result is just under the allowed exponent range, returning 0
-	// instead of +/-1e-6176.
-	if bigx.Coeff.IsInt64() && bigx.Coeff.Int64() == 1 && bigx.Exponent == -6176 && y.Coeff.IsInt64() && y.Coeff.Int64() == 0 {
-		return true
-	}
-
-	return bigx.Cmp(y) == 0
 }
 
 func TestAbs(t *testing.T) {
