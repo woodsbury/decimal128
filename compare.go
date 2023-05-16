@@ -162,7 +162,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		exp -= 19
 	}
 
-	if exp > 8 {
+	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
 		if oSig == (uint128{}) {
@@ -183,7 +183,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 
 		oSig64 := oSig[0]
 
-		if exp > 8 {
+		if exp >= 8 {
 			if oSig64%100_000_000 != 0 {
 				trunc = true
 			}
@@ -277,7 +277,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		return res
 	}
 
-	if exp > 8 {
+	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
 		if oSig == (uint128{}) {
@@ -476,7 +476,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		exp -= 19
 	}
 
-	if exp > 8 {
+	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
 		if oSig == (uint128{}) {
@@ -497,7 +497,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 
 		oSig64 := oSig[0]
 
-		if exp > 8 {
+		if exp >= 8 {
 			if oSig64%100_000_000 != 0 {
 				trunc = true
 			}
@@ -591,7 +591,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		return res
 	}
 
-	if exp > 8 {
+	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
 		if oSig == (uint128{}) {
@@ -772,7 +772,7 @@ func (d Decimal) Equal(o Decimal) bool {
 		exp -= 19
 	}
 
-	if exp > 8 {
+	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
 		if rem != 0 {
@@ -789,7 +789,7 @@ func (d Decimal) Equal(o Decimal) bool {
 
 		oSig64 := oSig[0]
 
-		if exp > 8 {
+		if exp >= 8 {
 			if oSig64%100_000_000 != 0 {
 				return false
 			}
@@ -846,7 +846,7 @@ func (d Decimal) Equal(o Decimal) bool {
 		return dSig[0] == oSig64
 	}
 
-	if exp > 8 {
+	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
 		if rem != 0 {
