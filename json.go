@@ -241,8 +241,8 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 		}
 	}
 
-	// If the exponent value is larger than the maximum supported exponent, there are two cases
-	// where the value is still valid:
+	// If the exponent value is larger than the maximum supported exponent,
+	// there are two cases where the value is still valid:
 	//  - the exponent is negative, where the logical value rounds to 0
 	//  - the significand is zero, where the logical value is 0
 	//
@@ -252,7 +252,8 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 			*d = zero(neg)
 			return nil
 		}
-		if sig[0] == 0 && sig[1] == 0 {
+
+		if sig == (uint128{}) {
 			*d = zero(neg)
 			return nil
 		}

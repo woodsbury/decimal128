@@ -1,7 +1,9 @@
 package decimal128
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 )
 
@@ -97,6 +99,16 @@ func TestParse(t *testing.T) {
 		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
 			t.Errorf("Parse(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
+	}
+
+	res, err := Parse("1e999999999")
+	if !res.IsInf(1) || !errors.Is(err, strconv.ErrRange) {
+		t.Errorf("Parse(1e999999999) = (%v, %v), want (Inf, value out of range)", res, err)
+	}
+
+	res, err = Parse("-1e999999999")
+	if !res.IsInf(-1) || !errors.Is(err, strconv.ErrRange) {
+		t.Errorf("Parse(-1e999999999) = (%v, %v), want (-Inf, value out of range)", res, err)
 	}
 }
 

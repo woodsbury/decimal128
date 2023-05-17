@@ -29,7 +29,7 @@ func MustParse(s string) Decimal {
 //
 // If the value is too precise to fit in a Decimal the result is rounded using
 // the [DefaultRoundingMode]. If the value is greater than the largest possible
-// Decimal value, Parse returns an error that can be compared to
+// Decimal value, Parse returns ±Inf and an error that can be compared to
 // [strconv.ErrRange] via [errors.Is].
 func Parse(s string) (Decimal, error) {
 	return parse(s, payloadOpParse)
@@ -355,8 +355,8 @@ ReadRunes64:
 		return &scanSyntaxError{}
 	}
 
-	// If the exponent value is larger than the maximum supported exponent, there are two cases
-	// where the value is still valid:
+	// If the exponent value is larger than the maximum supported exponent,
+	// there are two cases where the value is still valid:
 	//  - the exponent is negative, where the logical value rounds to 0
 	//  - the significand is zero, where the logical value is 0
 	//
@@ -366,7 +366,8 @@ ReadRunes64:
 			*d = zero(neg)
 			return nil
 		}
-		if sig[0] == 0 && sig[1] == 0 {
+
+		if sig == (uint128{}) {
 			*d = zero(neg)
 			return nil
 		}
@@ -604,8 +605,8 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 		return Decimal{}, &parseSyntaxError{string(d)}
 	}
 
-	// If the exponent value is larger than the maximum supported exponent, there are two cases
-	// where the value is still valid:
+	// If the exponent value is larger than the maximum supported exponent,
+	// there are two cases where the value is still valid:
 	//  - the exponent is negative, where the logical value rounds to 0
 	//  - the significand is zero, where the logical value is 0
 	//
@@ -614,11 +615,12 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 		if eneg {
 			return zero(neg), nil
 		}
-		if sig[0] == 0 && sig[1] == 0 {
+
+		if sig == (uint128{}) {
 			return zero(neg), nil
 		}
 
-		return Decimal{}, &parseRangeError{string(d)}
+		return inf(neg), &parseRangeError{string(d)}
 	}
 
 	if eneg {
@@ -628,7 +630,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	exp -= nfrac
 
 	if exp > maxUnbiasedExponent+39 {
-		return Decimal{}, &parseRangeError{string(d)}
+		return inf(neg), &parseRangeError{string(d)}
 	}
 
 	if exp < minUnbiasedExponent-39 {
@@ -638,7 +640,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	sig, exp = DefaultRoundingMode.reduce128(neg, sig, exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
-		return Decimal{}, &parseRangeError{string(d)}
+		return inf(neg), &parseRangeError{string(d)}
 	}
 
 	return compose(neg, sig, exp), nil
