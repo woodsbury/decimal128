@@ -501,9 +501,12 @@ func (d Decimal) Int(i *big.Int) *big.Int {
 	return i
 }
 
-// Int32 converts d into an int32, truncating towards zero. It panics if d
-// cannot be represented by an int32.
-func (d Decimal) Int32() int32 {
+// Int32 converts d into an int32, truncating towards zero. If the result is
+// outside the range of an int32 the returned value will be either
+// [math.MinInt32] or [math.MaxInt32] depending on the sign of the result and
+// the boolean value will be false. Otherwise the boolean value will be true.
+// It panics if d is NaN or infinite.
+func (d Decimal) Int32() (int32, bool) {
 	if d.isSpecial() {
 		if d.IsNaN() {
 			panic("Decimal(NaN).Int32()")
@@ -520,7 +523,7 @@ func (d Decimal) Int32() int32 {
 	exp -= exponentBias
 
 	if exp < -maxDigits {
-		return 0
+		return 0, true
 	}
 
 	for sig[1] != 0 && exp < 0 {
@@ -535,21 +538,21 @@ func (d Decimal) Int32() int32 {
 
 	if sig[1] != 0 || exp != 0 {
 		if d.Signbit() {
-			panic("Decimal(<MinInt32).Int32()")
+			return math.MinInt32, false
 		}
 
-		panic("Decimal(>MaxInt32).Int32()")
+		return math.MaxInt32, false
 	}
 
 	neg := d.Signbit()
 
 	if neg {
 		if sig[0] > math.MinInt32*-1 {
-			panic("Decimal(<MinInt32).Int32()")
+			return math.MinInt32, false
 		}
 	} else {
-		if sig[0] > math.MaxInt64 {
-			panic("Decimal(>MaxInt32).Int32()")
+		if sig[0] > math.MaxInt32 {
+			return math.MaxInt32, false
 		}
 	}
 
@@ -559,12 +562,15 @@ func (d Decimal) Int32() int32 {
 		i *= -1
 	}
 
-	return i
+	return i, true
 }
 
-// Int64 converts d into an int64, truncating towards zero. It panics if d
-// cannot be represented by an int64.
-func (d Decimal) Int64() int64 {
+// Int64 converts d into an int64, truncating towards zero. If the result is
+// outside the range of an int64 the returned value will be either
+// [math.MinInt64] or [math.MaxInt64] depending on the sign of the result and
+// the boolean value will be false. Otherwise the boolean value will be true.
+// It panics if d is NaN or infinite.
+func (d Decimal) Int64() (int64, bool) {
 	if d.isSpecial() {
 		if d.IsNaN() {
 			panic("Decimal(NaN).Int64()")
@@ -581,7 +587,7 @@ func (d Decimal) Int64() int64 {
 	exp -= exponentBias
 
 	if exp < -maxDigits {
-		return 0
+		return 0, true
 	}
 
 	for sig[1] != 0 && exp < 0 {
@@ -596,21 +602,21 @@ func (d Decimal) Int64() int64 {
 
 	if sig[1] != 0 || exp != 0 {
 		if d.Signbit() {
-			panic("Decimal(<MinInt64).Int64()")
+			return math.MinInt64, false
 		}
 
-		panic("Decimal(>MaxInt64).Int64()")
+		return math.MaxInt64, false
 	}
 
 	neg := d.Signbit()
 
 	if neg {
 		if sig[0] > math.MinInt64*-1 {
-			panic("Decimal(<MinInt64).Int64()")
+			return math.MinInt64, false
 		}
 	} else {
 		if sig[0] > math.MaxInt64 {
-			panic("Decimal(>MaxInt64).Int64()")
+			return math.MaxInt64, false
 		}
 	}
 
@@ -620,7 +626,7 @@ func (d Decimal) Int64() int64 {
 		i *= -1
 	}
 
-	return i
+	return i, true
 }
 
 // Rat converts d into a big.Rat. If a non-nil argument r is provided, Rat
@@ -676,9 +682,12 @@ func (d Decimal) Rat(r *big.Rat) *big.Rat {
 	return r
 }
 
-// Uint32 converts d into a uint32, truncating towards zero. It panics if d
-// cannot be represented by a uint32.
-func (d Decimal) Uint32() uint32 {
+// Uint32 converts d into a uint32, truncating towards zero. If the result is
+// outside the range of a uint32 the returned value will be either 0 or
+// [math.MaxUint32] depending on the sign of the result and the boolean value
+// will be false. Otherwise the boolean value will be true. It panics if d is
+// NaN or infinite.
+func (d Decimal) Uint32() (uint32, bool) {
 	if d.isSpecial() {
 		if d.IsNaN() {
 			panic("Decimal(NaN).Uint32()")
@@ -692,14 +701,14 @@ func (d Decimal) Uint32() uint32 {
 	}
 
 	if d.Signbit() {
-		panic("Decimal(<0).Uint32()")
+		return 0, false
 	}
 
 	sig, exp := d.decompose()
 	exp -= exponentBias
 
 	if exp < -maxDigits {
-		return 0
+		return 0, true
 	}
 
 	for exp < 0 {
@@ -718,19 +727,22 @@ func (d Decimal) Uint32() uint32 {
 	}
 
 	if sig[1] != 0 || exp != 0 {
-		panic("Decimal(>MaxUint32).Uint32()")
+		return math.MaxUint32, false
 	}
 
 	if sig[0] > math.MaxUint32 {
-		panic("Decimal(>MaxUint32).Uint32()")
+		return math.MaxUint32, false
 	}
 
-	return uint32(sig[0])
+	return uint32(sig[0]), true
 }
 
-// Uint64 converts d into a uint64, truncating towards zero. It panics if d
-// cannot be represented by a uint64.
-func (d Decimal) Uint64() uint64 {
+// Uint64 converts d into a uint64, truncating towards zero. If the result is
+// outside the range of a uint64 the returned value will be either 0 or
+// [math.MaxUint64] depending on the sign of the result and the boolean value
+// will be false. Otherwise the boolean value will be true. It panics if d is
+// NaN or infinite.
+func (d Decimal) Uint64() (uint64, bool) {
 	if d.isSpecial() {
 		if d.IsNaN() {
 			panic("Decimal(NaN).Uint64()")
@@ -744,14 +756,14 @@ func (d Decimal) Uint64() uint64 {
 	}
 
 	if d.Signbit() {
-		panic("Decimal(<0).Uint64()")
+		return 0, false
 	}
 
 	sig, exp := d.decompose()
 	exp -= exponentBias
 
 	if exp < -maxDigits {
-		return 0
+		return 0, true
 	}
 
 	for exp < 0 {
@@ -770,8 +782,8 @@ func (d Decimal) Uint64() uint64 {
 	}
 
 	if sig[1] != 0 || exp != 0 {
-		panic("Decimal(>MaxUint64).Uint64()")
+		return math.MaxUint64, false
 	}
 
-	return sig[0]
+	return sig[0], true
 }

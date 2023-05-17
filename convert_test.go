@@ -165,10 +165,10 @@ func TestDecimalInt32(t *testing.T) {
 
 	for _, val := range values {
 		dec := FromInt32(val)
-		res := dec.Int32()
+		res, ok := dec.Int32()
 
-		if res != val {
-			t.Errorf("%v.Int32() = %d, want %d", dec, res, val)
+		if res != val || !ok {
+			t.Errorf("%v.Int32() = (%d, %t), want (%d, true)", dec, res, ok, val)
 		}
 	}
 }
@@ -190,10 +190,10 @@ func TestDecimalInt64(t *testing.T) {
 
 	for _, val := range values {
 		dec := FromInt64(val)
-		res := dec.Int64()
+		res, ok := dec.Int64()
 
-		if res != val {
-			t.Errorf("%v.Int64() = %d, want %d", dec, res, val)
+		if res != val || !ok {
+			t.Errorf("%v.Int64() = (%d, %t), want (%d, true)", dec, res, ok, val)
 		}
 	}
 }
@@ -262,10 +262,10 @@ func TestDecimalUint32(t *testing.T) {
 
 	for _, val := range values {
 		dec := FromUint32(val)
-		res := dec.Uint32()
+		res, ok := dec.Uint32()
 
-		if res != val {
-			t.Errorf("%v.Uint32() = %d, want %d", dec, res, val)
+		if res != val || !ok {
+			t.Errorf("%v.Uint32() = (%d, %t), want (%d, true)", dec, res, ok, val)
 		}
 	}
 }
@@ -283,10 +283,10 @@ func TestDecimalUint64(t *testing.T) {
 
 	for _, val := range values {
 		dec := FromUint64(val)
-		res := dec.Uint64()
+		res, ok := dec.Uint64()
 
-		if res != val {
-			t.Errorf("%v.Uint64() = %d, want %d", dec, res, val)
+		if res != val || !ok {
+			t.Errorf("%v.Uint64() = (%d, %t), want (%d, true)", dec, res, ok, val)
 		}
 	}
 }
