@@ -122,6 +122,7 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 
 	sig := uint128{sig64, 0}
 	var exp int16
+	maxexp := false
 
 	for ; i < l; i++ {
 		switch c := data[i]; true {
@@ -132,15 +133,7 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 
 			if sawexp {
 				if exp > exponentBias/10+1 {
-					if eneg {
-						*d = zero(neg)
-						return nil
-					}
-
-					return &json.UnmarshalTypeError{
-						Value: "number " + string(data),
-						Type:  reflect.TypeOf(Decimal{}),
-					}
+					maxexp = true
 				}
 
 				exp *= 10
@@ -242,6 +235,28 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 	}
 
 	if !caneof {
+		return &json.UnmarshalTypeError{
+			Value: "number " + string(data),
+			Type:  reflect.TypeOf(Decimal{}),
+		}
+	}
+
+	// If the exponent value is larger than the maximum supported exponent, there are two cases
+	// where the value is still valid:
+	//  - the exponent is negative, where the logical value rounds to 0
+	//  - the significand is zero, where the logical value is 0
+	//
+	// Otherwise, return a range error.
+	if maxexp {
+		if eneg {
+			*d = zero(neg)
+			return nil
+		}
+		if sig[0] == 0 && sig[1] == 0 {
+			*d = zero(neg)
+			return nil
+		}
+
 		return &json.UnmarshalTypeError{
 			Value: "number " + string(data),
 			Type:  reflect.TypeOf(Decimal{}),

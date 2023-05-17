@@ -214,6 +214,7 @@ ReadRunes64:
 
 	sig := uint128{sig64, 0}
 	var exp int16
+	maxexp := false
 
 	if !saweof {
 	ReadRunes:
@@ -240,12 +241,7 @@ ReadRunes64:
 
 				if sawexp {
 					if exp > exponentBias/10+1 {
-						if eneg {
-							*d = zero(neg)
-							return nil
-						}
-
-						return &scanRangeError{}
+						maxexp = true
 					}
 
 					exp *= 10
@@ -357,6 +353,25 @@ ReadRunes64:
 
 	if !caneof {
 		return &scanSyntaxError{}
+	}
+
+	// If the exponent value is larger than the maximum supported exponent, there are two cases
+	// where the value is still valid:
+	//  - the exponent is negative, where the logical value rounds to 0
+	//  - the significand is zero, where the logical value is 0
+	//
+	// Otherwise, return a range error.
+	if maxexp {
+		if eneg {
+			*d = zero(neg)
+			return nil
+		}
+		if sig[0] == 0 && sig[1] == 0 {
+			*d = zero(neg)
+			return nil
+		}
+
+		return &scanRangeError{}
 	}
 
 	if eneg {
@@ -485,6 +500,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 
 	sig := uint128{sig64, 0}
 	var exp int16
+	maxexp := false
 
 	for ; i < l; i++ {
 		switch c := d[i]; true {
@@ -496,11 +512,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 
 			if sawexp {
 				if exp > exponentBias/10+1 {
-					if eneg {
-						return zero(neg), nil
-					}
-
-					return Decimal{}, &parseRangeError{string(d)}
+					maxexp = true
 				}
 
 				exp *= 10
@@ -590,6 +602,23 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 
 	if !caneof {
 		return Decimal{}, &parseSyntaxError{string(d)}
+	}
+
+	// If the exponent value is larger than the maximum supported exponent, there are two cases
+	// where the value is still valid:
+	//  - the exponent is negative, where the logical value rounds to 0
+	//  - the significand is zero, where the logical value is 0
+	//
+	// Otherwise, return a range error.
+	if maxexp {
+		if eneg {
+			return zero(neg), nil
+		}
+		if sig[0] == 0 && sig[1] == 0 {
+			return zero(neg), nil
+		}
+
+		return Decimal{}, &parseRangeError{string(d)}
 	}
 
 	if eneg {
