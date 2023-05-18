@@ -78,3 +78,30 @@ func FuzzDecimalUnmarshalJSON(f *testing.F) {
 		_, _ = dec.MarshalJSON()
 	})
 }
+
+func BenchmarkDecimalUnmarshalJSON(b *testing.B) {
+	texts := [][]byte{
+		[]byte("0.00000000000000000000000000000000000005"),
+		[]byte("0.00000000000000000000000000000000000005e30"),
+		[]byte("500000000000000000000000000000000000000e30"),
+		[]byte("0.00000000000000000000000000000000000005e-6150"),
+		[]byte("0.00000000000000000000000000000000000005e-999999"),
+		[]byte("0e99999999"),
+		[]byte("0"),
+		[]byte("+1234567890"),
+		[]byte("00123.45600e10"),
+		[]byte("123.456e-10"),
+	}
+
+	for _, text := range texts {
+		b.Run(string(text), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				var res Decimal
+				err := res.UnmarshalJSON(text)
+				if err != nil {
+					b.Errorf("failed to scan %q: %v", text, err)
+				}
+			}
+		})
+	}
+}
