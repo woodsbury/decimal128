@@ -413,9 +413,10 @@ func (d *Decimal) UnmarshalText(data []byte) error {
 
 func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	if len(d) == 0 {
-		return Decimal{}, &parseSyntaxError{string(d)}
+		return Decimal{}, &parseSyntaxError{}
 	}
 
+	s := d
 	neg := false
 
 	if d[0] == '+' {
@@ -428,7 +429,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	l := len(d)
 
 	if l == 0 {
-		return Decimal{}, &parseSyntaxError{string(d)}
+		return Decimal{}, &parseSyntaxError{string(s)}
 	} else if l == 3 {
 		if (d[0] == 'I' || d[0] == 'i') && (d[1] == 'N' || d[1] == 'n') && (d[2] == 'F' || d[2] == 'f') {
 			return inf(neg), nil
@@ -443,6 +444,24 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 		}
 	}
 
+	v, err := parseNumber(d, neg, true)
+	if err != nil {
+		switch err := err.(type) {
+		case *parseRangeError:
+			err.s = string(s)
+			return v, err
+		case *parseSyntaxError:
+			err.s = string(s)
+			return v, err
+		default:
+			return v, err
+		}
+	}
+
+	return v, nil
+}
+
+func parseNumber[D []byte | string](d D, neg, sepallowed bool) (Decimal, error) {
 	var sig64 uint64
 	var nfrac int16
 	var trunc int8
@@ -454,6 +473,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	sawdot := false
 	sawexp := false
 
+	l := len(d)
 	i := 0
 	for ; !sawexp && sig64 <= 0x18ff_ffff_ffff_ffff && i < l; i++ {
 		switch c := d[i]; true {
@@ -470,7 +490,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			}
 		case c == '.':
 			if sawdot {
-				return Decimal{}, &parseSyntaxError{string(d)}
+				return Decimal{}, &parseSyntaxError{}
 			}
 
 			caneof = true
@@ -479,7 +499,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			sawdot = true
 		case c == 'E' || c == 'e':
 			if !sawdig {
-				return Decimal{}, &parseSyntaxError{string(d)}
+				return Decimal{}, &parseSyntaxError{}
 			}
 
 			caneof = false
@@ -487,15 +507,15 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			cansgn = true
 			sawexp = true
 		case c == '_':
-			if !cansep {
-				return Decimal{}, &parseSyntaxError{string(d)}
+			if !sepallowed || !cansep {
+				return Decimal{}, &parseSyntaxError{}
 			}
 
 			caneof = false
 			cansep = false
 			cansgn = false
 		default:
-			return Decimal{}, &parseSyntaxError{string(d)}
+			return Decimal{}, &parseSyntaxError{}
 		}
 	}
 
@@ -555,7 +575,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			}
 		case c == '.':
 			if sawdot || sawexp {
-				return Decimal{}, &parseSyntaxError{string(d)}
+				return Decimal{}, &parseSyntaxError{}
 			}
 
 			caneof = true
@@ -564,7 +584,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			sawdot = true
 		case c == 'E' || c == 'e':
 			if !sawdig || sawexp {
-				return Decimal{}, &parseSyntaxError{string(d)}
+				return Decimal{}, &parseSyntaxError{}
 			}
 
 			caneof = false
@@ -573,7 +593,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			sawexp = true
 		case c == '-':
 			if !cansgn {
-				return Decimal{}, &parseSyntaxError{string(d)}
+				return Decimal{}, &parseSyntaxError{}
 			}
 
 			caneof = false
@@ -582,7 +602,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			eneg = true
 		case c == '_':
 			if !cansep {
-				return Decimal{}, &parseSyntaxError{string(d)}
+				return Decimal{}, &parseSyntaxError{}
 			}
 
 			caneof = false
@@ -590,19 +610,19 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			cansgn = false
 		case c == '+':
 			if !cansgn {
-				return Decimal{}, &parseSyntaxError{string(d)}
+				return Decimal{}, &parseSyntaxError{}
 			}
 
 			caneof = false
 			cansep = false
 			cansgn = false
 		default:
-			return Decimal{}, &parseSyntaxError{string(d)}
+			return Decimal{}, &parseSyntaxError{}
 		}
 	}
 
 	if !caneof {
-		return Decimal{}, &parseSyntaxError{string(d)}
+		return Decimal{}, &parseSyntaxError{}
 	}
 
 	// If the exponent value is larger than the maximum supported exponent,
@@ -620,7 +640,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 			return zero(neg), nil
 		}
 
-		return inf(neg), &parseRangeError{string(d)}
+		return inf(neg), &parseRangeError{}
 	}
 
 	if eneg {
@@ -630,7 +650,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	exp -= nfrac
 
 	if exp > maxUnbiasedExponent+39 {
-		return inf(neg), &parseRangeError{string(d)}
+		return inf(neg), &parseRangeError{}
 	}
 
 	if exp < minUnbiasedExponent-39 {
@@ -640,7 +660,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	sig, exp = DefaultRoundingMode.reduce128(neg, sig, exp+exponentBias, trunc)
 
 	if exp > maxBiasedExponent {
-		return inf(neg), &parseRangeError{string(d)}
+		return inf(neg), &parseRangeError{}
 	}
 
 	return compose(neg, sig, exp), nil

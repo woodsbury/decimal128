@@ -48,19 +48,29 @@ func TestDecimalUnmarshalJSON(t *testing.T) {
 	t.Parallel()
 
 	for val, num := range textValues {
-		if num.isInf() || num.IsNaN() {
-			continue
-		}
-
-		if strings.Contains(val, "_") {
-			continue
-		}
-
 		var res Decimal
 		err := res.UnmarshalJSON([]byte(val))
-		if !res.Equal(num) || err != nil {
+
+		if num.isInf() || num.IsNaN() || strings.Contains(val, "_") {
+			if err == nil {
+				t.Errorf("Decimal.UnarshalJSON(%s) = (0, <nil>), want (%v, cannot unmarshal)", val, res)
+			}
+		} else if !res.Equal(num) || err != nil {
 			t.Errorf("Decimal.UnmarshalJSON(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
+	}
+
+	num := New(123, -1)
+	res := num
+	err := res.UnmarshalJSON([]byte("null"))
+	if !res.Equal(num) || err != nil {
+		t.Errorf("Decimal.UnmarshalJSON(null) = (%v, %v), want (%v, <nil>)", res, err, num)
+	}
+
+	res = num
+	err = res.UnmarshalJSON(nil)
+	if !res.Equal(num) || err != nil {
+		t.Errorf("Decimal.UnmarshalJSON() = (%v, %v), want (%v, <nil>)", res, err, num)
 	}
 }
 
