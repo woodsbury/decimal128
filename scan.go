@@ -72,7 +72,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 	}
 
 	if r == 'I' || r == 'i' {
-		r, _, err = f.ReadRune()
+		r2, _, err := f.ReadRune()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return io.ErrUnexpectedEOF
@@ -81,11 +81,11 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			return err
 		}
 
-		if r != 'N' && r != 'n' {
-			return &scanSyntaxError{}
+		if r2 != 'N' && r2 != 'n' {
+			return &parseSyntaxError{s: string([]rune{r, r2})}
 		}
 
-		r, _, err = f.ReadRune()
+		r3, _, err := f.ReadRune()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return io.ErrUnexpectedEOF
@@ -94,8 +94,8 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			return err
 		}
 
-		if r != 'F' && r != 'f' {
-			return &scanSyntaxError{}
+		if r3 != 'F' && r3 != 'f' {
+			return &parseSyntaxError{s: string([]rune{r, r2, r3})}
 		}
 
 		*d = inf(neg)
@@ -103,7 +103,7 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 	}
 
 	if r == 'N' || r == 'n' {
-		r, _, err = f.ReadRune()
+		r2, _, err := f.ReadRune()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return io.ErrUnexpectedEOF
@@ -112,11 +112,11 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			return err
 		}
 
-		if r != 'A' && r != 'a' {
-			return &scanSyntaxError{}
+		if r2 != 'A' && r2 != 'a' {
+			return &parseSyntaxError{s: string([]rune{r, r2})}
 		}
 
-		r, _, err = f.ReadRune()
+		r3, _, err := f.ReadRune()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return io.ErrUnexpectedEOF
@@ -125,8 +125,8 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 			return err
 		}
 
-		if r != 'N' && r != 'n' {
-			return &scanSyntaxError{}
+		if r3 != 'N' && r3 != 'n' {
+			return &parseSyntaxError{s: string([]rune{r, r2, r3})}
 		}
 
 		*d = nan(payloadOpScan, 0, 0)
@@ -135,268 +135,35 @@ func (d *Decimal) Scan(f fmt.ScanState, verb rune) error {
 
 	f.UnreadRune()
 
-	var sig64 uint64
-	var nfrac int16
-	var trunc int8
-	caneof := false
-	cansep := false
-	cansgn := false
-	eneg := false
-	sawdig := false
-	sawdot := false
-	saweof := false
-	sawexp := false
-
-ReadRunes64:
-	for !sawexp && sig64 < 0x18ff_ffff_ffff_ffff {
-		r, _, err = f.ReadRune()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				if caneof {
-					saweof = true
-					break
-				}
-
-				return io.ErrUnexpectedEOF
-			}
-
-			return err
-		}
-
-		switch true {
+	tok, err := f.Token(false, func(r rune) bool {
+		switch {
 		case r >= '0' && r <= '9':
-			caneof = true
-			cansep = true
-			cansgn = false
-			sawdig = true
-
-			sig64 = sig64*10 + uint64(r-'0')
-
-			if sawdot {
-				nfrac++
-			}
+			return true
 		case r == '.':
-			if sawdot {
-				f.UnreadRune()
-				saweof = true
-
-				break ReadRunes64
-			}
-
-			caneof = true
-			cansep = false
-			cansgn = false
-			sawdot = true
+			return true
 		case r == 'E' || r == 'e':
-			if !sawdig {
-				return &scanSyntaxError{}
-			}
-
-			caneof = false
-			cansep = false
-			cansgn = true
-			sawexp = true
+			return true
+		case r == '-':
+			return true
 		case r == '_':
-			if !cansep {
-				return &scanSyntaxError{}
-			}
-
-			caneof = false
-			cansep = false
-			cansgn = false
+			return true
+		case r == '+':
+			return true
 		default:
-			f.UnreadRune()
-			saweof = true
-
-			break ReadRunes64
+			return false
 		}
+	})
+
+	if err != nil {
+		return err
 	}
 
-	sig := uint128{sig64, 0}
-	var exp int16
-	maxexp := false
-
-	if !saweof {
-	ReadRunes:
-		for {
-			r, _, err = f.ReadRune()
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					if caneof {
-						break
-					}
-
-					return io.ErrUnexpectedEOF
-				}
-
-				return err
-			}
-
-			switch true {
-			case r >= '0' && r <= '9':
-				caneof = true
-				cansep = true
-				cansgn = false
-				sawdig = true
-
-				if sawexp {
-					if exp > exponentBias/10+1 {
-						maxexp = true
-					}
-
-					exp *= 10
-					exp += int16(r - '0')
-				} else {
-					if sig[1] <= 0x18ff_ffff_ffff_ffff {
-						if sig[1] <= 0x027f_ffff_ffff_ffff {
-							var r2 rune
-							r2, _, err = f.ReadRune()
-							if err == nil {
-								if r2 >= '0' && r2 <= '9' {
-									sig = sig.mul64(100)
-									sig = sig.add64(uint64(r-'0')*10 + uint64(r2-'0'))
-
-									if sawdot {
-										nfrac += 2
-									}
-
-									continue
-								} else {
-									if err = f.UnreadRune(); err != nil {
-										return err
-									}
-								}
-							} else if !errors.Is(err, io.EOF) {
-								return err
-							}
-						}
-
-						sig = sig.mul64(10)
-						sig = sig.add64(uint64(r - '0'))
-
-						if sawdot {
-							nfrac++
-						}
-					} else {
-						if r != '0' {
-							trunc = 1
-						}
-
-						if !sawdot {
-							if exp < exponentBias+39 {
-								nfrac--
-							}
-						}
-					}
-				}
-			case r == '.':
-				if sawdot || sawexp {
-					f.UnreadRune()
-					saweof = true
-
-					break ReadRunes
-				}
-
-				caneof = true
-				cansep = false
-				cansgn = false
-				sawdot = true
-			case r == 'E' || r == 'e':
-				if !sawdig {
-					return &scanSyntaxError{}
-				}
-
-				if sawexp {
-					f.UnreadRune()
-					saweof = true
-
-					break ReadRunes
-				}
-
-				caneof = false
-				cansep = false
-				cansgn = true
-				sawexp = true
-			case r == '-':
-				if !cansgn {
-					return &scanSyntaxError{}
-				}
-
-				caneof = false
-				cansep = false
-				cansgn = false
-				eneg = true
-			case r == '_':
-				if !cansep {
-					return &scanSyntaxError{}
-				}
-
-				caneof = false
-				cansep = false
-				cansgn = false
-			case r == '+':
-				if !cansgn {
-					return &scanSyntaxError{}
-				}
-
-				caneof = false
-				cansep = false
-				cansgn = false
-			default:
-				f.UnreadRune()
-				saweof = true
-
-				break ReadRunes
-			}
-		}
+	tmp, err := parseNumber(tok, neg, true)
+	if err != nil {
+		return err
 	}
 
-	if !caneof {
-		return &scanSyntaxError{}
-	}
-
-	// If the exponent value is larger than the maximum supported exponent,
-	// there are two cases where the value is still valid:
-	//  - the exponent is negative, where the logical value rounds to 0
-	//  - the significand is zero, where the logical value is 0
-	//
-	// Otherwise, return a range error.
-	if maxexp {
-		if eneg {
-			*d = zero(neg)
-			return nil
-		}
-
-		if sig == (uint128{}) {
-			*d = zero(neg)
-			return nil
-		}
-
-		return &scanRangeError{}
-	}
-
-	if eneg {
-		exp *= -1
-	}
-
-	exp -= nfrac
-
-	if exp > maxUnbiasedExponent+39 {
-		return &scanRangeError{}
-	}
-
-	if exp < minUnbiasedExponent-39 {
-		*d = zero(neg)
-		return nil
-	}
-
-	sig, exp = DefaultRoundingMode.reduce128(neg, sig, exp+exponentBias, trunc)
-
-	if exp > maxBiasedExponent {
-		return &scanRangeError{}
-	}
-
-	*d = compose(neg, sig, exp)
+	*d = tmp
 	return nil
 }
 
@@ -687,25 +454,5 @@ func (err *parseSyntaxError) Error() string {
 }
 
 func (err *parseSyntaxError) Is(target error) bool {
-	return target == strconv.ErrSyntax
-}
-
-type scanRangeError struct{}
-
-func (err *scanRangeError) Error() string {
-	return "parsing decimal: value out of range"
-}
-
-func (err *scanRangeError) Is(target error) bool {
-	return target == strconv.ErrRange
-}
-
-type scanSyntaxError struct{}
-
-func (err *scanSyntaxError) Error() string {
-	return "parsing decimal: invalid syntax"
-}
-
-func (err *scanSyntaxError) Is(target error) bool {
 	return target == strconv.ErrSyntax
 }
