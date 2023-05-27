@@ -61,12 +61,12 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 	tmp, err := parseNumber(data[i:], neg, false)
 	if err != nil {
 		switch err := err.(type) {
-		case *parseRangeError:
+		case parseNumberRangeError:
 			return &json.UnmarshalTypeError{
 				Value: "number " + string(data),
 				Type:  reflect.TypeOf(Decimal{}),
 			}
-		case *parseSyntaxError:
+		case parseNumberSyntaxError:
 			switch data[0] {
 			case '[':
 				return &json.UnmarshalTypeError{
