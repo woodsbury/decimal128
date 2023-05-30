@@ -1,5 +1,55 @@
 package decimal128
 
+// Max returns the larger of d or o. If either value is NaN the result is NaN.
+func Max(d, o Decimal) Decimal {
+	if d.IsNaN() {
+		return d
+	}
+
+	if o.IsNaN() {
+		return o
+	}
+
+	if d.IsZero() && o.IsZero() {
+		if !d.Signbit() || !o.Signbit() {
+			return zero(false)
+		}
+
+		return zero(true)
+	}
+
+	if o.Cmp(d).Greater() {
+		return o
+	}
+
+	return d
+}
+
+// Min returns the smaller of d or o. If either value is NaN the result is NaN.
+func Min(d, o Decimal) Decimal {
+	if d.IsNaN() {
+		return d
+	}
+
+	if o.IsNaN() {
+		return o
+	}
+
+	if d.IsZero() && o.IsZero() {
+		if d.Signbit() || o.Signbit() {
+			return zero(true)
+		}
+
+		return zero(false)
+	}
+
+	if o.Cmp(d).Less() {
+		return o
+	}
+
+	return d
+}
+
 // CmpResult represents the result from comparing two Decimals. When the values
 // being compared aren't NaNs, the integer value of the CmpResult will be:
 //

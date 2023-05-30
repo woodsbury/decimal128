@@ -132,6 +132,44 @@ func TestDecimalIsZero(t *testing.T) {
 	}
 }
 
+func TestMax(t *testing.T) {
+	t.Parallel()
+
+	r := openTestData(t)
+	defer r.close()
+
+	var lhs Decimal
+	var rhs Decimal
+	var res Decimal
+
+	for r.scan("max(%v, %v) = %v\n", &lhs, &rhs, &res) {
+		max := Max(lhs, rhs)
+
+		if !resultEqual(max, res) {
+			t.Errorf("Max(%v, %v) = %v, want %v", lhs, rhs, max, res)
+		}
+	}
+}
+
+func TestMin(t *testing.T) {
+	t.Parallel()
+
+	r := openTestData(t)
+	defer r.close()
+
+	var lhs Decimal
+	var rhs Decimal
+	var res Decimal
+
+	for r.scan("min(%v, %v) = %v\n", &lhs, &rhs, &res) {
+		min := Min(lhs, rhs)
+
+		if !resultEqual(min, res) {
+			t.Errorf("Min(%v, %v) = %v, want %v", lhs, rhs, min, res)
+		}
+	}
+}
+
 func BenchmarkDecimalCmp(b *testing.B) {
 	initDecimalValues()
 
