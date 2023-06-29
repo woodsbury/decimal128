@@ -32,6 +32,24 @@ func ExampleParse() {
 	// NaN
 }
 
+func ExampleSort() {
+	s := []decimal128.Decimal{
+		decimal128.New(3, 0),
+		decimal128.New(1, 0),
+		decimal128.NaN(),
+		decimal128.Inf(1),
+		decimal128.New(2, 0),
+		decimal128.Inf(-1),
+	}
+
+	fmt.Println(s)
+	decimal128.Sort(s)
+	fmt.Println(s)
+	// Output:
+	// [3 1 NaN +Inf 2 -Inf]
+	// [NaN -Inf 1 2 3 +Inf]
+}
+
 func ExampleDecimal_Add() {
 	x := decimal128.New(3, 0)
 	y := decimal128.New(2, -1)

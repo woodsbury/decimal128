@@ -63,10 +63,10 @@ func Min(d, o Decimal) Decimal {
 type CmpResult int8
 
 const (
+	cmpNaN     CmpResult = -2
 	cmpLess    CmpResult = -1
 	cmpEqual   CmpResult = 0
 	cmpGreater CmpResult = 1
-	cmpNaN     CmpResult = 2
 )
 
 // Equal returns whether this CmpResult represents that the two Decimals were
