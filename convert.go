@@ -526,9 +526,14 @@ func (d Decimal) Int32() (int32, bool) {
 		return 0, true
 	}
 
-	for sig[1] != 0 && exp < 0 {
+	for exp < 0 {
 		sig, _ = sig.div10()
 		exp++
+
+		if sig == (uint128{}) {
+			exp = 0
+			break
+		}
 	}
 
 	for sig[1] == 0 && exp > 0 {
@@ -590,9 +595,14 @@ func (d Decimal) Int64() (int64, bool) {
 		return 0, true
 	}
 
-	for sig[1] != 0 && exp < 0 {
+	for exp < 0 {
 		sig, _ = sig.div10()
 		exp++
+
+		if sig == (uint128{}) {
+			exp = 0
+			break
+		}
 	}
 
 	for sig[1] == 0 && exp > 0 {

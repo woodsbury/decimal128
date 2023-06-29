@@ -121,6 +121,8 @@ func TestDecimalFloat32(t *testing.T) {
 func TestDecimalInt(t *testing.T) {
 	t.Parallel()
 
+	half := New(5, -1)
+
 	values := [][]big.Word{
 		{},
 		{1},
@@ -140,8 +142,22 @@ func TestDecimalInt(t *testing.T) {
 			t.Errorf("%v.Int() = %v, want %v", dec, res, bigval)
 		}
 
+		dec = dec.Add(half)
+		dec.Int(res)
+
+		if bigval.Cmp(res) != 0 {
+			t.Errorf("%v.Int() = %v, want %v", dec, res, bigval)
+		}
+
 		bigval.Neg(bigval)
 		dec = FromInt(bigval)
+		dec.Int(res)
+
+		if bigval.Cmp(res) != 0 {
+			t.Errorf("%v.Int() = %v, want %v", dec, res, bigval)
+		}
+
+		dec = dec.Sub(half)
 		dec.Int(res)
 
 		if bigval.Cmp(res) != 0 {
@@ -152,6 +168,8 @@ func TestDecimalInt(t *testing.T) {
 
 func TestDecimalInt32(t *testing.T) {
 	t.Parallel()
+
+	half := New(5, -1)
 
 	values := []int32{
 		math.MinInt32,
@@ -170,11 +188,25 @@ func TestDecimalInt32(t *testing.T) {
 		if res != val || !ok {
 			t.Errorf("%v.Int32() = (%d, %t), want (%d, true)", dec, res, ok, val)
 		}
+
+		if val >= 0 {
+			dec = dec.Add(half)
+		} else {
+			dec = dec.Sub(half)
+		}
+
+		res, ok = dec.Int32()
+
+		if res != val || !ok {
+			t.Errorf("%v.Int32() = (%d, %t), want (%d, true)", dec, res, ok, val)
+		}
 	}
 }
 
 func TestDecimalInt64(t *testing.T) {
 	t.Parallel()
+
+	half := New(5, -1)
 
 	values := []int64{
 		math.MinInt64,
@@ -191,6 +223,18 @@ func TestDecimalInt64(t *testing.T) {
 	for _, val := range values {
 		dec := FromInt64(val)
 		res, ok := dec.Int64()
+
+		if res != val || !ok {
+			t.Errorf("%v.Int64() = (%d, %t), want (%d, true)", dec, res, ok, val)
+		}
+
+		if val >= 0 {
+			dec = dec.Add(half)
+		} else {
+			dec = dec.Sub(half)
+		}
+
+		res, ok = dec.Int64()
 
 		if res != val || !ok {
 			t.Errorf("%v.Int64() = (%d, %t), want (%d, true)", dec, res, ok, val)
@@ -253,6 +297,8 @@ func TestDecimalRat(t *testing.T) {
 func TestDecimalUint32(t *testing.T) {
 	t.Parallel()
 
+	half := New(5, -1)
+
 	values := []uint32{
 		0,
 		1,
@@ -267,11 +313,20 @@ func TestDecimalUint32(t *testing.T) {
 		if res != val || !ok {
 			t.Errorf("%v.Uint32() = (%d, %t), want (%d, true)", dec, res, ok, val)
 		}
+
+		dec = dec.Add(half)
+		res, ok = dec.Uint32()
+
+		if res != val || !ok {
+			t.Errorf("%v.Uint32() = (%d, %t), want (%d, true)", dec, res, ok, val)
+		}
 	}
 }
 
 func TestDecimalUint64(t *testing.T) {
 	t.Parallel()
+
+	half := New(5, -1)
 
 	values := []uint64{
 		0,
@@ -287,6 +342,13 @@ func TestDecimalUint64(t *testing.T) {
 
 		if res != val || !ok {
 			t.Errorf("%v.Uint64() = (%d, %t), want (%d, true)", dec, res, ok, val)
+		}
+
+		dec = dec.Add(half)
+		res, ok = dec.Uint64()
+
+		if res != val || !ok {
+			t.Errorf("%v.Uint32() = (%d, %t), want (%d, true)", dec, res, ok, val)
 		}
 	}
 }
