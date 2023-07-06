@@ -200,7 +200,7 @@ func BenchmarkDecimalCmpAbs(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, lhs := range values {
 			for _, rhs := range values {
-				lhs.Cmp(rhs)
+				lhs.CmpAbs(rhs)
 			}
 		}
 	}

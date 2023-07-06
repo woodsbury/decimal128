@@ -173,6 +173,10 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 	}
 
 	if exp < 0 {
+		if oSig.cmp(dSig) >= 0 {
+			return res * -1
+		}
+
 		if exp <= -19 {
 			if exp < -maxDigits {
 				return res * -1
@@ -194,22 +198,28 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		exp *= -1
 		dSig, oSig = oSig, dSig
 		res *= -1
-	} else if exp >= 19 {
-		if exp > maxDigits {
+	} else if exp > 0 {
+		if dSig.cmp(oSig) >= 0 {
 			return res
 		}
 
-		var rem uint64
-		oSig, rem = oSig.div1e19()
-		if oSig == (uint128{}) {
-			return res
-		}
+		if exp >= 19 {
+			if exp > maxDigits {
+				return res
+			}
 
-		if rem != 0 {
-			trunc = true
-		}
+			var rem uint64
+			oSig, rem = oSig.div1e19()
+			if oSig == (uint128{}) {
+				return res
+			}
 
-		exp -= 19
+			if rem != 0 {
+				trunc = true
+			}
+
+			exp -= 19
+		}
 	}
 
 	if exp >= 8 {
@@ -487,6 +497,10 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 	res := cmpGreater
 
 	if exp < 0 {
+		if oSig.cmp(dSig) >= 0 {
+			return cmpLess
+		}
+
 		if exp <= -19 {
 			if exp < -maxDigits {
 				return cmpLess
@@ -508,22 +522,28 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		exp *= -1
 		dSig, oSig = oSig, dSig
 		res = cmpLess
-	} else if exp >= 19 {
-		if exp > maxDigits {
+	} else if exp > 0 {
+		if dSig.cmp(oSig) >= 0 {
 			return cmpGreater
 		}
 
-		var rem uint64
-		oSig, rem = oSig.div1e19()
-		if oSig == (uint128{}) {
-			return cmpGreater
-		}
+		if exp >= 19 {
+			if exp > maxDigits {
+				return cmpGreater
+			}
 
-		if rem != 0 {
-			trunc = true
-		}
+			var rem uint64
+			oSig, rem = oSig.div1e19()
+			if oSig == (uint128{}) {
+				return cmpGreater
+			}
 
-		exp -= 19
+			if rem != 0 {
+				trunc = true
+			}
+
+			exp -= 19
+		}
 	}
 
 	if exp >= 8 {
@@ -792,6 +812,10 @@ func (d Decimal) Equal(o Decimal) bool {
 	exp := dExp - oExp
 
 	if exp < 0 {
+		if oSig.cmp(dSig) >= 0 {
+			return false
+		}
+
 		if exp <= -19 {
 			if exp < -maxDigits {
 				return false
@@ -808,18 +832,24 @@ func (d Decimal) Equal(o Decimal) bool {
 
 		exp *= -1
 		dSig, oSig = oSig, dSig
-	} else if exp >= 19 {
-		if exp > maxDigits {
+	} else if exp > 0 {
+		if dSig.cmp(oSig) >= 0 {
 			return false
 		}
 
-		var rem uint64
-		oSig, rem = oSig.div1e19()
-		if rem != 0 {
-			return false
-		}
+		if exp >= 19 {
+			if exp > maxDigits {
+				return false
+			}
 
-		exp -= 19
+			var rem uint64
+			oSig, rem = oSig.div1e19()
+			if rem != 0 {
+				return false
+			}
+
+			exp -= 19
+		}
 	}
 
 	if exp >= 8 {
