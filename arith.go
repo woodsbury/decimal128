@@ -844,6 +844,38 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 			exp = 0
 		}
 
+		if exp <= -8 {
+			var rem uint64
+			dSig, rem = dSig.div1e8()
+			if rem != 0 {
+				trunc = 1
+			}
+
+			if dSig == (uint128{}) {
+				dExp = oExp
+				exp = 0
+			} else {
+				dExp += 8
+				exp += 8
+			}
+		}
+
+		if exp <= -4 {
+			var rem uint64
+			dSig, rem = dSig.div10000()
+			if rem != 0 {
+				trunc = 1
+			}
+
+			if dSig == (uint128{}) {
+				dExp = oExp
+				exp = 0
+			} else {
+				dExp += 4
+				exp += 4
+			}
+		}
+
 		if exp <= -3 {
 			var rem uint64
 			dSig, rem = dSig.div1000()
@@ -857,6 +889,22 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 			} else {
 				dExp += 3
 				exp += 3
+			}
+		}
+
+		if exp <= -2 {
+			var rem uint64
+			dSig, rem = dSig.div100()
+			if rem != 0 {
+				trunc = 1
+			}
+
+			if dSig == (uint128{}) {
+				dExp = oExp
+				exp = 0
+			} else {
+				dExp += 2
+				exp += 2
 			}
 		}
 
@@ -904,6 +952,34 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 			exp = 0
 		}
 
+		if exp >= 8 {
+			var rem uint64
+			oSig, rem = oSig.div1e8()
+			if rem != 0 {
+				trunc = -1
+			}
+
+			if oSig == (uint128{}) {
+				exp = 0
+			} else {
+				exp -= 8
+			}
+		}
+
+		if exp >= 4 {
+			var rem uint64
+			oSig, rem = oSig.div10000()
+			if rem != 0 {
+				trunc = -1
+			}
+
+			if oSig == (uint128{}) {
+				exp = 0
+			} else {
+				exp -= 4
+			}
+		}
+
 		if exp >= 3 {
 			var rem uint64
 			oSig, rem = oSig.div1000()
@@ -915,6 +991,20 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				exp = 0
 			} else {
 				exp -= 3
+			}
+		}
+
+		if exp >= 2 {
+			var rem uint64
+			oSig, rem = oSig.div100()
+			if rem != 0 {
+				trunc = -1
+			}
+
+			if oSig == (uint128{}) {
+				exp = 0
+			} else {
+				exp -= 2
 			}
 		}
 
