@@ -104,6 +104,54 @@ func zero(neg bool) Decimal {
 	return Decimal{}
 }
 
+// Canonical returns the result of converting d into its canonical
+// representation. Many values have multiple possible ways of being represented
+// as a Decimal. Canonical converts each of these into a single representation.
+//
+// If d is ±Inf or NaN, the canonical representation consists of only the bits
+// required to represent the respective special floating point value, with all
+// other bits set to 0. For NaN values this also removes any payload it may
+// have had.
+//
+// If d is finite, the canonical representation is calculated as the
+// representation with an exponent closest to zero that still accurately stores
+// all non-zero digits the value has.
+func (d Decimal) Canonical() Decimal {
+	if d.isSpecial() {
+		if d.IsNaN() {
+			return nan(0, 0, 0)
+		}
+
+		return inf(d.Signbit())
+	}
+
+	sig, exp := d.decompose()
+
+	for exp > exponentBias {
+		tmp := sig.mul64(10)
+
+		if tmp[1] > 0x0002_7fff_ffff_ffff {
+			break
+		}
+
+		sig = tmp
+		exp--
+	}
+
+	for exp < exponentBias {
+		tmp, rem := sig.div10()
+
+		if rem != 0 {
+			break
+		}
+
+		sig = tmp
+		exp++
+	}
+
+	return compose(d.Signbit(), sig, exp)
+}
+
 // IsInf reports whether d is an infinity. If sign > 0, IsInf reports whether
 // d is positive infinity. If sign < 0, IsInf reports whether d is negative
 // infinity. If sign == 0, IsInf reports whether d is either infinity.

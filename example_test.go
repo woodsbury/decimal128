@@ -79,6 +79,22 @@ func ExampleDecimal_Cmp() {
 	// 1 > 2 = false
 }
 
+func ExampleDecimal_Canonical() {
+	x := decimal128.New(123, -1)
+	y := decimal128.New(1230, -2)
+	fmt.Printf("%g, %g\n", x, y)
+	fmt.Printf("%t, %t\n", x.Equal(y), x == y)
+	x = x.Canonical()
+	y = y.Canonical()
+	fmt.Printf("%g, %g\n", x, y)
+	fmt.Printf("%t, %t\n", x.Equal(y), x == y)
+	// Output:
+	// 12.3, 12.3
+	// true, false
+	// 12.3, 12.3
+	// true, true
+}
+
 func ExampleDecimal_Mul() {
 	x := decimal128.New(3, 0)
 	y := decimal128.New(2, -1)
