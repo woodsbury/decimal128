@@ -1,5 +1,7 @@
 package decimal128
 
+import "math/bits"
+
 // Add adds d and o, rounded using the [DefaultRoundingMode], and returns the
 // result.
 func (d Decimal) Add(o Decimal) Decimal {
@@ -97,16 +99,27 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 	dSig, dExp := d.decompose()
 	oSig, oExp := o.decompose()
 
-	sig256 := dSig.mul(oSig)
-
-	if sig256 == (uint256{}) {
-		return zero(d.Signbit() != o.Signbit())
-	}
-
 	exp := (dExp - exponentBias) + (oExp - exponentBias) + exponentBias
-
 	neg := d.Signbit() != o.Signbit()
-	sig, exp := mode.reduce256(neg, sig256, exp, 0)
+
+	var sig uint128
+	if dSig[1] == 0 && oSig[1] == 0 {
+		sig1, sig0 := bits.Mul64(dSig[0], oSig[0])
+
+		if sig1 == 0 && sig0 == 0 {
+			return zero(neg)
+		}
+
+		sig, exp = mode.reduce128(neg, uint128{sig0, sig1}, exp, 0)
+	} else {
+		sig256 := dSig.mul(oSig)
+
+		if sig256 == (uint256{}) {
+			return zero(neg)
+		}
+
+		sig, exp = mode.reduce256(neg, sig256, exp, 0)
+	}
 
 	if exp > maxBiasedExponent {
 		return inf(neg)
