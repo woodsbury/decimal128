@@ -492,23 +492,73 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 		return zero(d.Signbit() != o.Signbit())
 	}
 
-	if dSig[1] == 0 {
-		dSig = dSig.mul64(10_000_000_000_000_000_000)
-		dExp -= 19
-	}
-
-	for dSig[1] <= 0x0002_7fff_ffff_ffff {
-		dSig = dSig.mul64(10_000)
-		dExp -= 4
-	}
-
-	for dSig[1] <= 0x18ff_ffff_ffff_ffff {
-		dSig = dSig.mul64(10)
-		dExp--
-	}
-
-	sig, rem := dSig.div(oSig)
 	exp := (dExp - exponentBias) - (oExp - exponentBias) + exponentBias
+
+	var sig uint128
+	var rem uint128
+	if dSig[1] == 0 && oSig[1] == 0 {
+		dSig64 := dSig[0]
+
+		for dSig64 <= 0x0002_7fff_ffff_ffff {
+			dSig64 *= 10_000
+			exp -= 4
+		}
+
+		for dSig64 <= 0x18ff_ffff_ffff_ffff {
+			dSig64 *= 10
+			exp--
+		}
+
+		sig64, rem64 := bits.Div64(0, dSig64, oSig[0])
+
+		var carry uint64
+		for rem64 != 0 && sig64 <= 0x18ff_ffff_ffff_ffff {
+			for rem64 <= 0x0002_7fff_ffff_ffff && sig64 <= 0x0002_7fff_ffff_ffff {
+				rem64 *= 10_000
+				sig64 *= 10_000
+				exp -= 4
+			}
+
+			for rem64 <= 0x18ff_ffff_ffff_ffff && sig64 <= 0x18ff_ffff_ffff_ffff {
+				rem64 *= 10
+				sig64 *= 10
+				exp--
+			}
+
+			if rem64 < oSig[0] {
+				break
+			}
+
+			var tmp uint64
+			tmp, rem64 = bits.Div64(0, rem64, oSig[0])
+			sig64, carry = bits.Add64(sig64, tmp, 0)
+
+			if carry != 0 {
+				break
+			}
+		}
+
+		sig = uint128{sig64, carry}
+		rem = uint128{rem64, 0}
+	} else {
+		if dSig[1] == 0 {
+			dSig = dSig.mul64(10_000_000_000_000_000_000)
+			exp -= 19
+		}
+
+		for dSig[1] <= 0x0002_7fff_ffff_ffff {
+			dSig = dSig.mul64(10_000)
+			exp -= 4
+		}
+
+		for dSig[1] <= 0x18ff_ffff_ffff_ffff {
+			dSig = dSig.mul64(10)
+			exp--
+		}
+
+		sig, rem = dSig.div(oSig)
+	}
+
 	trunc := int8(0)
 
 	for rem != (uint128{}) && sig[1] <= 0x0002_7fff_ffff_ffff {
@@ -680,11 +730,52 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 		}
 	}
 
-	sig, rem := dSig.div(oSig)
-	trunc := int8(0)
-
 	qexp := exp + exponentBias
 	rexp := dExp
+
+	var sig uint128
+	var rem uint128
+	if dSig[1] == 0 && oSig[1] == 0 {
+		sig64, rem64 := bits.Div64(0, dSig[0], oSig[0])
+
+		var carry uint64
+		for exp > 0 && rem64 != 0 && sig64 <= 0x18ff_ffff_ffff_ffff {
+			for exp >= 4 && rem64 <= 0x0002_7fff_ffff_ffff && sig64 <= 0x0002_7fff_ffff_ffff {
+				rem64 *= 10_000
+				sig64 *= 10_000
+				exp -= 4
+				qexp -= 4
+				rexp -= 4
+			}
+
+			for exp > 0 && rem64 <= 0x18ff_ffff_ffff_ffff && sig64 <= 0x18ff_ffff_ffff_ffff {
+				rem64 *= 10
+				sig64 *= 10
+				exp--
+				qexp--
+				rexp--
+			}
+
+			if rem64 < oSig[0] {
+				break
+			}
+
+			var tmp uint64
+			tmp, rem64 = bits.Div64(0, rem64, oSig[0])
+			sig64, carry = bits.Add64(sig64, tmp, 0)
+
+			if carry != 0 {
+				break
+			}
+		}
+
+		sig = uint128{sig64, carry}
+		rem = uint128{rem64, 0}
+	} else {
+		sig, rem = dSig.div(oSig)
+	}
+
+	trunc := int8(0)
 
 	for exp > 0 && rem != (uint128{}) && sig[1] <= 0x0002_7fff_ffff_ffff {
 		for exp >= 4 && rem[1] <= 0x0002_7fff_ffff_ffff && sig[1] <= 0x0002_7fff_ffff_ffff {
@@ -1061,6 +1152,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 	} else {
 		var brw uint
 		sig, brw = dSig.sub(oSig)
+
 		if brw != 0 {
 			sig = sig.twos()
 			neg = !neg
