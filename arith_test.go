@@ -1,6 +1,10 @@
 package decimal128
 
-import "testing"
+import (
+	"bytes"
+	"math/big"
+	"testing"
+)
 
 func TestDecimalAdd(t *testing.T) {
 	t.Parallel()
@@ -128,6 +132,105 @@ func TestDecimalSub(t *testing.T) {
 			}
 		}
 	}
+}
+
+func FuzzOperations(f *testing.F) {
+	f.Fuzz(func(t *testing.T, xneg bool, xlo, xhi uint64, xexp uint16, yneg bool, ylo, yhi uint64, yexp uint16) {
+		t.Parallel()
+
+		if xhi > 0x0002_7fff_ffff_ffff || yhi > 0x0002_7fff_ffff_ffff {
+			t.Skip()
+		}
+
+		if xexp > maxBiasedExponent || yexp > maxBiasedExponent {
+			t.Skip()
+		}
+
+		x := compose(xneg, uint128{xlo, xhi}, int16(xexp))
+		y := compose(yneg, uint128{ylo, yhi}, int16(yexp))
+
+		bigx := x.Float(nil)
+		bigy := y.Float(nil)
+		bigres := new(big.Float)
+		var bigbuf []byte
+
+		res := x.Add(y)
+		var buf []byte
+
+		if !res.isSpecial() {
+			buf = res.Append(buf[:0], ".3e")
+			idx := bytes.IndexByte(buf, 'e')
+			buf[idx-1] = '0'
+
+			bigres.Add(bigx, bigy)
+			if bigexp := bigres.MantExp(nil); bigexp < maxUnbiasedExponent && bigexp > minUnbiasedExponent {
+				bigbuf = bigres.Append(bigbuf[:0], 'e', 3)
+				idx = bytes.IndexByte(bigbuf, 'e')
+				bigbuf[idx-1] = '0'
+
+				if string(buf) != string(bigbuf) {
+					t.Fail()
+				}
+			}
+		}
+
+		res = x.Mul(y)
+
+		if !res.isSpecial() {
+			buf = res.Append(buf[:0], ".3e")
+			idx := bytes.IndexByte(buf, 'e')
+			buf[idx-1] = '0'
+
+			bigres.Mul(bigx, bigy)
+			if bigexp := bigres.MantExp(nil); bigexp < maxUnbiasedExponent && bigexp > minUnbiasedExponent {
+				bigbuf = bigres.Append(bigbuf[:0], 'e', 3)
+				idx = bytes.IndexByte(bigbuf, 'e')
+				bigbuf[idx-1] = '0'
+
+				if string(buf) != string(bigbuf) {
+					t.Fail()
+				}
+			}
+		}
+
+		res = x.Quo(y)
+
+		if !res.isSpecial() {
+			buf = res.Append(buf[:0], ".3e")
+			idx := bytes.IndexByte(buf, 'e')
+			buf[idx-1] = '0'
+
+			bigres.Quo(bigx, bigy)
+			if bigexp := bigres.MantExp(nil); bigexp < maxUnbiasedExponent && bigexp > minUnbiasedExponent {
+				bigbuf = bigres.Append(bigbuf[:0], 'e', 3)
+				idx = bytes.IndexByte(bigbuf, 'e')
+				bigbuf[idx-1] = '0'
+
+				if string(buf) != string(bigbuf) {
+					t.Fail()
+				}
+			}
+		}
+
+		res = x.Sub(y)
+
+		if !res.isSpecial() {
+			buf = res.Append(buf[:0], ".3e")
+			idx := bytes.IndexByte(buf, 'e')
+			buf[idx-1] = '0'
+
+			bigres.Sub(bigx, bigy)
+			if bigexp := bigres.MantExp(nil); bigexp < maxUnbiasedExponent && bigexp > minUnbiasedExponent {
+				bigbuf = bigres.Append(bigbuf[:0], 'e', 3)
+				idx = bytes.IndexByte(bigbuf, 'e')
+				bigbuf[idx-1] = '0'
+
+				if string(buf) != string(bigbuf) {
+					t.Fail()
+				}
+			}
+		}
+	})
 }
 
 func BenchmarkOperations(b *testing.B) {
