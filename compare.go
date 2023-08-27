@@ -1,5 +1,29 @@
 package decimal128
 
+// Compare returns:
+//
+//	-1 if d < o
+//	 0 if d == o
+//	+1 if d > o
+//
+// Unlike [Decimal.Cmp], Compare considers NaN values to be less than any other
+// values.
+func Compare(d, o Decimal) int {
+	if d.IsNaN() {
+		if o.IsNaN() {
+			return 0
+		}
+
+		return -1
+	}
+
+	if o.IsNaN() {
+		return 1
+	}
+
+	return int(d.Cmp(o))
+}
+
 // Max returns the larger of d or o. If either value is NaN the result is NaN.
 func Max(d, o Decimal) Decimal {
 	if d.IsNaN() {

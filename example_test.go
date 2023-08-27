@@ -2,9 +2,32 @@ package decimal128_test
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/woodsbury/decimal128"
 )
+
+func ExampleCompare() {
+	s := []decimal128.Decimal{
+		decimal128.New(3, 0),
+		decimal128.New(1, 0),
+		decimal128.NaN(),
+		decimal128.Inf(1),
+		decimal128.New(2, 0),
+		decimal128.Inf(-1),
+	}
+
+	fmt.Println(s)
+	fmt.Println(slices.MinFunc(s, decimal128.Compare))
+	fmt.Println(slices.MaxFunc(s, decimal128.Compare))
+	slices.SortFunc(s, decimal128.Compare)
+	fmt.Println(s)
+	// Output:
+	// [3 1 NaN +Inf 2 -Inf]
+	// NaN
+	// +Inf
+	// [NaN -Inf 1 2 3 +Inf]
+}
 
 func ExampleNew() {
 	fmt.Println(decimal128.New(3, -2))
@@ -30,24 +53,6 @@ func ExampleParse() {
 	// 1.23456789e+15
 	// -Inf
 	// NaN
-}
-
-func ExampleSort() {
-	s := []decimal128.Decimal{
-		decimal128.New(3, 0),
-		decimal128.New(1, 0),
-		decimal128.NaN(),
-		decimal128.Inf(1),
-		decimal128.New(2, 0),
-		decimal128.Inf(-1),
-	}
-
-	fmt.Println(s)
-	decimal128.Sort(s)
-	fmt.Println(s)
-	// Output:
-	// [3 1 NaN +Inf 2 -Inf]
-	// [NaN -Inf 1 2 3 +Inf]
 }
 
 func ExampleDecimal_Add() {
