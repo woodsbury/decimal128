@@ -13,6 +13,17 @@ func TestE(t *testing.T) {
 	}
 }
 
+func TestPhi(t *testing.T) {
+	t.Parallel()
+
+	res := Phi()
+	num := MustParse("1.61803398874989484820458683436563811772030917980576286213544862")
+
+	if !res.Equal(num) {
+		t.Errorf("Phi() = %v, want %v", res, num)
+	}
+}
+
 func TestPi(t *testing.T) {
 	t.Parallel()
 
