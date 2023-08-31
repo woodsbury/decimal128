@@ -505,7 +505,7 @@ func (d Decimal) Int(i *big.Int) *big.Int {
 // outside the range of an int32 the returned value will be either
 // [math.MinInt32] or [math.MaxInt32] depending on the sign of the result and
 // the boolean value will be false. Otherwise the boolean value will be true.
-// It panics if d is NaN or infinite.
+// It panics if d is NaN.
 func (d Decimal) Int32() (int32, bool) {
 	if d.isSpecial() {
 		if d.IsNaN() {
@@ -513,10 +513,10 @@ func (d Decimal) Int32() (int32, bool) {
 		}
 
 		if d.Signbit() {
-			panic("Decimal(-Inf).Int32()")
+			return math.MinInt32, false
 		}
 
-		panic("Decimal(+Inf).Int32()")
+		return math.MaxInt32, false
 	}
 
 	sig, exp := d.decompose()
@@ -574,7 +574,7 @@ func (d Decimal) Int32() (int32, bool) {
 // outside the range of an int64 the returned value will be either
 // [math.MinInt64] or [math.MaxInt64] depending on the sign of the result and
 // the boolean value will be false. Otherwise the boolean value will be true.
-// It panics if d is NaN or infinite.
+// It panics if d is NaN.
 func (d Decimal) Int64() (int64, bool) {
 	if d.isSpecial() {
 		if d.IsNaN() {
@@ -582,10 +582,10 @@ func (d Decimal) Int64() (int64, bool) {
 		}
 
 		if d.Signbit() {
-			panic("Decimal(-Inf).Int64()")
+			return math.MinInt64, false
 		}
 
-		panic("Decimal(+Inf).Int64()")
+		return math.MaxInt64, false
 	}
 
 	sig, exp := d.decompose()
@@ -696,7 +696,7 @@ func (d Decimal) Rat(r *big.Rat) *big.Rat {
 // outside the range of a uint32 the returned value will be either 0 or
 // [math.MaxUint32] depending on the sign of the result and the boolean value
 // will be false. Otherwise the boolean value will be true. It panics if d is
-// NaN or infinite.
+// NaN.
 func (d Decimal) Uint32() (uint32, bool) {
 	if d.isSpecial() {
 		if d.IsNaN() {
@@ -704,10 +704,10 @@ func (d Decimal) Uint32() (uint32, bool) {
 		}
 
 		if d.Signbit() {
-			panic("Decimal(-Inf).Uint32()")
+			return 0, false
 		}
 
-		panic("Decimal(+Inf).Uint32()")
+		return math.MaxUint32, false
 	}
 
 	if d.Signbit() {
@@ -751,7 +751,7 @@ func (d Decimal) Uint32() (uint32, bool) {
 // outside the range of a uint64 the returned value will be either 0 or
 // [math.MaxUint64] depending on the sign of the result and the boolean value
 // will be false. Otherwise the boolean value will be true. It panics if d is
-// NaN or infinite.
+// NaN.
 func (d Decimal) Uint64() (uint64, bool) {
 	if d.isSpecial() {
 		if d.IsNaN() {
@@ -759,10 +759,10 @@ func (d Decimal) Uint64() (uint64, bool) {
 		}
 
 		if d.Signbit() {
-			panic("Decimal(-Inf).Uint64()")
+			return 0, false
 		}
 
-		panic("Decimal(+Inf).Uint64()")
+		return math.MaxUint64, false
 	}
 
 	if d.Signbit() {
