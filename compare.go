@@ -81,9 +81,9 @@ func Min(d, o Decimal) Decimal {
 //	 0 if lhs == rhs
 //	+1 if lhs > rhs
 //
-// The Equal, Greater, and Less methods can also be used to determine the
-// result. If either value is a NaN, then these methods will still behave
-// correctly.
+// The Equal, Greater, GreaterOrEqual, Less, and LessOrEqual methods can also
+// be used to determine the result. If either value is a NaN, then these
+// methods will still behave correctly.
 type CmpResult int8
 
 const (
@@ -108,12 +108,28 @@ func (cr CmpResult) Greater() bool {
 	return cr == cmpGreater
 }
 
-// Less returns whether this CmpResult represents that the value on the
-// left-hand side of the comparison was less than the value on the
-// right-hand side. This method will handle when one of the values being
+// GreaterOrEqual returns whether this CmpResult represents that the value on
+// the left-hand side of the comparison was greater than or equal to the value
+// on the right-hand side. This method will handle when one of the values being
 // compared was a NaN.
+func (cr CmpResult) GreaterOrEqual() bool {
+	return cr == cmpGreater || cr == cmpEqual
+}
+
+// Less returns whether this CmpResult represents that the value on the
+// left-hand side of the comparison was less than the value on the right-hand
+// side. This method will handle when one of the values being compared was a
+// NaN.
 func (cr CmpResult) Less() bool {
 	return cr == cmpLess
+}
+
+// LessOrEqual returns whether this CmpResult represents that the value on the
+// left-hand side of the comparison was less than or equal to the value on the
+// right-hand side. This method will handle when one of the values being
+// compared was a NaN.
+func (cr CmpResult) LessOrEqual() bool {
+	return cr == cmpLess || cr == cmpEqual
 }
 
 // Cmp compares two Decimals and returns a CmpResult representing whether the

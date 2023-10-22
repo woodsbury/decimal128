@@ -7,6 +7,22 @@ import (
 	"github.com/woodsbury/decimal128"
 )
 
+func ExampleAbs() {
+	x := decimal128.New(3, 0)
+	y := decimal128.New(-3, 0)
+	inf := decimal128.Inf(-1)
+	nan := decimal128.NaN()
+	fmt.Printf("Abs(%g) = %g\n", x, decimal128.Abs(x))
+	fmt.Printf("Abs(%g) = %g\n", y, decimal128.Abs(y))
+	fmt.Printf("Abs(%g) = %g\n", inf, decimal128.Abs(inf))
+	fmt.Printf("Abs(%g) = %g\n", nan, decimal128.Abs(nan))
+	// Output:
+	// Abs(3) = 3
+	// Abs(-3) = 3
+	// Abs(-Inf) = +Inf
+	// Abs(NaN) = NaN
+}
+
 func ExampleCompare() {
 	s := []decimal128.Decimal{
 		decimal128.New(3, 0),

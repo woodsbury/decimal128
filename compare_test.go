@@ -46,8 +46,16 @@ func (tcr testCmpResult) greater() bool {
 	return tcr == 1
 }
 
+func (tcr testCmpResult) greaterOrEqual() bool {
+	return tcr == 1 || tcr == 0
+}
+
 func (tcr testCmpResult) less() bool {
 	return tcr == -1
+}
+
+func (tcr testCmpResult) lessOrEqual() bool {
+	return tcr == -1 || tcr == 0
 }
 
 func TestDecimalCmp(t *testing.T) {
@@ -71,8 +79,16 @@ func TestDecimalCmp(t *testing.T) {
 			t.Errorf("%v.Cmp(%v).Greater() = %t, want %t", lhs, rhs, cgt, rgt)
 		}
 
+		if cge, rge := cmp.GreaterOrEqual(), res.greaterOrEqual(); cge != rge {
+			t.Errorf("%v.Cmp(%v).GreaterOrEqual() = %t, want %t", lhs, rhs, cge, rge)
+		}
+
 		if clt, rlt := cmp.Less(), res.less(); clt != rlt {
 			t.Errorf("%v.Cmp(%v).Less() = %t, want %t", lhs, rhs, clt, rlt)
+		}
+
+		if cle, rle := cmp.LessOrEqual(), res.lessOrEqual(); cle != rle {
+			t.Errorf("%v.Cmp(%v).LessOrEqual() = %t, want %t", lhs, rhs, cle, rle)
 		}
 
 		if ceq, req := lhs.Equal(rhs), res.equal(); ceq != req {
@@ -102,8 +118,16 @@ func TestDecimalCmpAbs(t *testing.T) {
 			t.Errorf("%v.CmpAbs(%v).Greater() = %t, want %t", lhs, rhs, cgt, rgt)
 		}
 
+		if cge, rge := cmp.GreaterOrEqual(), res.greaterOrEqual(); cge != rge {
+			t.Errorf("%v.CmpAbs(%v).GreaterOrEqual() = %t, want %t", lhs, rhs, cge, rge)
+		}
+
 		if clt, rlt := cmp.Less(), res.less(); clt != rlt {
 			t.Errorf("%v.CmpAbs(%v).Less() = %t, want %t", lhs, rhs, clt, rlt)
+		}
+
+		if cle, rle := cmp.LessOrEqual(), res.lessOrEqual(); cle != rle {
+			t.Errorf("%v.CmpAbs(%v).LessOrEqual() = %t, want %t", lhs, rhs, cle, rle)
 		}
 
 		if ceq, req := Abs(lhs).Equal(Abs(rhs)), res.equal(); ceq != req {
