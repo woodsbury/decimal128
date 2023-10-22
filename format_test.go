@@ -347,6 +347,43 @@ func BenchmarkMarshalText(b *testing.B) {
 	}
 }
 
+func BenchmarkParseFormat(b *testing.B) {
+	tests := []struct {
+		name string
+		txt  string
+		fmt  string
+		want string
+	}{
+		{
+			name: "f format",
+			fmt:  "%f",
+		},
+		{
+			name: "e format",
+			fmt:  "%e",
+		},
+		{
+			name: "padding f format",
+			fmt:  "%80.40f",
+		},
+		{
+			name: "padding e format",
+			fmt:  "%80.40e",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Benchmark.
+			var args formatArgs
+			for i := 0; i < b.N; i++ {
+				parseFormat(tc.fmt, &args)
+			}
+		})
+	}
+}
+
 func BenchmarkString(b *testing.B) {
 	tests := []struct {
 		name string
@@ -386,43 +423,6 @@ func BenchmarkString(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
 				_ = v.String()
-			}
-		})
-	}
-}
-
-func BenchmarkParseFormat(b *testing.B) {
-	tests := []struct {
-		name string
-		txt  string
-		fmt  string
-		want string
-	}{
-		{
-			name: "f format",
-			fmt:  "%f",
-		},
-		{
-			name: "e format",
-			fmt:  "%e",
-		},
-		{
-			name: "padding f format",
-			fmt:  "%80.40f",
-		},
-		{
-			name: "padding e format",
-			fmt:  "%80.40e",
-		},
-	}
-
-	for _, tc := range tests {
-		tc := tc
-		b.Run(tc.name, func(b *testing.B) {
-			// Benchmark.
-			var args formatArgs
-			for i := 0; i < b.N; i++ {
-				parseFormat(tc.fmt, &args)
 			}
 		})
 	}

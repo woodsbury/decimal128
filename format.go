@@ -177,7 +177,7 @@ func (d Decimal) String() string {
 		}
 	}
 
-	return *(*string)(unsafe.Pointer(&buf))
+	return unsafe.String(unsafe.SliceData(buf), len(buf))
 }
 
 func (d Decimal) appendSpecial(buf []byte, pad int, printSign, padSign, padRight bool) []byte {
