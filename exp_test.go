@@ -56,6 +56,24 @@ func TestExp2(t *testing.T) {
 	}
 }
 
+func TestExpm1(t *testing.T) {
+	t.Parallel()
+
+	r := openTestData(t)
+	defer r.close()
+
+	var val Decimal
+	var res Decimal
+
+	for r.scan("expm1(%v) = %v\n", &val, &res) {
+		exp := Expm1(val)
+
+		if !resultEqual(exp, res) {
+			t.Errorf("Expm1(%v) = %v, want %v", val, exp, res)
+		}
+	}
+}
+
 func TestLog(t *testing.T) {
 	t.Parallel()
 

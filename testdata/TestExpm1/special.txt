@@ -1,0 +1,3 @@
+expm1(Inf) = +Inf
+expm1(-Inf) = -1
+expm1(NaN) = NaN

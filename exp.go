@@ -389,6 +389,63 @@ func Exp2(d Decimal) Decimal {
 	return compose(false, sig, exp)
 }
 
+// Expm1 returns e**d - 1, the base-e exponential of d minus 1. It is more
+// accurate than Exp(d) - 1 when d is near zero.
+func Expm1(d Decimal) Decimal {
+	if d.isSpecial() {
+		if d.IsNaN() {
+			return d
+		}
+
+		if d.Signbit() {
+			return one(true)
+		}
+
+		return inf(false)
+	}
+
+	if d.IsZero() {
+		return zero(false)
+	}
+
+	dSig, dExp := d.decompose()
+	dExp -= exponentBias
+	l10 := dSig.log10()
+
+	if int(dExp) > 5-l10 {
+		if d.Signbit() {
+			return one(true)
+		}
+
+		return inf(false)
+	}
+
+	neg, res, trunc := decomposed192{
+		sig: uint192{dSig[0], dSig[1], 0},
+		exp: dExp,
+	}.epowm1(d.Signbit(), int16(l10), int8(0))
+
+	if res.exp > maxUnbiasedExponent+58 {
+		if d.Signbit() {
+			return one(true)
+		}
+
+		return inf(false)
+	}
+
+	sig, exp := DefaultRoundingMode.reduce192(neg, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		if d.Signbit() {
+			return one(true)
+		}
+
+		return inf(false)
+	}
+
+	return compose(neg, sig, exp)
+}
+
 // Log returns the natural logarithm of d.
 func Log(d Decimal) Decimal {
 	if d.isSpecial() {

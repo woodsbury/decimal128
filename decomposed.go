@@ -401,6 +401,72 @@ func (d decomposed192) epow(l10 int16, trunc int8) (decomposed192, int8) {
 	return res.powexp10(exp, trunc)
 }
 
+func (d decomposed192) epowm1(neg bool, l10 int16, trunc int8) (bool, decomposed192, int8) {
+	exp := d.exp + l10 + 1
+	if exp < 0 {
+		exp = 0
+	} else {
+		d.exp = -l10 - 1
+	}
+
+	for d.sig[2] <= 0x0002_7fff_ffff_ffff {
+		d.sig = d.sig.mul64(10_000)
+		d.exp -= 4
+	}
+
+	for d.sig[2] <= 0x18ff_ffff_ffff_ffff {
+		d.sig = d.sig.mul64(10)
+		d.exp--
+	}
+
+	res, trunc := d.quo(decomposed192{
+		sig: uint192{40, 0, 0},
+		exp: 0,
+	}, trunc)
+
+	for i := uint64(39); i > 1; i-- {
+		tmp, _ := d.quo(decomposed192{
+			sig: uint192{i, 0, 0},
+			exp: 0,
+		}, int8(0))
+
+		res, trunc = res.mul(tmp, trunc)
+		res, trunc = res.add1(trunc)
+	}
+
+	res, trunc = res.mul(d, trunc)
+
+	if res.exp > maxUnbiasedExponent+58 {
+		if neg {
+			return true, decomposed192{
+				sig: uint192{1, 0, 0},
+				exp: 0,
+			}, 0
+		}
+
+		return false, dinf, 0
+	}
+
+	if exp == 0 {
+		if neg {
+			res, trunc = res.add1(trunc)
+			res, trunc = res.rcp(trunc)
+			return res.sub1(trunc)
+		}
+
+		return false, res, trunc
+	}
+
+	res, trunc = res.add1(trunc)
+	res, trunc = res.powexp10(exp, trunc)
+
+	if neg {
+		res, trunc = res.rcp(trunc)
+	}
+
+	return res.sub1(trunc)
+}
+
 func (d decomposed192) log() (bool, decomposed192, int8) {
 	l10 := int16(d.sig.log10())
 	exp := d.exp + l10
