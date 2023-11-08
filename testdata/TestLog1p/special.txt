@@ -1,0 +1,3 @@
+log1p(Inf) = +Inf
+log1p(-Inf) = NaN
+log1p(NaN) = NaN

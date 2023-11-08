@@ -362,6 +362,95 @@ func (d decomposed192) add1(trunc int8) (decomposed192, int8) {
 	}, trunc
 }
 
+func (d decomposed192) add1neg(trunc int8) (bool, decomposed192, int8) {
+	if d.sig == (uint192{}) {
+		return false, decomposed192{
+			sig: uint192{1, 0, 0},
+			exp: 0,
+		}, trunc
+	}
+
+	if d.exp < -116 {
+		return false, decomposed192{
+			sig: uint192{1, 0, 0},
+			exp: 0,
+		}, trunc
+	}
+
+	if d.exp > 58 {
+		return true, d, 1
+	}
+
+	var sig uint192
+	var brw uint
+
+	if d.exp <= 0 {
+		for d.exp < -62 {
+			var rem uint64
+			d.sig, rem = d.sig.div10000()
+			if rem != 0 {
+				trunc = 1
+			}
+
+			if d.sig == (uint192{}) {
+				return false, decomposed192{
+					sig: uint192{1, 0, 0},
+					exp: 0,
+				}, trunc
+			}
+
+			d.exp += 4
+		}
+
+		for d.exp < -57 {
+			var rem uint64
+			d.sig, rem = d.sig.div10()
+			d.exp++
+			if rem != 0 {
+				trunc = 1
+			}
+
+			if d.sig == (uint192{}) {
+				return false, decomposed192{
+					sig: uint192{1, 0, 0},
+					exp: 0,
+				}, trunc
+			}
+		}
+
+		sig, brw = uint192PowersOf10[-d.exp].sub(d.sig)
+	} else {
+		for d.exp > 4 && d.sig[2] <= 0x0002_7fff_ffff_ffff {
+			d.sig = d.sig.mul64(10_000)
+			d.exp -= 4
+		}
+
+		for d.exp > 0 && d.sig[2] <= 0x18ff_ffff_ffff_ffff {
+			d.sig = d.sig.mul64(10)
+			d.exp--
+		}
+
+		if d.exp != 0 {
+			return true, d, 1
+		}
+
+		sig, brw = uint192{1, 0, 0}.sub(d.sig)
+	}
+
+	neg := false
+
+	if brw != 0 {
+		sig = sig.twos()
+		neg = true
+		trunc *= -1
+	}
+
+	return neg, decomposed192{
+		sig: sig,
+		exp: d.exp,
+	}, trunc
+}
+
 func (d decomposed192) epow(l10 int16, trunc int8) (decomposed192, int8) {
 	exp := d.exp + l10 + 1
 	if exp < 0 {
@@ -552,6 +641,32 @@ func (d decomposed192) log() (bool, decomposed192, int8) {
 			_, res, trunc = res.sub(lnMSD, trunc)
 		} else {
 			res, trunc = res.add(lnMSD, trunc)
+		}
+	}
+
+	return neg, res, trunc
+}
+
+func (d decomposed192) log1p(neg bool) (bool, decomposed192, int8) {
+	num := d
+	res := d
+
+	var trunc int8
+	for i := uint64(2); i <= 10; i++ {
+		num, trunc = num.mul(d, trunc)
+		tmp, _ := num.quo(decomposed192{
+			sig: uint192{i, 0, 0},
+			exp: 0,
+		}, int8(0))
+
+		if i%2 == 0 {
+			if neg {
+				res, trunc = res.add(tmp, trunc)
+			} else {
+				_, res, trunc = res.sub(tmp, trunc)
+			}
+		} else {
+			res, trunc = res.add(tmp, trunc)
 		}
 	}
 

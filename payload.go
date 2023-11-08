@@ -15,6 +15,7 @@ const (
 	payloadOpAdd
 	payloadOpLog
 	payloadOpLog10
+	payloadOpLog1p
 	payloadOpLog2
 	payloadOpMul
 	payloadOpPow
@@ -83,6 +84,8 @@ func (p Payload) String() string {
 		return "Log(" + p.argString(8) + ")"
 	case payloadOpLog10:
 		return "Log10(" + p.argString(8) + ")"
+	case payloadOpLog1p:
+		return "Log1p(" + p.argString(8) + ")"
 	case payloadOpLog2:
 		return "Log2(" + p.argString(8) + ")"
 	case payloadOpMul:

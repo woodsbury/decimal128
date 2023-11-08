@@ -524,6 +524,82 @@ func Log10(d Decimal) Decimal {
 	return compose(neg, sig, exp)
 }
 
+// Log1p returns the natural logarithm 1 plus d. It is more accurate than
+// Log(1 + d) when d is near zero.
+func Log1p(d Decimal) Decimal {
+	if d.isSpecial() {
+		if d.IsNaN() {
+			return d
+		}
+
+		if d.Signbit() {
+			return nan(payloadOpLog1p, payloadValNegInfinite, 0)
+		}
+
+		return inf(false)
+	}
+
+	if d.IsZero() {
+		return zero(d.Signbit())
+	}
+
+	dSig, dExp := d.decompose()
+	dExp -= exponentBias
+	dNeg := d.Signbit()
+
+	if dNeg {
+		if dExp > 0 {
+			return nan(payloadOpLog1p, payloadValNegFinite, 0)
+		}
+
+		if dExp >= int16(-len(uint128PowersOf10)) {
+			if cmp := dSig.cmp(uint128PowersOf10[-dExp]); cmp == 0 {
+				return inf(true)
+			} else if cmp > 0 {
+				return nan(payloadOpLog1p, payloadValNegFinite, 0)
+			}
+		}
+	}
+
+	l10 := int16(dSig.log10()) + dExp
+
+	if l10 > -10 {
+		res := decomposed192{
+			sig: uint192{dSig[0], dSig[1], 0},
+			exp: dExp,
+		}
+
+		if dNeg {
+			_, res, _ = res.add1neg(0)
+		} else {
+			res, _ = res.add1(0)
+		}
+
+		neg, res, trunc := res.log()
+
+		sig, exp := DefaultRoundingMode.reduce192(neg, res.sig, res.exp+exponentBias, trunc)
+
+		if exp > maxBiasedExponent {
+			return inf(neg)
+		}
+
+		return compose(neg, sig, exp)
+	}
+
+	neg, res, trunc := decomposed192{
+		sig: uint192{dSig[0], dSig[1], 0},
+		exp: dExp,
+	}.log1p(d.Signbit())
+
+	sig, exp := DefaultRoundingMode.reduce192(neg, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
+
+	return compose(neg, sig, exp)
+}
+
 // Log2 returns the binary logarithm of d.
 func Log2(d Decimal) Decimal {
 	if d.isSpecial() {

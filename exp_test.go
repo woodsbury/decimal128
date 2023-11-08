@@ -110,6 +110,24 @@ func TestLog10(t *testing.T) {
 	}
 }
 
+func TestLog1p(t *testing.T) {
+	t.Parallel()
+
+	r := openTestData(t)
+	defer r.close()
+
+	var val Decimal
+	var res Decimal
+
+	for r.scan("log1p(%v) = %v\n", &val, &res) {
+		log := Log1p(val)
+
+		if !resultEqual(log, res) {
+			t.Errorf("Log1p(%v) = %v, want %v", val, log, res)
+		}
+	}
+}
+
 func TestLog2(t *testing.T) {
 	t.Parallel()
 
