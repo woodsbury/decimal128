@@ -2,6 +2,60 @@ package decimal128
 
 import "math/bits"
 
+// Cbrt returns the cube root of d.
+func Cbrt(d Decimal) Decimal {
+	if d.isSpecial() || d.IsZero() {
+		return d
+	}
+
+	dSig, dExp := d.decompose()
+	dExp -= exponentBias
+	l10 := int16(dSig.log10())
+
+	d192 := decomposed192{
+		sig: uint192{dSig[0], dSig[1], 0},
+		exp: dExp,
+	}
+
+	d192x2 := decomposed192{
+		sig: d192.sig.lsh(1),
+		exp: dExp,
+	}
+
+	exp := dExp + l10
+	if exp < 0 {
+		exp++
+	}
+
+	dExp -= exp - exp/3
+
+	res := decomposed192{
+		sig: uint192{dSig[0], dSig[1], 0},
+		exp: dExp,
+	}
+
+	var trunc int8
+	for i := 0; i < 7; i++ {
+		cub, _ := res.mul(res, int8(0))
+		cub, _ = cub.mul(res, int8(0))
+
+		num, _ := cub.add(d192x2, int8(0))
+		den, _ := cub.add(cub, int8(0))
+		den, _ = den.add(d192, int8(0))
+		frc, _ := num.quo(den, int8(0))
+		res, trunc = res.mul(frc, trunc)
+	}
+
+	neg := d.Signbit()
+	sig, exp := DefaultRoundingMode.reduce192(neg, res.sig, res.exp+exponentBias, trunc)
+
+	if exp > maxBiasedExponent {
+		return inf(neg)
+	}
+
+	return compose(neg, sig, exp)
+}
+
 // Exp returns e**d, the base-e exponential of d.
 func Exp(d Decimal) Decimal {
 	if d.isSpecial() {

@@ -2,6 +2,24 @@ package decimal128
 
 import "testing"
 
+func TestCbrt(t *testing.T) {
+	t.Parallel()
+
+	r := openTestData(t)
+	defer r.close()
+
+	var val Decimal
+	var res Decimal
+
+	for r.scan("cbrt(%v) = %v\n", &val, &res) {
+		root := Cbrt(val)
+
+		if !resultEqual(root, res) {
+			t.Errorf("Cbrt(%v) = %v, want %v", val, root, res)
+		}
+	}
+}
+
 func TestExp(t *testing.T) {
 	t.Parallel()
 
@@ -195,6 +213,14 @@ func BenchmarkExp(b *testing.B) {
 			}
 		}
 	})
+
+	b.Run("Expm1", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, decval := range decvals {
+				Expm1(decval)
+			}
+		}
+	})
 }
 
 func BenchmarkLog(b *testing.B) {
@@ -221,10 +247,43 @@ func BenchmarkLog(b *testing.B) {
 		}
 	})
 
+	b.Run("Log1p", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, decval := range decvals {
+				Log1p(decval)
+			}
+		}
+	})
+
 	b.Run("Log2", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, decval := range decvals {
 				Log2(decval)
+			}
+		}
+	})
+}
+
+func BenchmarkRoot(b *testing.B) {
+	initDecimalValues()
+
+	decvals := make([]Decimal, len(decimalValues))
+	for i, val := range decimalValues {
+		decvals[i] = val.Decimal()
+	}
+
+	b.Run("Cbrt", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, decval := range decvals {
+				Cbrt(decval)
+			}
+		}
+	})
+
+	b.Run("Sqrt", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for _, decval := range decvals {
+				Sqrt(decval)
 			}
 		}
 	})
