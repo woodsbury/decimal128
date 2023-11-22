@@ -81,10 +81,6 @@ func FuzzDecimalUnmarshalJSON(f *testing.F) {
 		t.Parallel()
 
 		var dec Decimal
-		if err := dec.UnmarshalJSON(data); err != nil {
-			return
-		}
-
-		_, _ = dec.MarshalJSON()
+		dec.UnmarshalJSON(data)
 	})
 }

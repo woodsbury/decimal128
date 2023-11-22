@@ -46,10 +46,6 @@ func (d Decimal) Append(buf []byte, format string) []byte {
 	var args formatArgs
 	parseFormat(format, &args)
 
-	if args.prec == -2 {
-		return append(buf, "%!(BADPREC)"...)
-	}
-
 	if args.verb == 0 {
 		return append(buf, "%!(NOVERB)"...)
 	}
@@ -354,29 +350,26 @@ func (d Decimal) format(buf []byte, args *formatArgs) []byte {
 
 				maxprec = 6
 			} else {
-				maxprec = prec
-			}
-
-			if hasWidth {
-				if digs.ndig > prec {
-					if width > digs.ndig {
-						width -= digs.ndig
-						prec = digs.ndig
-					} else {
-						prec += width
-						width -= digs.ndig
-					}
+				if prec == 0 {
+					prec = 1
 				}
+
+				maxprec = prec
 			}
 
 			digs.round(prec)
 		} else {
 			if hasPrec {
+				if prec == 0 {
+					prec = 1
+				}
+
 				digs.round(prec)
 				maxprec = prec
-			} else if digs.ndig != 0 {
 				prec = digs.ndig
+			} else if digs.ndig != 0 {
 				maxprec = 6
+				prec = digs.ndig
 			} else {
 				maxprec = 6
 			}
@@ -809,34 +802,33 @@ parseFlags:
 	if c == '.' {
 		i++
 		if i >= end {
-			args.prec = -2
+			args.prec = 0
 			return
 		}
 
 		c = format[i]
 		if c < '1' || c > '9' {
-			args.prec = -2
-			return
-		}
+			args.prec = 0
+		} else {
+			args.prec = int(c - '0')
+			i++
 
-		args.prec = int(c - '0')
-		i++
+			for ; i < end; i++ {
+				c = format[i]
+				if c < '0' || c > '9' {
+					break
+				}
 
-		for ; i < end; i++ {
-			c = format[i]
-			if c < '0' || c > '9' {
-				break
+				if args.prec < 1e5 {
+					args.prec = args.prec*10 + int(c-'0')
+				} else {
+					args.prec = -1
+				}
 			}
 
-			if args.prec < 1e5 {
-				args.prec = args.prec*10 + int(c-'0')
-			} else {
-				args.prec = -1
+			if i >= end {
+				return
 			}
-		}
-
-		if i >= end {
-			return
 		}
 	}
 

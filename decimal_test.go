@@ -697,13 +697,17 @@ func FuzzDecimal(f *testing.F) {
 	f.Add(uint64(0), uint64(0))
 	f.Add(uint64(math.MaxUint64), uint64(math.MaxUint64))
 
-	f.Fuzz(func(t *testing.T, hi, lo uint64) {
+	f.Fuzz(func(t *testing.T, lo, hi uint64) {
 		t.Parallel()
 
-		dec := Decimal{hi, lo}
+		dec := Decimal{lo, hi}
 
 		if dec.isSpecial() {
 			if dec.isInf() == dec.IsNaN() {
+				t.Fail()
+			}
+
+			if !dec.isInf() && !dec.IsNaN() {
 				t.Fail()
 			}
 		} else {

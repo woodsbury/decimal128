@@ -26,9 +26,11 @@ func (tf testFmt) String() string {
 		builder.WriteString(strconv.Itoa(tf.width))
 	}
 
-	if tf.prec != 0 {
+	if tf.prec != -1 {
 		builder.WriteRune('.')
-		builder.WriteString(strconv.Itoa(tf.prec))
+		if tf.prec != 0 {
+			builder.WriteString(strconv.Itoa(tf.prec))
+		}
 	}
 
 	builder.WriteRune(tf.verb)
@@ -56,8 +58,8 @@ func TestDecimalFormat(t *testing.T) {
 	}
 
 	var formats []testFmt
-	for _, width := range []int{0, 15} {
-		for _, prec := range []int{0, 15} {
+	for _, width := range []int{0, 4, 15} {
+		for _, prec := range []int{-1, 0, 4, 15} {
 			for _, flagSet := range flagSets {
 				formats = append(formats,
 					testFmt{'e', flagSet, width, prec},

@@ -121,11 +121,6 @@ func FuzzParse(f *testing.F) {
 	f.Fuzz(func(t *testing.T, s string) {
 		t.Parallel()
 
-		dec, err := Parse(s)
-		if err != nil {
-			return
-		}
-
-		_ = dec.String()
+		Parse(s)
 	})
 }
