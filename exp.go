@@ -606,7 +606,7 @@ func Log1p(d Decimal) Decimal {
 			return nan(payloadOpLog1p, payloadValNegFinite, 0)
 		}
 
-		if dExp >= int16(-len(uint128PowersOf10)) {
+		if dExp > int16(-len(uint128PowersOf10)) {
 			if cmp := dSig.cmp(uint128PowersOf10[-dExp]); cmp == 0 {
 				return inf(true)
 			} else if cmp > 0 {

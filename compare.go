@@ -1050,7 +1050,7 @@ func (d Decimal) isOne() bool {
 
 	sig, exp := d.decompose()
 
-	if exp < int16(-len(uint128PowersOf10)+exponentBias) || exp > exponentBias {
+	if exp <= int16(-len(uint128PowersOf10)+exponentBias) || exp > exponentBias {
 		return false
 	}
 
