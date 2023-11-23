@@ -328,7 +328,7 @@ func BenchmarkOperations(b *testing.B) {
 			continue
 		}
 
-		if val.sig == (uint128{}) {
+		if val.sig[0]|val.sig[1] == 0 {
 			continue
 		}
 

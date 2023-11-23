@@ -530,7 +530,7 @@ func initDecimalValues() {
 			for _, siglo := range uint64Values {
 				sig := uint128{siglo, sighi}
 
-				if sig == (uint128{}) {
+				if sig[0]|sig[1] == 0 {
 					continue
 				}
 

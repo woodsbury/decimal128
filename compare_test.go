@@ -146,7 +146,7 @@ func TestDecimalIsZero(t *testing.T) {
 		zero := decval.IsZero()
 
 		var res bool
-		if val.form == regularForm && val.sig == (uint128{}) {
+		if val.form == regularForm && val.sig[0]|val.sig[1] == 0 {
 			res = true
 		}
 

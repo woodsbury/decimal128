@@ -210,7 +210,7 @@ func TestUint128Div(t *testing.T) {
 
 	for _, lhs := range uint128Values {
 		for _, rhs := range uint128Values {
-			if rhs == (uint128{}) {
+			if rhs[0]|rhs[1] == 0 {
 				continue
 			}
 
@@ -759,7 +759,7 @@ func TestUint192Div(t *testing.T) {
 
 	for _, lhs := range uint192Values {
 		for _, rhs := range uint192Values {
-			if rhs == (uint192{}) {
+			if rhs[0]|rhs[1]|rhs[2] == 0 {
 				continue
 			}
 

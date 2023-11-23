@@ -45,7 +45,7 @@ func (d Decimal) Ceil(dp int) Decimal {
 
 	sig, exp := d.decompose()
 
-	if sig == (uint128{}) {
+	if sig[0]|sig[1] == 0 {
 		return zero(d.Signbit())
 	}
 
@@ -74,7 +74,7 @@ func (d Decimal) Ceil(dp int) Decimal {
 			trunc = 1
 		}
 
-		if sig == (uint128{}) {
+		if sig[0]|sig[1] == 0 {
 			iexp = dp
 			break
 		}
@@ -126,7 +126,7 @@ func (d Decimal) Floor(dp int) Decimal {
 
 	sig, exp := d.decompose()
 
-	if sig == (uint128{}) {
+	if sig[0]|sig[1] == 0 {
 		return zero(d.Signbit())
 	}
 
@@ -155,7 +155,7 @@ func (d Decimal) Floor(dp int) Decimal {
 			trunc = 1
 		}
 
-		if sig == (uint128{}) {
+		if sig[0]|sig[1] == 0 {
 			iexp = dp
 			break
 		}
@@ -208,7 +208,7 @@ func (d Decimal) Round(dp int, mode RoundingMode) Decimal {
 
 	sig, exp := d.decompose()
 
-	if sig == (uint128{}) {
+	if sig[0]|sig[1] == 0 {
 		return zero(d.Signbit())
 	}
 
@@ -233,7 +233,7 @@ func (d Decimal) Round(dp int, mode RoundingMode) Decimal {
 
 		sig, digit = sig.div10()
 
-		if sig == (uint128{}) && digit == 0 {
+		if sig[0]|sig[1] == 0 && digit == 0 {
 			return zero(d.Signbit())
 		}
 
@@ -374,7 +374,7 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16, trunc int8
 
 		sig, digit = sig.div10()
 
-		if sig == (uint128{}) && digit == 0 {
+		if sig[0]|sig[1] == 0 && digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
@@ -477,7 +477,7 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8
 
 		sig, digit = sig.div10()
 
-		if sig == (uint128{}) && digit == 0 {
+		if sig[0]|sig[1] == 0 && digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
@@ -558,7 +558,7 @@ func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (
 
 		sig, digit = sig.div10()
 
-		if sig == (uint128{}) && digit == 0 {
+		if sig[0]|sig[1] == 0 && digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
@@ -676,7 +676,7 @@ func (rm RoundingMode) round(shift, neg bool, sig uint128, exp int16, trunc int8
 			var tsig uint128
 			if adjust == 1 {
 				if shift {
-					if sig != (uint128{}) {
+					if sig[0]|sig[1] != 0 {
 						if exp >= minBiasedExponent+19 && sig[1] == 0 {
 							sig = sig.mul64(10_000_000_000_000_000_000)
 							exp -= 19
@@ -696,7 +696,7 @@ func (rm RoundingMode) round(shift, neg bool, sig uint128, exp int16, trunc int8
 				tsig = sig.add64(1)
 			} else {
 				if shift {
-					if sig != (uint128{}) {
+					if sig[0]|sig[1] != 0 {
 						if exp >= minBiasedExponent+19 && sig[1] == 0 {
 							sig = sig.mul64(10_000_000_000_000_000_000)
 							exp -= 19

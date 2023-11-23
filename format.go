@@ -235,7 +235,7 @@ func (d Decimal) digits(digs *digits) {
 
 	sig, exp := d.decompose()
 
-	if sig != (uint128{}) {
+	if sig[0]|sig[1] != 0 {
 		digs.exp = int(exp - exponentBias)
 
 		n := 0
@@ -257,7 +257,7 @@ func (d Decimal) digits(digs *digits) {
 				continue
 			}
 
-			if pair[0] == '0' && sig == (uint128{}) {
+			if pair[0] == '0' && sig[0]|sig[1] == 0 {
 				digs.dig[n] = pair[1]
 				n++
 			} else {

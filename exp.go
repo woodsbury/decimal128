@@ -180,7 +180,7 @@ func Exp10(d Decimal) Decimal {
 		dSig = uint128{}
 		dExp = 0
 
-		for sig != (uint128{}) {
+		for sig[0]|sig[1] != 0 {
 			var rem uint64
 			sig, rem = sig.div10()
 
@@ -207,7 +207,7 @@ func Exp10(d Decimal) Decimal {
 		expInt = int16(dSigInt)
 	}
 
-	if dSig != (uint128{}) {
+	if dSig[0]|dSig[1] != 0 {
 		res, trunc = decomposed192{
 			sig: uint192{dSig[0], dSig[1], 0},
 			exp: dExp,
@@ -314,7 +314,7 @@ func Exp2(d Decimal) Decimal {
 		dSig = uint128{}
 		dExp = 0
 
-		for sig != (uint128{}) {
+		for sig[0]|sig[1] != 0 {
 			var rem uint64
 			sig, rem = sig.div10()
 
@@ -389,7 +389,7 @@ func Exp2(d Decimal) Decimal {
 		}
 	}
 
-	if dSig != (uint128{}) {
+	if dSig[0]|dSig[1] != 0 {
 		res, trunc = decomposed192{
 			sig: uint192{dSig[0], dSig[1], 0},
 			exp: dExp,

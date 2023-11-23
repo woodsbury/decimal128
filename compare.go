@@ -170,7 +170,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 
 	dSig, dExp := d.decompose()
 
-	if dSig == (uint128{}) {
+	if dSig[0]|dSig[1] == 0 {
 		if o.IsZero() {
 			return cmpEqual
 		}
@@ -184,7 +184,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 
 	oSig, oExp := o.decompose()
 
-	if oSig == (uint128{}) {
+	if oSig[0]|oSig[1] == 0 {
 		if d.Signbit() {
 			return cmpLess
 		}
@@ -224,7 +224,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 
 			var rem uint64
 			dSig, rem = dSig.div1e19()
-			if dSig == (uint128{}) {
+			if dSig[0]|dSig[1] == 0 {
 				return res * -1
 			}
 
@@ -250,7 +250,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 
 			var rem uint64
 			oSig, rem = oSig.div1e19()
-			if oSig == (uint128{}) {
+			if oSig[0]|oSig[1] == 0 {
 				return res
 			}
 
@@ -265,7 +265,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -380,7 +380,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -395,7 +395,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 	switch exp {
 	case 7:
 		oSig, rem = oSig.div10()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -406,7 +406,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		fallthrough
 	case 6:
 		oSig, rem = oSig.div1000()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -415,7 +415,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		}
 
 		oSig, rem = oSig.div1000()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -424,7 +424,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		}
 	case 5:
 		oSig, rem = oSig.div10()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -435,7 +435,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		fallthrough
 	case 4:
 		oSig, rem = oSig.div10000()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -444,7 +444,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		}
 	case 3:
 		oSig, rem = oSig.div1000()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -453,7 +453,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		}
 	case 2:
 		oSig, rem = oSig.div10()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -464,7 +464,7 @@ func (d Decimal) Cmp(o Decimal) CmpResult {
 		fallthrough
 	case 1:
 		oSig, rem = oSig.div10()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -518,7 +518,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 
 	dSig, dExp := d.decompose()
 
-	if dSig == (uint128{}) {
+	if dSig[0]|dSig[1] == 0 {
 		if o.IsZero() {
 			return cmpEqual
 		}
@@ -528,7 +528,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 
 	oSig, oExp := o.decompose()
 
-	if oSig == (uint128{}) {
+	if oSig[0]|oSig[1] == 0 {
 		return cmpGreater
 	}
 
@@ -548,7 +548,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 
 			var rem uint64
 			dSig, rem = dSig.div1e19()
-			if dSig == (uint128{}) {
+			if dSig[0]|dSig[1] == 0 {
 				return cmpLess
 			}
 
@@ -574,7 +574,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 
 			var rem uint64
 			oSig, rem = oSig.div1e19()
-			if oSig == (uint128{}) {
+			if oSig[0]|oSig[1] == 0 {
 				return cmpGreater
 			}
 
@@ -589,7 +589,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -704,7 +704,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 	if exp >= 8 {
 		var rem uint64
 		oSig, rem = oSig.div1e8()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -719,7 +719,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 	switch exp {
 	case 7:
 		oSig, rem = oSig.div10()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -730,7 +730,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		fallthrough
 	case 6:
 		oSig, rem = oSig.div1000()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -739,7 +739,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		}
 
 		oSig, rem = oSig.div1000()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -748,7 +748,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		}
 	case 5:
 		oSig, rem = oSig.div10()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -759,7 +759,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		fallthrough
 	case 4:
 		oSig, rem = oSig.div10000()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -768,7 +768,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		}
 	case 3:
 		oSig, rem = oSig.div1000()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -777,7 +777,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		}
 	case 2:
 		oSig, rem = oSig.div10()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -788,7 +788,7 @@ func (d Decimal) CmpAbs(o Decimal) CmpResult {
 		fallthrough
 	case 1:
 		oSig, rem = oSig.div10()
-		if oSig == (uint128{}) {
+		if oSig[0]|oSig[1] == 0 {
 			return res
 		}
 
@@ -835,13 +835,13 @@ func (d Decimal) Equal(o Decimal) bool {
 
 	dSig, dExp := d.decompose()
 
-	if dSig == (uint128{}) {
+	if dSig[0]|dSig[1] == 0 {
 		return o.IsZero()
 	}
 
 	oSig, oExp := o.decompose()
 
-	if oSig == (uint128{}) {
+	if oSig[0]|oSig[1] == 0 {
 		return false
 	}
 

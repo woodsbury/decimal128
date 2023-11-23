@@ -158,7 +158,7 @@ func (d decomposed192) add(o decomposed192, trunc int8) (decomposed192, int8) {
 		}
 
 		if exp < -57 {
-			if d.sig != (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] != 0 {
 				d.sig = uint192{}
 				trunc = 1
 			}
@@ -174,7 +174,7 @@ func (d decomposed192) add(o decomposed192, trunc int8) (decomposed192, int8) {
 				trunc = 1
 			}
 
-			if d.sig == (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				d.exp = o.exp
 				exp = 0
 			} else {
@@ -212,7 +212,7 @@ func (d decomposed192) add(o decomposed192, trunc int8) (decomposed192, int8) {
 		}
 
 		if exp > 57 {
-			if o.sig != (uint192{}) {
+			if o.sig[0]|o.sig[1]|o.sig[2] != 0 {
 				o.sig = uint192{}
 				trunc = -1
 			}
@@ -227,7 +227,7 @@ func (d decomposed192) add(o decomposed192, trunc int8) (decomposed192, int8) {
 				trunc = -1
 			}
 
-			if o.sig == (uint192{}) {
+			if o.sig[0]|o.sig[1]|o.sig[2] == 0 {
 				exp = 0
 			} else {
 				exp -= 4
@@ -273,7 +273,7 @@ func (d decomposed192) add(o decomposed192, trunc int8) (decomposed192, int8) {
 }
 
 func (d decomposed192) add1(trunc int8) (decomposed192, int8) {
-	if d.sig == (uint192{}) {
+	if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 		return decomposed192{
 			sig: uint192{1, 0, 0},
 			exp: 0,
@@ -301,7 +301,7 @@ func (d decomposed192) add1(trunc int8) (decomposed192, int8) {
 				trunc = 1
 			}
 
-			if d.sig == (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				return decomposed192{
 					sig: uint192{1, 0, 0},
 					exp: 0,
@@ -319,7 +319,7 @@ func (d decomposed192) add1(trunc int8) (decomposed192, int8) {
 				trunc = 1
 			}
 
-			if d.sig == (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				return decomposed192{
 					sig: uint192{1, 0, 0},
 					exp: 0,
@@ -363,7 +363,7 @@ func (d decomposed192) add1(trunc int8) (decomposed192, int8) {
 }
 
 func (d decomposed192) add1neg(trunc int8) (bool, decomposed192, int8) {
-	if d.sig == (uint192{}) {
+	if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 		return false, decomposed192{
 			sig: uint192{1, 0, 0},
 			exp: 0,
@@ -392,7 +392,7 @@ func (d decomposed192) add1neg(trunc int8) (bool, decomposed192, int8) {
 				trunc = 1
 			}
 
-			if d.sig == (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				return false, decomposed192{
 					sig: uint192{1, 0, 0},
 					exp: 0,
@@ -410,7 +410,7 @@ func (d decomposed192) add1neg(trunc int8) (bool, decomposed192, int8) {
 				trunc = 1
 			}
 
-			if d.sig == (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				return false, decomposed192{
 					sig: uint192{1, 0, 0},
 					exp: 0,
@@ -842,7 +842,7 @@ func (d decomposed192) powexp10(o int16, trunc int8) (decomposed192, int8) {
 }
 
 func (d decomposed192) quo(o decomposed192, trunc int8) (decomposed192, int8) {
-	if d.sig == (uint192{}) {
+	if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 		return decomposed192{
 			sig: uint192{},
 			exp: 0,
@@ -877,7 +877,7 @@ func (d decomposed192) quo(o decomposed192, trunc int8) (decomposed192, int8) {
 	sig, rem := d.sig.div(o.sig)
 	exp := d.exp - o.exp
 
-	for rem != (uint192{}) && sig[2] <= 0x18ff_ffff_ffff_ffff {
+	for rem[0]|rem[1]|rem[2] != 0 && sig[2] <= 0x18ff_ffff_ffff_ffff {
 		for rem[2] <= 0x0002_7fff_ffff_ffff && sig[2] <= 0x0002_7fff_ffff_ffff {
 			rem = rem.mul64(10_000)
 			sig = sig.mul64(10_000)
@@ -907,7 +907,7 @@ func (d decomposed192) quo(o decomposed192, trunc int8) (decomposed192, int8) {
 		sig = uint192{sig256[0], sig256[1], sig256[2]}
 	}
 
-	if rem != (uint192{}) {
+	if rem[0]|rem[1]|rem[2] != 0 {
 		trunc = 1
 	}
 
@@ -933,7 +933,7 @@ func (d decomposed192) rcp(trunc int8) (decomposed192, int8) {
 	sig, rem := oneSig.div(d.sig)
 	exp := -57 - d.exp
 
-	for rem != (uint192{}) && sig[2] <= 0x18ff_ffff_ffff_ffff {
+	for rem[0]|rem[1]|rem[2] != 0 && sig[2] <= 0x18ff_ffff_ffff_ffff {
 		for rem[2] <= 0x0002_7fff_ffff_ffff && sig[2] <= 0x0002_7fff_ffff_ffff {
 			rem = rem.mul64(10_000)
 			sig = sig.mul64(10_000)
@@ -963,7 +963,7 @@ func (d decomposed192) rcp(trunc int8) (decomposed192, int8) {
 		sig = uint192{sig256[0], sig256[1], sig256[2]}
 	}
 
-	if rem != (uint192{}) {
+	if rem[0]|rem[1]|rem[2] != 0 {
 		trunc = 1
 	}
 
@@ -996,7 +996,7 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 		}
 
 		if exp < -57 {
-			if d.sig != (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] != 0 {
 				d.sig = uint192{}
 				trunc = 1
 			}
@@ -1012,7 +1012,7 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 				trunc = 1
 			}
 
-			if d.sig == (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				d.exp = o.exp
 				exp = 0
 			} else {
@@ -1028,7 +1028,7 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 				trunc = 1
 			}
 
-			if d.sig == (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				d.exp = o.exp
 				exp = 0
 				break
@@ -1057,7 +1057,7 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 		}
 
 		if exp > 57 {
-			if o.sig != (uint192{}) {
+			if o.sig[0]|o.sig[1]|o.sig[2] != 0 {
 				o.sig = uint192{}
 				trunc = -1
 			}
@@ -1072,7 +1072,7 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 				trunc = -1
 			}
 
-			if o.sig == (uint192{}) {
+			if o.sig[0]|o.sig[1]|o.sig[2] == 0 {
 				exp = 0
 			} else {
 				exp -= 4
@@ -1086,7 +1086,7 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 				trunc = -1
 			}
 
-			if o.sig == (uint192{}) {
+			if o.sig[0]|o.sig[1]|o.sig[2] == 0 {
 				exp = 0
 				break
 			}
@@ -1112,7 +1112,7 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 }
 
 func (d decomposed192) sub1(trunc int8) (bool, decomposed192, int8) {
-	if d.sig == (uint192{}) {
+	if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 		return true, decomposed192{
 			sig: uint192{1, 0, 0},
 			exp: 0,
@@ -1141,7 +1141,7 @@ func (d decomposed192) sub1(trunc int8) (bool, decomposed192, int8) {
 				trunc = 1
 			}
 
-			if d.sig == (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				return true, decomposed192{
 					sig: uint192{1, 0, 0},
 					exp: 0,
@@ -1159,7 +1159,7 @@ func (d decomposed192) sub1(trunc int8) (bool, decomposed192, int8) {
 				trunc = 1
 			}
 
-			if d.sig == (uint192{}) {
+			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				return true, decomposed192{
 					sig: uint192{1, 0, 0},
 					exp: 0,

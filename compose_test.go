@@ -107,7 +107,7 @@ func TestDecimalCompose(t *testing.T) {
 			form = 0
 			neg = val.neg
 
-			if val.sig != (uint128{}) {
+			if val.sig[0]|val.sig[1] != 0 {
 				sig = uint128ToBig(val.sig, bigsig).Bytes()
 				exp = int32(val.exp) - exponentBias
 			}

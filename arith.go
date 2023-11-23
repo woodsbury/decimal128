@@ -63,7 +63,7 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 
 		if !d.isSpecial() {
 			sig, _ := d.decompose()
-			if sig == (uint128{}) {
+			if sig[0]|sig[1] == 0 {
 				lhs := payloadValPosZero
 				if d.Signbit() {
 					lhs = payloadValNegZero
@@ -78,7 +78,7 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 			}
 		} else if !o.isSpecial() {
 			sig, _ := o.decompose()
-			if sig == (uint128{}) {
+			if sig[0]|sig[1] == 0 {
 				lhs := payloadValPosInfinite
 				if d.Signbit() {
 					lhs = payloadValNegInfinite
@@ -114,7 +114,7 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 	} else {
 		sig256 := dSig.mul(oSig)
 
-		if sig256 == (uint256{}) {
+		if sig256[0]|sig256[1]|sig256[2]|sig256[3] == 0 {
 			return zero(neg)
 		}
 
@@ -367,7 +367,7 @@ func (d Decimal) PowWithMode(o Decimal, mode RoundingMode) Decimal {
 		exp: dExp - exponentBias,
 	}.log()
 
-	if res.sig == (uint192{}) {
+	if res.sig[0]|res.sig[1]|res.sig[2] == 0 {
 		return one(neg)
 	}
 
@@ -384,7 +384,7 @@ func (d Decimal) PowWithMode(o Decimal, mode RoundingMode) Decimal {
 		exp: oExp - exponentBias,
 	}, trunc)
 
-	if res.sig == (uint192{}) {
+	if res.sig[0]|res.sig[1]|res.sig[2] == 0 {
 		return one(neg)
 	}
 
@@ -398,7 +398,7 @@ func (d Decimal) PowWithMode(o Decimal, mode RoundingMode) Decimal {
 		return inf(neg)
 	}
 
-	if res.sig == (uint192{}) {
+	if res.sig[0]|res.sig[1]|res.sig[2] == 0 {
 		return one(neg)
 	}
 
@@ -470,8 +470,8 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 	dSig, dExp := d.decompose()
 	oSig, oExp := o.decompose()
 
-	if oSig == (uint128{}) {
-		if dSig == (uint128{}) {
+	if oSig[0]|oSig[1] == 0 {
+		if dSig[0]|dSig[1] == 0 {
 			lhs := payloadValPosZero
 			if d.Signbit() {
 				lhs = payloadValNegZero
@@ -488,7 +488,7 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 		return inf(d.Signbit() != o.Signbit())
 	}
 
-	if dSig == (uint128{}) {
+	if dSig[0]|dSig[1] == 0 {
 		return zero(d.Signbit() != o.Signbit())
 	}
 
@@ -561,7 +561,7 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 
 	trunc := int8(0)
 
-	for rem != (uint128{}) && sig[1] <= 0x0002_7fff_ffff_ffff {
+	for rem[0]|rem[1] != 0 && sig[1] <= 0x0002_7fff_ffff_ffff {
 		for rem[1] <= 0x0002_7fff_ffff_ffff && sig[1] <= 0x0002_7fff_ffff_ffff {
 			rem = rem.mul64(10_000)
 			sig = sig.mul64(10_000)
@@ -591,7 +591,7 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 		sig = uint128{sig192[0], sig192[1]}
 	}
 
-	if rem != (uint128{}) {
+	if rem[0]|rem[1] != 0 {
 		trunc = 1
 	}
 
@@ -661,13 +661,13 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 	dSig, dExp := d.decompose()
 	oSig, oExp := o.decompose()
 
-	if oSig == (uint128{}) {
+	if oSig[0]|oSig[1] == 0 {
 		rhs := payloadValPosZero
 		if o.Signbit() {
 			rhs = payloadValNegZero
 		}
 
-		if dSig == (uint128{}) {
+		if dSig[0]|dSig[1] == 0 {
 			lhs := payloadValPosZero
 			if d.Signbit() {
 				lhs = payloadValNegZero
@@ -685,7 +685,7 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 		return inf(d.Signbit() != o.Signbit()), nan(payloadOpQuoRem, lhs, rhs)
 	}
 
-	if dSig == (uint128{}) {
+	if dSig[0]|dSig[1] == 0 {
 		return zero(d.Signbit() != o.Signbit()), zero(d.Signbit())
 	}
 
@@ -777,7 +777,7 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 
 	trunc := int8(0)
 
-	for exp > 0 && rem != (uint128{}) && sig[1] <= 0x0002_7fff_ffff_ffff {
+	for exp > 0 && rem[0]|rem[1] != 0 && sig[1] <= 0x0002_7fff_ffff_ffff {
 		for exp >= 4 && rem[1] <= 0x0002_7fff_ffff_ffff && sig[1] <= 0x0002_7fff_ffff_ffff {
 			rem = rem.mul64(10_000)
 			sig = sig.mul64(10_000)
@@ -811,7 +811,7 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 		sig = uint128{sig192[0], sig192[1]}
 	}
 
-	for exp > 0 && rem != (uint128{}) {
+	for exp > 0 && rem[0]|rem[1] != 0 {
 		for exp >= 4 && rem[1] <= 0x0002_7fff_ffff_ffff {
 			rem = rem.mul64(10_000)
 			exp -= 4
@@ -827,7 +827,7 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 		var tmp uint128
 		tmp, rem = rem.div(oSig)
 
-		if tmp != (uint128{}) {
+		if tmp[0]|tmp[1] != 0 {
 			trunc = 1
 		}
 	}
@@ -896,8 +896,8 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 	dSig, dExp := d.decompose()
 	oSig, oExp := o.decompose()
 
-	if dSig == (uint128{}) {
-		if oSig == (uint128{}) {
+	if dSig[0]|dSig[1] == 0 {
+		if oSig[0]|oSig[1] == 0 {
 			if subtract {
 				return zero(d.Signbit() && !o.Signbit())
 			} else {
@@ -912,7 +912,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 		return o
 	}
 
-	if oSig == (uint128{}) {
+	if oSig[0]|oSig[1] == 0 {
 		return d
 	}
 
@@ -939,7 +939,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 		}
 
 		if exp < -maxDigits {
-			if dSig != (uint128{}) {
+			if dSig[0]|dSig[1] != 0 {
 				dSig = uint128{}
 				trunc = 1
 			}
@@ -955,7 +955,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = 1
 			}
 
-			if dSig == (uint128{}) {
+			if dSig[0]|dSig[1] == 0 {
 				dExp = oExp
 				exp = 0
 			} else {
@@ -971,7 +971,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = 1
 			}
 
-			if dSig == (uint128{}) {
+			if dSig[0]|dSig[1] == 0 {
 				dExp = oExp
 				exp = 0
 			} else {
@@ -987,7 +987,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = 1
 			}
 
-			if dSig == (uint128{}) {
+			if dSig[0]|dSig[1] == 0 {
 				dExp = oExp
 				exp = 0
 			} else {
@@ -1003,7 +1003,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = 1
 			}
 
-			if dSig == (uint128{}) {
+			if dSig[0]|dSig[1] == 0 {
 				dExp = oExp
 				exp = 0
 			} else {
@@ -1019,7 +1019,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = 1
 			}
 
-			if dSig == (uint128{}) {
+			if dSig[0]|dSig[1] == 0 {
 				dExp = oExp
 				exp = 0
 				break
@@ -1048,7 +1048,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 		}
 
 		if exp > maxDigits {
-			if oSig != (uint128{}) {
+			if oSig[0]|oSig[1] != 0 {
 				oSig = uint128{}
 				trunc = -1
 			}
@@ -1063,7 +1063,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = -1
 			}
 
-			if oSig == (uint128{}) {
+			if oSig[0]|oSig[1] == 0 {
 				exp = 0
 			} else {
 				exp -= 8
@@ -1077,7 +1077,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = -1
 			}
 
-			if oSig == (uint128{}) {
+			if oSig[0]|oSig[1] == 0 {
 				exp = 0
 			} else {
 				exp -= 4
@@ -1091,7 +1091,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = -1
 			}
 
-			if oSig == (uint128{}) {
+			if oSig[0]|oSig[1] == 0 {
 				exp = 0
 			} else {
 				exp -= 3
@@ -1105,7 +1105,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = -1
 			}
 
-			if oSig == (uint128{}) {
+			if oSig[0]|oSig[1] == 0 {
 				exp = 0
 			} else {
 				exp -= 2
@@ -1119,7 +1119,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 				trunc = -1
 			}
 
-			if oSig == (uint128{}) {
+			if oSig[0]|oSig[1] == 0 {
 				exp = 0
 				break
 			}
@@ -1140,7 +1140,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 	if dNeg == oNeg {
 		sig192 := dSig.add(oSig)
 
-		if sig192 == (uint192{}) {
+		if sig192[0]|sig192[1]|sig192[2] == 0 {
 			return zero(mode == ToNegativeInf)
 		}
 
@@ -1157,7 +1157,7 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 			sig = sig.twos()
 			neg = !neg
 			trunc *= -1
-		} else if sig == (uint128{}) {
+		} else if sig[0]|sig[1] == 0 {
 			return zero(mode == ToNegativeInf)
 		}
 

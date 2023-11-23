@@ -113,14 +113,14 @@ var (
 type uint128 [2]uint64
 
 func (n uint128) String() string {
-	if n == (uint128{}) {
+	if n[0]|n[1] == 0 {
 		return "0"
 	}
 
 	var buf [39]byte
 
 	i := 39
-	for n != (uint128{}) {
+	for n[0]|n[1] != 0 {
 		var d uint64
 		n, d = n.div10()
 		i--
@@ -379,14 +379,14 @@ func (n uint128) twos() uint128 {
 type uint192 [3]uint64
 
 func (n uint192) String() string {
-	if n == (uint192{}) {
+	if n[0]|n[1]|n[2] == 0 {
 		return "0"
 	}
 
 	var buf [58]byte
 
 	i := 58
-	for n != (uint192{}) {
+	for n[0]|n[1]|n[2] != 0 {
 		var d uint64
 		n, d = n.div10()
 		i--
@@ -830,14 +830,14 @@ func (n uint192) twos() uint192 {
 type uint256 [4]uint64
 
 func (n uint256) String() string {
-	if n == (uint256{}) {
+	if n[0]|n[1]|n[2]|n[3] == 0 {
 		return "0"
 	}
 
 	var buf [78]byte
 
 	i := 78
-	for n != (uint256{}) {
+	for n[0]|n[1]|n[2]|n[3] != 0 {
 		var d uint64
 		n, d = n.div10()
 		i--
@@ -965,14 +965,14 @@ func (n uint256) rsh(o uint) uint256 {
 type uint384 [6]uint64
 
 func (n uint384) String() string {
-	if n == (uint384{}) {
+	if n[0]|n[1]|n[2]|n[3]|n[4]|n[5] == 0 {
 		return "0"
 	}
 
 	var buf [116]byte
 
 	i := 116
-	for n != (uint384{}) {
+	for n[0]|n[1]|n[2]|n[3]|n[4]|n[5] != 0 {
 		var d uint64
 		n, d = n.div10()
 		i--

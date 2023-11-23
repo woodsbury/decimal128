@@ -354,7 +354,7 @@ func (d Decimal) Float64() float64 {
 
 	sig, exp := d.decompose()
 
-	if sig == (uint128{}) {
+	if sig[0]|sig[1] == 0 {
 		f := 0.0
 		if d.Signbit() {
 			f = math.Copysign(f, -1.0)
@@ -530,7 +530,7 @@ func (d Decimal) Int32() (int32, bool) {
 		sig, _ = sig.div10()
 		exp++
 
-		if sig == (uint128{}) {
+		if sig[0]|sig[1] == 0 {
 			exp = 0
 			break
 		}
@@ -599,7 +599,7 @@ func (d Decimal) Int64() (int64, bool) {
 		sig, _ = sig.div10()
 		exp++
 
-		if sig == (uint128{}) {
+		if sig[0]|sig[1] == 0 {
 			exp = 0
 			break
 		}
@@ -725,7 +725,7 @@ func (d Decimal) Uint32() (uint32, bool) {
 		sig, _ = sig.div10()
 		exp++
 
-		if sig == (uint128{}) {
+		if sig[0]|sig[1] == 0 {
 			exp = 0
 			break
 		}
@@ -780,7 +780,7 @@ func (d Decimal) Uint64() (uint64, bool) {
 		sig, _ = sig.div10()
 		exp++
 
-		if sig == (uint128{}) {
+		if sig[0]|sig[1] == 0 {
 			exp = 0
 			break
 		}

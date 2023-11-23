@@ -408,7 +408,7 @@ func parseNumber[D []byte | string](d D, neg, sepallowed bool) (Decimal, error) 
 			return zero(neg), nil
 		}
 
-		if sig == (uint128{}) {
+		if sig[0]|sig[1] == 0 {
 			return zero(neg), nil
 		}
 

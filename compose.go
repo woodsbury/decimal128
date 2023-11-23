@@ -196,7 +196,7 @@ func (d Decimal) Decompose(buf []byte) (byte, bool, []byte, int32) {
 
 	sig128, exp := d.decompose()
 
-	if sig128 == (uint128{}) {
+	if sig128[0]|sig128[1] == 0 {
 		return 0, d.Signbit(), nil, 0
 	}
 
