@@ -186,9 +186,17 @@ func (d Decimal) PowWithMode(o Decimal, mode RoundingMode) Decimal {
 		dSig, dExp := d.decompose()
 		dExp -= exponentBias
 
+		if dExp > 0 {
+			if oNeg {
+				return zero(false)
+			}
+
+			return inf(false)
+		}
+
 		if dExp > -maxDigits {
 			l10 := int16(dSig.log10())
-			if l10 > -dExp {
+			if l10 >= -dExp {
 				if oNeg {
 					return zero(false)
 				}
@@ -198,10 +206,10 @@ func (d Decimal) PowWithMode(o Decimal, mode RoundingMode) Decimal {
 		}
 
 		if oNeg {
-			return zero(false)
+			return inf(false)
 		}
 
-		return inf(false)
+		return zero(false)
 	}
 
 	oSig, oExp := o.decompose()

@@ -2,7 +2,7 @@ package decimal128
 
 import (
 	"bytes"
-	"fmt"
+	"math"
 	"math/big"
 	"testing"
 )
@@ -135,7 +135,89 @@ func TestDecimalSub(t *testing.T) {
 	}
 }
 
-func FuzzOperations(f *testing.F) {
+func FuzzArith(f *testing.F) {
+	values := []float64{
+		0.0,
+		math.Copysign(0.0, -1.0),
+		0.5,
+		1.0,
+		5.0,
+		math.Inf(1),
+		math.Inf(-1),
+		math.NaN(),
+	}
+
+	for _, x := range values {
+		for _, y := range values {
+			f.Add(x, y)
+		}
+	}
+
+	f.Fuzz(func(t *testing.T, x, y float64) {
+		t.Parallel()
+
+		decx := FromFloat64(x)
+		decy := FromFloat64(y)
+
+		decres := decx.Add(decy).Float64()
+		fltres := x + y
+		eps := math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp := math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+20)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = decx.Mul(decy).Float64()
+		fltres = x * y
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+20)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = decx.Pow(decy).Float64()
+		fltres = math.Pow(x, y)
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+20)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = decx.Quo(decy).Float64()
+		fltres = x / y
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+20)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		res, rem := decx.QuoRem(decy)
+		decres, decrem := res.Float64(), rem.Float64()
+		decres = decres*y + decrem
+		fltres = x
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+20)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = decx.Sub(decy).Float64()
+		fltres = x - y
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+20)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+	})
+}
+
+func FuzzBigArith(f *testing.F) {
 	const minBinaryExponent = -20517
 
 	f.Fuzz(func(t *testing.T, xlo, xhi, ylo, yhi uint64) {
@@ -144,132 +226,70 @@ func FuzzOperations(f *testing.F) {
 		x := Decimal{xlo, xhi}
 		y := Decimal{ylo, yhi}
 
-		var bigx *big.Float
-		var bigy *big.Float
-		var bigres *big.Float
-		if !x.isSpecial() && !y.isSpecial() {
-			bigx = x.Float(nil)
-			bigy = y.Float(nil)
-			bigres = new(big.Float)
+		if x.IsNaN() || y.IsNaN() {
+			t.Skip()
 		}
+
+		bigx := x.Float(nil)
+		bigy := y.Float(nil)
+		bigres := new(big.Float)
 
 		var buf []byte
 		var cmpbuf []byte
 
 		res := x.Add(y)
+		buf = res.Append(buf[:0], ".3e")
+		if idx := bytes.IndexByte(buf, 'e'); idx != -1 {
+			buf[idx-1] = '0'
+		}
 
-		if bigres == nil || res.isSpecial() {
-			buf = res.Append(buf[:0], ".3e")
-			idx := bytes.IndexByte(buf, 'e')
-			if idx != -1 {
-				buf[idx-1] = '0'
-			}
-
-			fltres := x.Float64() + y.Float64()
-			cmpbuf = fmt.Appendf(cmpbuf[:0], "%.3e", fltres)
-			idx = bytes.IndexByte(cmpbuf, 'e')
-			if idx != -1 {
+		bigres.Add(bigx, bigy)
+		if bigexp := bigres.MantExp(nil); bigexp > minBinaryExponent {
+			cmpbuf = bigres.Append(cmpbuf[:0], 'e', 3)
+			if idx := bytes.IndexByte(cmpbuf, 'e'); idx != -1 {
 				cmpbuf[idx-1] = '0'
 			}
 
 			if string(buf) != string(cmpbuf) {
 				t.Fail()
 			}
-		} else {
-			buf = res.Append(buf[:0], ".3e")
-			idx := bytes.IndexByte(buf, 'e')
-			buf[idx-1] = '0'
-
-			bigres.Add(bigx, bigy)
-			if bigexp := bigres.MantExp(nil); bigexp > minBinaryExponent {
-				cmpbuf = bigres.Append(cmpbuf[:0], 'e', 3)
-				idx = bytes.IndexByte(cmpbuf, 'e')
-				cmpbuf[idx-1] = '0'
-
-				if string(buf) != string(cmpbuf) {
-					t.Fail()
-				}
-			} else if string(buf) != "0.000e+00" {
-				t.Fail()
-			}
+		} else if string(buf) != "0.000e+00" {
+			t.Fail()
 		}
 
 		res = x.Mul(y)
-
-		if bigres == nil || res.isSpecial() {
-			buf = res.Append(buf[:0], ".3e")
-			idx := bytes.IndexByte(buf, 'e')
-			if idx != -1 {
-				buf[idx-1] = '0'
-			}
-
-			fltres := x.Float64() * y.Float64()
-			cmpbuf = fmt.Appendf(cmpbuf[:0], "%.3e", fltres)
-			idx = bytes.IndexByte(cmpbuf, 'e')
-			if idx != -1 {
-				cmpbuf[idx-1] = '0'
-			}
-
-			if string(buf) != string(cmpbuf) {
-				t.Fail()
-			}
-		} else {
-			buf = res.Append(buf[:0], ".3e")
-			idx := bytes.IndexByte(buf, 'e')
+		buf = res.Append(buf[:0], ".3e")
+		if idx := bytes.IndexByte(buf, 'e'); idx != -1 {
 			buf[idx-1] = '0'
-
-			bigres.Mul(bigx, bigy)
-			if bigexp := bigres.MantExp(nil); bigexp > minBinaryExponent {
-				cmpbuf = bigres.Append(cmpbuf[:0], 'e', 3)
-				idx = bytes.IndexByte(cmpbuf, 'e')
-				cmpbuf[idx-1] = '0'
-
-				if string(buf) != string(cmpbuf) {
-					t.Fail()
-				}
-			} else if string(buf) != "0.000e+00" {
-				t.Fail()
-			}
 		}
 
-		res = x.Quo(y)
-
-		if bigres == nil || res.isSpecial() {
-			buf = res.Append(buf[:0], ".3e")
-			idx := bytes.IndexByte(buf, 'e')
-			if idx != -1 {
-				buf[idx-1] = '0'
-			}
-
-			fltx := x.Float64()
-			if res.isInf() && !x.IsZero() && y.IsZero() && fltx == 0 {
-				if x.Signbit() {
-					fltx = -1
-				} else {
-					fltx = 1
-				}
-			}
-
-			fltres := fltx / y.Float64()
-			cmpbuf = fmt.Appendf(cmpbuf[:0], "%.3e", fltres)
-			idx = bytes.IndexByte(cmpbuf, 'e')
-			if idx != -1 {
+		bigres.Mul(bigx, bigy)
+		if bigexp := bigres.MantExp(nil); bigexp > minBinaryExponent {
+			cmpbuf = bigres.Append(cmpbuf[:0], 'e', 3)
+			if idx := bytes.IndexByte(cmpbuf, 'e'); idx != -1 {
 				cmpbuf[idx-1] = '0'
 			}
 
 			if string(buf) != string(cmpbuf) {
 				t.Fail()
 			}
-		} else {
+		} else if string(buf) != "0.000e+00" {
+			t.Fail()
+		}
+
+		if !y.IsZero() && !y.isInf() {
+			res = x.Quo(y)
 			buf = res.Append(buf[:0], ".3e")
-			idx := bytes.IndexByte(buf, 'e')
-			buf[idx-1] = '0'
+			if idx := bytes.IndexByte(buf, 'e'); idx != -1 {
+				buf[idx-1] = '0'
+			}
 
 			bigres.Quo(bigx, bigy)
 			if bigexp := bigres.MantExp(nil); bigexp > minBinaryExponent {
 				cmpbuf = bigres.Append(cmpbuf[:0], 'e', 3)
-				idx = bytes.IndexByte(cmpbuf, 'e')
-				cmpbuf[idx-1] = '0'
+				if idx := bytes.IndexByte(cmpbuf, 'e'); idx != -1 {
+					cmpbuf[idx-1] = '0'
+				}
 
 				if string(buf) != string(cmpbuf) {
 					t.Fail()
@@ -280,46 +300,28 @@ func FuzzOperations(f *testing.F) {
 		}
 
 		res = x.Sub(y)
+		buf = res.Append(buf[:0], ".3e")
+		if idx := bytes.IndexByte(buf, 'e'); idx != -1 {
+			buf[idx-1] = '0'
+		}
 
-		if res.isSpecial() || bigres == nil {
-			buf = res.Append(buf[:0], ".3e")
-			idx := bytes.IndexByte(buf, 'e')
-			if idx != -1 {
-				buf[idx-1] = '0'
-			}
-
-			fltres := x.Float64() - y.Float64()
-			cmpbuf = fmt.Appendf(cmpbuf[:0], "%.3e", fltres)
-			idx = bytes.IndexByte(cmpbuf, 'e')
-			if idx != -1 {
+		bigres.Sub(bigx, bigy)
+		if bigexp := bigres.MantExp(nil); bigexp > minBinaryExponent {
+			cmpbuf = bigres.Append(cmpbuf[:0], 'e', 3)
+			if idx := bytes.IndexByte(cmpbuf, 'e'); idx != -1 {
 				cmpbuf[idx-1] = '0'
 			}
 
 			if string(buf) != string(cmpbuf) {
 				t.Fail()
 			}
-		} else {
-			buf = res.Append(buf[:0], ".3e")
-			idx := bytes.IndexByte(buf, 'e')
-			buf[idx-1] = '0'
-
-			bigres.Sub(bigx, bigy)
-			if bigexp := bigres.MantExp(nil); bigexp > minBinaryExponent {
-				cmpbuf = bigres.Append(cmpbuf[:0], 'e', 3)
-				idx = bytes.IndexByte(cmpbuf, 'e')
-				cmpbuf[idx-1] = '0'
-
-				if string(buf) != string(cmpbuf) {
-					t.Fail()
-				}
-			} else if string(buf) != "0.000e+00" {
-				t.Fail()
-			}
+		} else if string(buf) != "0.000e+00" {
+			t.Fail()
 		}
 	})
 }
 
-func BenchmarkOperations(b *testing.B) {
+func BenchmarkArith(b *testing.B) {
 	initDecimalValues()
 
 	values := make([]Decimal, 0, len(decimalValues))
