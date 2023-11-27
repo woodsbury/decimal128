@@ -1,6 +1,9 @@
 package decimal128
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestCbrt(t *testing.T) {
 	t.Parallel()
@@ -180,6 +183,168 @@ func TestSqrt(t *testing.T) {
 			t.Errorf("Sqrt(%v) = %v, want %v", val, root, res)
 		}
 	}
+}
+
+func FuzzExp(f *testing.F) {
+	values := []float64{
+		0.0,
+		math.Copysign(0.0, -1.0),
+		0.5,
+		1.0,
+		5.0,
+		math.Inf(1),
+		math.Inf(-1),
+		math.NaN(),
+	}
+
+	for _, v := range values {
+		f.Add(v)
+	}
+
+	f.Fuzz(func(t *testing.T, v float64) {
+		t.Parallel()
+
+		decv := FromFloat64(v)
+
+		decres := Exp(decv).Float64()
+		fltres := math.Exp(v)
+		eps := math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp := math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = Exp10(decv).Float64()
+		fltres = math.Pow(10.0, v)
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = Exp2(decv).Float64()
+		fltres = math.Exp2(v)
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = Expm1(decv).Float64()
+		fltres = math.Expm1(v)
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+	})
+}
+
+func FuzzLog(f *testing.F) {
+	values := []float64{
+		0.0,
+		math.Copysign(0.0, -1.0),
+		0.5,
+		1.0,
+		5.0,
+		math.Inf(1),
+		math.Inf(-1),
+		math.NaN(),
+	}
+
+	for _, v := range values {
+		f.Add(v)
+	}
+
+	f.Fuzz(func(t *testing.T, v float64) {
+		t.Parallel()
+
+		decv := FromFloat64(v)
+
+		decres := Log(decv).Float64()
+		fltres := math.Log(v)
+		eps := math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp := math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = Log10(decv).Float64()
+		fltres = math.Log10(v)
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = Log1p(decv).Float64()
+		fltres = math.Log1p(v)
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = Log2(decv).Float64()
+		fltres = math.Log2(v)
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Log(decv, Log2(decv))
+			t.Logf("%.24e", v)
+			t.Log(v, fltres, decres, eps)
+			t.Fail()
+		}
+	})
+}
+
+func FuzzRoot(f *testing.F) {
+	values := []float64{
+		0.0,
+		math.Copysign(0.0, -1.0),
+		0.5,
+		1.0,
+		5.0,
+		math.Inf(1),
+		math.Inf(-1),
+		math.NaN(),
+	}
+
+	for _, v := range values {
+		f.Add(v)
+	}
+
+	f.Fuzz(func(t *testing.T, v float64) {
+		t.Parallel()
+
+		decv := FromFloat64(v)
+
+		decres := Cbrt(decv).Float64()
+		fltres := math.Cbrt(v)
+		eps := math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp := math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+
+		decres = Sqrt(decv).Float64()
+		fltres = math.Sqrt(v)
+		eps = math.Nextafter(math.Abs(math.Max(decres, fltres)), math.Inf(1)) - math.Abs(math.Max(decres, fltres))
+		eps, epsexp = math.Frexp(eps)
+		eps = math.Ldexp(eps, epsexp+50)
+		if math.Abs(decres-fltres) > eps {
+			t.Fail()
+		}
+	})
 }
 
 func BenchmarkExp(b *testing.B) {
