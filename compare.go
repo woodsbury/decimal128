@@ -1032,10 +1032,6 @@ func (d Decimal) Equal(o Decimal) bool {
 // IsZero reports whether the Decimal is equal to zero. This method will return
 // true for both positive and negative zero.
 func (d Decimal) IsZero() bool {
-	if d == (Decimal{}) {
-		return true
-	}
-
 	if d.hi&0x6000_0000_0000_0000 == 0x6000_0000_0000_0000 {
 		return false
 	} else {
