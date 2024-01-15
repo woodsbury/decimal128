@@ -1030,7 +1030,6 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 
 			if d.sig[0]|d.sig[1]|d.sig[2] == 0 {
 				d.exp = o.exp
-				exp = 0
 				break
 			}
 
@@ -1087,7 +1086,6 @@ func (d decomposed192) sub(o decomposed192, trunc int8) (bool, decomposed192, in
 			}
 
 			if o.sig[0]|o.sig[1]|o.sig[2] == 0 {
-				exp = 0
 				break
 			}
 

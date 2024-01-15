@@ -1029,7 +1029,6 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 
 			if dSig[0]|dSig[1] == 0 {
 				dExp = oExp
-				exp = 0
 				break
 			}
 
@@ -1128,7 +1127,6 @@ func (d Decimal) add(o Decimal, mode RoundingMode, subtract bool) Decimal {
 			}
 
 			if oSig[0]|oSig[1] == 0 {
-				exp = 0
 				break
 			}
 
