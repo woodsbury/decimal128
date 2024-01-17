@@ -109,13 +109,16 @@ func zero(neg bool) Decimal {
 // as a Decimal. Canonical converts each of these into a single representation.
 //
 // If d is ±Inf or NaN, the canonical representation consists of only the bits
-// required to represent the respective special floating point value, with all
+// required to represent the respective special floating point value with all
 // other bits set to 0. For NaN values this also removes any payload it may
 // have had.
 //
-// If d is finite, the canonical representation is calculated as the
-// representation with an exponent closest to zero that still accurately stores
-// all non-zero digits the value has.
+// If d is 0, the canonical representation consists of only the sign bit set
+// based on the sign of the value with all other bits set to 0.
+//
+// If d is finite and non-zero, the canonical representation is calculated as
+// the representation with an exponent closest to zero that still accurately
+// stores all non-zero digits the value has.
 func (d Decimal) Canonical() Decimal {
 	if d.isSpecial() {
 		if d.IsNaN() {
@@ -126,6 +129,10 @@ func (d Decimal) Canonical() Decimal {
 	}
 
 	sig, exp := d.decompose()
+
+	if sig[0]|sig[1] == 0 {
+		return zero(d.Signbit())
+	}
 
 	for exp > exponentBias {
 		tmp := sig.mul64(10)
