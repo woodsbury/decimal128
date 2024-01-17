@@ -397,6 +397,10 @@ func parseNumber[D []byte | string](d D, neg, sepallowed bool) (Decimal, error) 
 		return Decimal{}, parseNumberSyntaxError{}
 	}
 
+	if sig[0]|sig[1] == 0 {
+		return zero(neg), nil
+	}
+
 	// If the exponent value is larger than the maximum supported exponent,
 	// there are two cases where the value is still valid:
 	//  - the exponent is negative, where the logical value rounds to 0
@@ -405,10 +409,6 @@ func parseNumber[D []byte | string](d D, neg, sepallowed bool) (Decimal, error) 
 	// Otherwise, return a range error.
 	if maxexp {
 		if eneg {
-			return zero(neg), nil
-		}
-
-		if sig[0]|sig[1] == 0 {
 			return zero(neg), nil
 		}
 
