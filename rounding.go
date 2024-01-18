@@ -29,6 +29,15 @@ func Round(d Decimal) Decimal {
 	return d.Round(0, ToNearestAway)
 }
 
+// Trunc returns the integer value of d.
+//
+// Trunc is equivalent to:
+//
+//	d.Round(0, decimal128.ToZero)
+func Trunc(d Decimal) Decimal {
+	return d.Round(0, ToZero)
+}
+
 // Ceil returns the least Decimal value greater than or equal to d that has no
 // digits after the specified number of decimal places.
 //
@@ -233,7 +242,7 @@ func (d Decimal) Round(dp int, mode RoundingMode) Decimal {
 
 		sig, digit = sig.div10()
 
-		if sig[0]|sig[1] == 0 && digit == 0 {
+		if sig[0]|sig[1]|digit == 0 {
 			return zero(d.Signbit())
 		}
 
@@ -374,7 +383,7 @@ func (rm RoundingMode) reduce256(neg bool, sig256 uint256, exp int16, trunc int8
 
 		sig, digit = sig.div10()
 
-		if sig[0]|sig[1] == 0 && digit == 0 {
+		if sig[0]|sig[1]|digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
@@ -477,7 +486,7 @@ func (rm RoundingMode) reduce192(neg bool, sig192 uint192, exp int16, trunc int8
 
 		sig, digit = sig.div10()
 
-		if sig[0]|sig[1] == 0 && digit == 0 {
+		if sig[0]|sig[1]|digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
@@ -558,7 +567,7 @@ func (rm RoundingMode) reduce128(neg bool, sig uint128, exp int16, trunc int8) (
 
 		sig, digit = sig.div10()
 
-		if sig[0]|sig[1] == 0 && digit == 0 {
+		if sig[0]|sig[1]|digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0
@@ -594,7 +603,7 @@ func (rm RoundingMode) reduce64(neg bool, sig64 uint64, exp int16) (uint128, int
 		digit = sig64 % 10
 		sig64 = sig64 / 10
 
-		if sig64 == 0 && digit == 0 {
+		if sig64|digit == 0 {
 			trunc = 0
 			digit = 0
 			exp = 0

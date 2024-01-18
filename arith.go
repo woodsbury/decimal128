@@ -103,10 +103,10 @@ func (d Decimal) MulWithMode(o Decimal, mode RoundingMode) Decimal {
 	neg := d.Signbit() != o.Signbit()
 
 	var sig uint128
-	if dSig[1] == 0 && oSig[1] == 0 {
+	if dSig[1]|oSig[1] == 0 {
 		sig1, sig0 := bits.Mul64(dSig[0], oSig[0])
 
-		if sig1 == 0 && sig0 == 0 {
+		if sig0|sig1 == 0 {
 			return zero(neg)
 		}
 
@@ -504,7 +504,7 @@ func (d Decimal) QuoWithMode(o Decimal, mode RoundingMode) Decimal {
 
 	var sig uint128
 	var rem uint128
-	if dSig[1] == 0 && oSig[1] == 0 {
+	if dSig[1]|oSig[1] == 0 {
 		dSig64 := dSig[0]
 
 		for dSig64 <= 0x0002_7fff_ffff_ffff {
@@ -743,7 +743,7 @@ func (d Decimal) QuoRemWithMode(o Decimal, mode RoundingMode) (Decimal, Decimal)
 
 	var sig uint128
 	var rem uint128
-	if dSig[1] == 0 && oSig[1] == 0 {
+	if dSig[1]|oSig[1] == 0 {
 		sig64, rem64 := bits.Div64(0, dSig[0], oSig[0])
 
 		var carry uint64

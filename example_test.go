@@ -23,6 +23,16 @@ func ExampleAbs() {
 	// Abs(NaN) = NaN
 }
 
+func ExampleCeil() {
+	x := decimal128.New(-123, -2)
+	y := decimal128.New(789, -2)
+	fmt.Println(decimal128.Ceil(x))
+	fmt.Println(decimal128.Ceil(y))
+	// Output:
+	// -1
+	// 8
+}
+
 func ExampleCompare() {
 	s := []decimal128.Decimal{
 		decimal128.New(3, 0),
@@ -43,6 +53,16 @@ func ExampleCompare() {
 	// NaN
 	// +Inf
 	// [NaN -Inf 1 2 3 +Inf]
+}
+
+func ExampleFloor() {
+	x := decimal128.New(-123, -2)
+	y := decimal128.New(789, -2)
+	fmt.Println(decimal128.Floor(x))
+	fmt.Println(decimal128.Floor(y))
+	// Output:
+	// -2
+	// 7
 }
 
 func ExampleNew() {
@@ -71,6 +91,26 @@ func ExampleParse() {
 	// NaN
 }
 
+func ExampleRound() {
+	x := decimal128.New(-123, -2)
+	y := decimal128.New(789, -2)
+	fmt.Println(decimal128.Round(x))
+	fmt.Println(decimal128.Round(y))
+	// Output:
+	// -1
+	// 8
+}
+
+func ExampleTrunc() {
+	x := decimal128.New(-123, -2)
+	y := decimal128.New(789, -2)
+	fmt.Println(decimal128.Trunc(x))
+	fmt.Println(decimal128.Trunc(y))
+	// Output:
+	// -1
+	// 7
+}
+
 func ExampleDecimal_Add() {
 	x := decimal128.New(3, 0)
 	y := decimal128.New(2, -1)
@@ -87,19 +127,6 @@ func ExampleDecimal_Append() {
 	// 0003.00000
 }
 
-func ExampleDecimal_Cmp() {
-	x := decimal128.New(1, 0)
-	y := decimal128.New(2, 0)
-	r := x.Cmp(y)
-	fmt.Printf("%g < %g = %t\n", x, y, r.Less())
-	fmt.Printf("%g == %g = %t\n", x, y, r.Equal())
-	fmt.Printf("%g > %g = %t\n", x, y, r.Greater())
-	// Output:
-	// 1 < 2 = true
-	// 1 == 2 = false
-	// 1 > 2 = false
-}
-
 func ExampleDecimal_Canonical() {
 	x := decimal128.New(123, -1)
 	y := decimal128.New(1230, -2)
@@ -114,6 +141,45 @@ func ExampleDecimal_Canonical() {
 	// true, false
 	// 12.3, 12.3
 	// true, true
+}
+
+func ExampleDecimal_Cmp() {
+	x := decimal128.New(1, 0)
+	y := decimal128.New(2, 0)
+	r := x.Cmp(y)
+	fmt.Printf("%g < %g = %t\n", x, y, r.Less())
+	fmt.Printf("%g == %g = %t\n", x, y, r.Equal())
+	fmt.Printf("%g > %g = %t\n", x, y, r.Greater())
+	// Output:
+	// 1 < 2 = true
+	// 1 == 2 = false
+	// 1 > 2 = false
+}
+
+func ExampleDecimal_Ceil() {
+	x := decimal128.New(123456, -3)
+	fmt.Println("unrounded:", x)
+	fmt.Println("+2 places:", x.Ceil(2))
+	fmt.Println(" 0 places:", x.Ceil(0))
+	fmt.Println("-2 places:", x.Ceil(-2))
+	// Output:
+	// unrounded: 123.456
+	// +2 places: 123.46
+	//  0 places: 124
+	// -2 places: 200
+}
+
+func ExampleDecimal_Floor() {
+	x := decimal128.New(123456, -3)
+	fmt.Println("unrounded:", x)
+	fmt.Println("+2 places:", x.Floor(2))
+	fmt.Println(" 0 places:", x.Floor(0))
+	fmt.Println("-2 places:", x.Floor(-2))
+	// Output:
+	// unrounded: 123.456
+	// +2 places: 123.45
+	//  0 places: 123
+	// -2 places: 100
 }
 
 func ExampleDecimal_Mul() {
