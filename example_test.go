@@ -65,6 +65,16 @@ func ExampleFloor() {
 	// 7
 }
 
+func ExampleFrexp() {
+	x := decimal128.New(123, -2)
+	frac, exp := decimal128.Frexp(x)
+	fmt.Println(frac, exp)
+	fmt.Println(decimal128.Ldexp(frac, exp))
+	// Output:
+	// 0.123 1
+	// 1.23
+}
+
 func ExampleNew() {
 	fmt.Println(decimal128.New(3, -2))
 	fmt.Println(decimal128.New(3, 0))

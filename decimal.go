@@ -21,10 +21,54 @@ func Abs(d Decimal) Decimal {
 	return Decimal{d.lo, d.hi & 0x7fff_ffff_ffff_ffff}
 }
 
+// Frexp breaks a finite, non-zero d into a fraction and an integral power of
+// ten. The absolute value of the fraction will be in the interval [0.1, 1).
+//
+// If d is ±Inf, NaN, or zero the value is returned unchanged and the returned
+// power of ten is zero.
+func Frexp(d Decimal) (Decimal, int) {
+	if d.isSpecial() || d.IsZero() {
+		return d, 0
+	}
+
+	sig, exp := d.decompose()
+	rexp := int(exp) - exponentBias + sig.log10() + 1
+	exp -= int16(rexp)
+
+	return compose(d.Signbit(), sig, exp), rexp
+}
+
 // Inf returns a new Decimal set to positive infinity if sign >= 0, or negative
 // infinity if sign < 0.
 func Inf(sign int) Decimal {
 	return inf(sign < 0)
+}
+
+// Ldexp is the inverse of [Frexp], returning frac × 10**exp.
+func Ldexp(frac Decimal, exp int) Decimal {
+	if frac.isSpecial() || frac.IsZero() {
+		return frac
+	}
+
+	if exp < minUnbiasedExponent {
+		return zero(frac.Signbit())
+	}
+
+	if exp > maxUnbiasedExponent+39 {
+		return inf(frac.Signbit())
+	}
+
+	neg := frac.Signbit()
+	fsig, fexp := frac.decompose()
+	fexp += int16(exp)
+
+	sig, exp16 := DefaultRoundingMode.reduce128(neg, fsig, fexp, 0)
+
+	if exp16 > maxBiasedExponent {
+		return inf(neg)
+	}
+
+	return compose(neg, sig, exp16)
 }
 
 // NaN returns a new Decimal set to the "not-a-number" value.
@@ -54,7 +98,7 @@ func New(sig int64, exp int) Decimal {
 
 	sig128, exp16 := DefaultRoundingMode.reduce64(neg, uint64(sig), int16(exp+exponentBias))
 
-	if exp > maxBiasedExponent {
+	if exp16 > maxBiasedExponent {
 		return inf(neg)
 	}
 
@@ -113,7 +157,7 @@ func zero(neg bool) Decimal {
 // other bits set to 0. For NaN values this also removes any payload it may
 // have had.
 //
-// If d is 0, the canonical representation consists of only the sign bit set
+// If d is ±0, the canonical representation consists of only the sign bit set
 // based on the sign of the value with all other bits set to 0.
 //
 // If d is finite and non-zero, the canonical representation is calculated as

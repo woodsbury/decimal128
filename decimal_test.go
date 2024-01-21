@@ -564,7 +564,7 @@ func TestAbs(t *testing.T) {
 		absval.neg = false
 		absres := absval.Decimal()
 
-		if !(res.Equal(absres) || res.IsNaN() && absres.IsNaN()) && res.Signbit() == absres.Signbit() {
+		if !resultEqual(res, absres) {
 			t.Errorf("Abs(%v) = %v, want %v", val, res, absres)
 		}
 	}
@@ -621,6 +621,45 @@ func TestDecimalNeg(t *testing.T) {
 
 		if !(res.Equal(negres) || res.IsNaN() && negres.IsNaN()) && res.Signbit() == negres.Signbit() {
 			t.Errorf("%v.Neg() = %v, want %v", val, res, negval.Decimal())
+		}
+	}
+}
+
+func TestFrexp(t *testing.T) {
+	t.Parallel()
+
+	initDecimalValues()
+
+	ptOne := New(1, -1)
+	one := FromUint64(1)
+
+	for _, val := range decimalValues {
+		decval := val.Decimal()
+		frac, exp := Frexp(decval)
+
+		if val.form != regularForm || val.sig[0]|val.sig[1] == 0 {
+			if !resultEqual(frac, decval) || exp != 0 {
+				t.Errorf("Frexp(%v) = (%v, %d), want (%v, 0)", val, frac, exp, decval)
+			}
+
+			continue
+		}
+
+		ge := frac.CmpAbs(ptOne).GreaterOrEqual()
+		lt := frac.CmpAbs(one).Less()
+		expres := int(val.exp) - exponentBias + val.sig.log10() + 1
+		fracval := val
+		fracval.exp -= int16(expres)
+		fracres := fracval.Decimal()
+
+		if !ge || !lt || !fracres.Equal(frac) || exp != expres {
+			t.Errorf("Frexp(%v) = (%v, %d), want (%v, %d)", val, frac, exp, fracres, expres)
+		}
+
+		res := Ldexp(frac, exp)
+
+		if !resultEqual(decval, res) {
+			t.Errorf("Ldexp(%v, %d) = %v, want %v", frac, exp, res, decval)
 		}
 	}
 }
