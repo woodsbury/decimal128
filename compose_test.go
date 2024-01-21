@@ -95,6 +95,7 @@ func TestDecimalCompose(t *testing.T) {
 	initDecimalValues()
 
 	bigsig := new(big.Int)
+	bigexp := new(big.Int).Exp(big.NewInt(10), big.NewInt(50), nil)
 
 	for _, val := range decimalValues {
 		var form byte
@@ -129,6 +130,17 @@ func TestDecimalCompose(t *testing.T) {
 
 		if decform != form || decneg != neg || !bytes.Equal(decsig, sig) || decexp != exp {
 			t.Errorf("%v.Decompose() = (%d, %t, %x, %d), want (%d, %t, %x, %d)", dec, decform, decneg, decsig, decexp, form, neg, sig, exp)
+		}
+
+		if val.form == regularForm && val.sig[0]|val.sig[1] != 0 {
+			sig = bigsig.Mul(bigsig, bigexp).Bytes()
+			exp -= 50
+
+			err = dec.Compose(form, neg, sig, exp)
+
+			if !resultEqual(dec, val.Decimal()) || err != nil {
+				t.Errorf("Decimal.Compose(%d, %t, %x, %d) = (%v, %v), want (%v, <nil>)", form, neg, sig, exp, dec, err, val)
+			}
 		}
 	}
 }
