@@ -2,6 +2,7 @@ package decimal128
 
 import (
 	"fmt"
+	"math"
 	"testing"
 )
 
@@ -10,6 +11,28 @@ func TestDecimalPayload(t *testing.T) {
 
 	if s := NaN().Payload().String(); s != "NaN()" {
 		t.Errorf("NaN().Payload() = %s, want NaN()", s)
+	}
+
+	var d Decimal
+	if err := d.Compose(2, false, nil, 0); err != nil {
+		t.Errorf("Decimal.Compose(2, false, nil, 0) = %v, want <nil>", err)
+	} else if s := d.Payload().String(); s != "Compose()" {
+		t.Errorf("Decimal.Compose(2, false, nil, 0).Payload() = %s, want Compose()", s)
+	}
+
+	d = FromFloat32(float32(math.NaN()))
+	if s := d.Payload().String(); s != "FromFloat32()" {
+		t.Errorf("FromFloat32(NaN).Payload() = %s, want FromFloat32()", s)
+	}
+
+	d = FromFloat64(math.NaN())
+	if s := d.Payload().String(); s != "FromFloat64()" {
+		t.Errorf("FromFloat64(NaN).Payload() = %s, want FromFloat64()", s)
+	}
+
+	d = MustParse("NaN")
+	if s := d.Payload().String(); s != "MustParse()" {
+		t.Errorf("MustParse(NaN).Payload() = %s, want MustParse()", s)
 	}
 
 	d, err := Parse("NaN")
@@ -30,7 +53,7 @@ func TestDecimalPayload(t *testing.T) {
 	if err != nil {
 		t.Errorf("Decimal.UnmarshalText(NaN) = (%v, %v), want (NaN, <nil>)", d, err)
 	} else if s := d.Payload().String(); s != "UnmarshalText()" {
-		t.Errorf("UnmarshalText(NaN).Payload() = %s, want UnmarshalText()", s)
+		t.Errorf("Decimal.UnmarshalText(NaN).Payload() = %s, want UnmarshalText()", s)
 	}
 
 	d = Log(inf(true))
@@ -51,6 +74,16 @@ func TestDecimalPayload(t *testing.T) {
 	d = Log10(FromInt64(-1))
 	if s := d.Payload().String(); s != "Log10(-Finite)" {
 		t.Errorf("Log10(-1).Payload() = %s, want Log10(-Finite)", s)
+	}
+
+	d = Log1p(inf(true))
+	if s := d.Payload().String(); s != "Log1p(-Infinite)" {
+		t.Errorf("Log1p(-Inf).Payload() = %s, want Log1p(-Infinite)", s)
+	}
+
+	d = Log1p(FromInt64(-2))
+	if s := d.Payload().String(); s != "Log1p(-Finite)" {
+		t.Errorf("Log1p(-2).Payload() = %s, want Log1p(-Finite)", s)
 	}
 
 	d = Log2(inf(true))
@@ -98,6 +131,16 @@ func TestDecimalPayload(t *testing.T) {
 		t.Errorf("-Inf.Mul(-0).Payload() = %s, want Mul(-Infinite, -Zero)", s)
 	}
 
+	d = FromInt64(-1).Pow(New(1, -1))
+	if s := d.Payload().String(); s != "Pow(-Finite, Finite)" {
+		t.Errorf("-1.Pow(0.1).Payload() = %s, want Pow(-Finite, Finite)", s)
+	}
+
+	d = FromInt64(-1).Pow(New(-1, -1))
+	if s := d.Payload().String(); s != "Pow(-Finite, -Finite)" {
+		t.Errorf("-1.Pow(-0.1).Payload() = %s, want Pow(-Finite, -Finite)", s)
+	}
+
 	d = inf(false).Quo(inf(true))
 	if s := d.Payload().String(); s != "Quo(Infinite, -Infinite)" {
 		t.Errorf("Inf.Quo(-Inf).Payload() = %s, want Quo(Infinite, -Infinite)", s)
@@ -116,6 +159,41 @@ func TestDecimalPayload(t *testing.T) {
 	d = zero(true).Quo(zero(false))
 	if s := d.Payload().String(); s != "Quo(-Zero, Zero)" {
 		t.Errorf("-0.Quo(0).Payload() = %s, want Quo(-Zero, Zero)", s)
+	}
+
+	d, _ = inf(false).QuoRem(inf(true))
+	if s := d.Payload().String(); s != "QuoRem(Infinite, -Infinite)" {
+		t.Errorf("Inf.QuoRem(-Inf).Payload() = %s, want QuoRem(Infinite, -Infinite)", s)
+	}
+
+	d, _ = inf(true).QuoRem(inf(false))
+	if s := d.Payload().String(); s != "QuoRem(-Infinite, Infinite)" {
+		t.Errorf("-Inf.QuoRem(Inf).Payload() = %s, want QuoRem(-Infinite, Infinite)", s)
+	}
+
+	_, d = inf(true).QuoRem(FromInt64(1))
+	if s := d.Payload().String(); s != "QuoRem(-Infinite, Finite)" {
+		t.Errorf("-Inf.QuoRem(Inf).Payload() = %s, want QuoRem(-Infinite, Finite)", s)
+	}
+
+	d, _ = zero(false).QuoRem(zero(true))
+	if s := d.Payload().String(); s != "QuoRem(Zero, -Zero)" {
+		t.Errorf("0.QuoRem(-0).Payload() = %s, want QuoRem(Zero, -Zero)", s)
+	}
+
+	d, _ = zero(true).QuoRem(zero(false))
+	if s := d.Payload().String(); s != "QuoRem(-Zero, Zero)" {
+		t.Errorf("-0.QuoRem(0).Payload() = %s, want QuoRem(-Zero, Zero)", s)
+	}
+
+	_, d = FromInt64(1).QuoRem(zero(false))
+	if s := d.Payload().String(); s != "QuoRem(Finite, Zero)" {
+		t.Errorf("-0.QuoRem(0).Payload() = %s, want QuoRem(Finite, Zero)", s)
+	}
+
+	_, d = FromInt64(1).QuoRem(zero(true))
+	if s := d.Payload().String(); s != "QuoRem(Finite, -Zero)" {
+		t.Errorf("-0.QuoRem(0).Payload() = %s, want QuoRem(Finite, -Zero)", s)
 	}
 
 	d = inf(false).Sub(inf(false))
