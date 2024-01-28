@@ -45,24 +45,24 @@ func TestDecimalScan(t *testing.T) {
 
 		var res Decimal
 		_, err := fmt.Sscan(val, &res)
-		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+		if !resultEqual(res, num) || err != nil {
 			t.Errorf("fmt.Sscan(%q) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 
 		_, err = fmt.Sscanf(val, "%g", &res)
-		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+		if !resultEqual(res, num) || err != nil {
 			t.Errorf("fmt.Sscanf(%q, \"%%g\") = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 
 		val += "\n"
 
 		_, err = fmt.Sscanf(val, "%g\n", &res)
-		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+		if !resultEqual(res, num) || err != nil {
 			t.Errorf("fmt.Sscanf(%q, \"%%g\\n\") = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 
 		_, err = fmt.Sscanln(val, &res)
-		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+		if !resultEqual(res, num) || err != nil {
 			t.Errorf("fmt.Sscanln(%q) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 	}
@@ -85,7 +85,7 @@ func TestDecimalUnmarshalText(t *testing.T) {
 	for val, num := range textValues {
 		var res Decimal
 		err := res.UnmarshalText([]byte(val))
-		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+		if !resultEqual(res, num) || err != nil {
 			t.Errorf("Decimal.UnmarshalText(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 	}
@@ -96,7 +96,7 @@ func TestParse(t *testing.T) {
 
 	for val, num := range textValues {
 		res, err := Parse(val)
-		if !(res.Equal(num) || res.IsNaN() && num.IsNaN()) || res.Signbit() != num.Signbit() || err != nil {
+		if !resultEqual(res, num) || err != nil {
 			t.Errorf("Parse(%s) = (%v, %v), want (%v, <nil>)", val, res, err, num)
 		}
 	}

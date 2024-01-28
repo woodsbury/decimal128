@@ -95,6 +95,37 @@ func TestDecimalCmp(t *testing.T) {
 			t.Errorf("%v.Equal(%v) = %t, want %t", lhs, rhs, ceq, req)
 		}
 	}
+
+	x := New(1, 0)
+	ysig := int64(1_000_000_000)
+	yexp := -9
+
+	for yexp < 0 {
+		y := New(ysig, yexp)
+
+		cmp := x.Cmp(y)
+
+		if !cmp.Equal() {
+			t.Errorf("1.Cmp(%de%d).Equal() = false, want true", ysig, yexp)
+		}
+
+		if !x.Equal(y) {
+			t.Errorf("1.Equal(%de%d) = false, want true", ysig, yexp)
+		}
+
+		cmp = y.Cmp(x)
+
+		if !cmp.Equal() {
+			t.Errorf("%de%d.Cmp(1).Equal() = false, want true", ysig, yexp)
+		}
+
+		if !y.Equal(x) {
+			t.Errorf("%de%d.Equal(1) = false, want true", ysig, yexp)
+		}
+
+		ysig /= 10
+		yexp++
+	}
 }
 
 func TestDecimalCmpAbs(t *testing.T) {
@@ -133,6 +164,29 @@ func TestDecimalCmpAbs(t *testing.T) {
 		if ceq, req := Abs(lhs).Equal(Abs(rhs)), res.equal(); ceq != req {
 			t.Errorf("Abs(%v).Equal(Abs(%v)) = %t, want %t", lhs, rhs, ceq, req)
 		}
+	}
+
+	x := New(1, 0)
+	ysig := int64(1_000_000_000)
+	yexp := -9
+
+	for yexp < 0 {
+		y := New(ysig, yexp)
+
+		cmp := x.CmpAbs(y)
+
+		if !cmp.Equal() {
+			t.Errorf("1.CmpAbs(%de%d).Equal() = false, want true", ysig, yexp)
+		}
+
+		cmp = y.CmpAbs(x)
+
+		if !cmp.Equal() {
+			t.Errorf("%de%d.CmpAbs(1).Equal() = false, want true", ysig, yexp)
+		}
+
+		ysig /= 10
+		yexp++
 	}
 }
 
