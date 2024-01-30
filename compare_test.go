@@ -97,33 +97,64 @@ func TestDecimalCmp(t *testing.T) {
 	}
 
 	x := New(1, 0)
-	ysig := int64(1_000_000_000)
-	yexp := -9
+	ysig := uint128{1_000_000_000, 0}
+	yexp := int16(-9 + exponentBias)
 
-	for yexp < 0 {
-		y := New(ysig, yexp)
+	for yexp < exponentBias {
+		y := compose(false, ysig, yexp)
 
 		cmp := x.Cmp(y)
 
 		if !cmp.Equal() {
-			t.Errorf("1.Cmp(%de%d).Equal() = false, want true", ysig, yexp)
+			t.Errorf("1.Cmp(%ve%d).Equal() = false, want true", ysig, yexp-exponentBias)
 		}
 
 		if !x.Equal(y) {
-			t.Errorf("1.Equal(%de%d) = false, want true", ysig, yexp)
+			t.Errorf("1.Equal(%ve%d) = false, want true", ysig, yexp-exponentBias)
 		}
 
 		cmp = y.Cmp(x)
 
 		if !cmp.Equal() {
-			t.Errorf("%de%d.Cmp(1).Equal() = false, want true", ysig, yexp)
+			t.Errorf("%ve%d.Cmp(1).Equal() = false, want true", ysig, yexp-exponentBias)
 		}
 
 		if !y.Equal(x) {
-			t.Errorf("%de%d.Equal(1) = false, want true", ysig, yexp)
+			t.Errorf("%ve%d.Equal(1) = false, want true", ysig, yexp-exponentBias)
 		}
 
-		ysig /= 10
+		ysig, _ = ysig.div10()
+		yexp++
+	}
+
+	x = compose(false, uint128{0, 1}, exponentBias)
+	ysig = uint128{0, 1}.mul64(1_000_000_000)
+	yexp = int16(exponentBias - 9)
+
+	for yexp < exponentBias {
+		y := compose(false, ysig, yexp)
+
+		cmp := x.Cmp(y)
+
+		if !cmp.Equal() {
+			t.Errorf("1.Cmp(%ve%d).Equal() = false, want true", ysig, yexp-exponentBias)
+		}
+
+		if !x.Equal(y) {
+			t.Errorf("1.Equal(%ve%d) = false, want true", ysig, yexp-exponentBias)
+		}
+
+		cmp = y.Cmp(x)
+
+		if !cmp.Equal() {
+			t.Errorf("%ve%d.Cmp(1).Equal() = false, want true", ysig, yexp-exponentBias)
+		}
+
+		if !y.Equal(x) {
+			t.Errorf("%ve%d.Equal(1) = false, want true", ysig, yexp-exponentBias)
+		}
+
+		ysig, _ = ysig.div10()
 		yexp++
 	}
 }
@@ -166,26 +197,49 @@ func TestDecimalCmpAbs(t *testing.T) {
 		}
 	}
 
-	x := New(1, 0)
-	ysig := int64(1_000_000_000)
-	yexp := -9
+	x := New(-1, 0)
+	ysig := uint128{1_000_000_000, 0}
+	yexp := int16(-9 + exponentBias)
 
-	for yexp < 0 {
-		y := New(ysig, yexp)
+	for yexp < exponentBias {
+		y := compose(false, ysig, yexp)
 
 		cmp := x.CmpAbs(y)
 
 		if !cmp.Equal() {
-			t.Errorf("1.CmpAbs(%de%d).Equal() = false, want true", ysig, yexp)
+			t.Errorf("1.CmpAbs(%ve%d).Equal() = false, want true", ysig, yexp-exponentBias)
 		}
 
 		cmp = y.CmpAbs(x)
 
 		if !cmp.Equal() {
-			t.Errorf("%de%d.CmpAbs(1).Equal() = false, want true", ysig, yexp)
+			t.Errorf("%ve%d.CmpAbs(1).Equal() = false, want true", ysig, yexp-exponentBias)
 		}
 
-		ysig /= 10
+		ysig, _ = ysig.div10()
+		yexp++
+	}
+
+	x = compose(false, uint128{0, 1}, exponentBias)
+	ysig = uint128{0, 1}.mul64(1_000_000_000)
+	yexp = int16(exponentBias - 9)
+
+	for yexp < exponentBias {
+		y := compose(false, ysig, yexp)
+
+		cmp := x.CmpAbs(y)
+
+		if !cmp.Equal() {
+			t.Errorf("1.CmpAbs(%ve%d).Equal() = false, want true", ysig, yexp-exponentBias)
+		}
+
+		cmp = y.CmpAbs(x)
+
+		if !cmp.Equal() {
+			t.Errorf("%ve%d.CmpAbs(1).Equal() = false, want true", ysig, yexp-exponentBias)
+		}
+
+		ysig, _ = ysig.div10()
 		yexp++
 	}
 }
