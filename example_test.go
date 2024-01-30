@@ -238,6 +238,19 @@ func ExampleDecimal_Round() {
 	// -2 places: 100
 }
 
+func ExampleDecimal_Sign() {
+	x := decimal128.FromInt64(-5)
+	fmt.Printf("% g.Sign() = %d\n", x, x.Sign())
+	x = decimal128.FromInt64(0)
+	fmt.Printf("% g.Sign() = %d\n", x, x.Sign())
+	x = decimal128.FromInt64(5)
+	fmt.Printf("% g.Sign() = %d\n", x, x.Sign())
+	// Output:
+	// -5.Sign() = -1
+	//  0.Sign() = 0
+	//  5.Sign() = 1
+}
+
 func ExampleDecimal_Sub() {
 	x := decimal128.New(3, 0)
 	y := decimal128.New(2, -1)
