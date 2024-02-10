@@ -807,7 +807,7 @@ parseFlags:
 		}
 
 		c = format[i]
-		if c < '1' || c > '9' {
+		if c < '0' || c > '9' {
 			args.prec = 0
 		} else {
 			args.prec = int(c - '0')
