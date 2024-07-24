@@ -38,6 +38,12 @@ func (tf testFmt) String() string {
 	return builder.String()
 }
 
+func TestDecimalAppendDecimal(t *testing.T) {
+	t.Parallel()
+
+	testDecimalStrings(t, func(d Decimal) string { return string(d.AppendDecimal(nil)) })
+}
+
 func TestDecimalFormat(t *testing.T) {
 	t.Parallel()
 
@@ -163,6 +169,36 @@ func TestDecimalString(t *testing.T) {
 	}
 }
 
+func TestDecimalStringDecimal(t *testing.T) {
+	t.Parallel()
+
+	testDecimalStrings(t, func(d Decimal) string { return d.StringDecimal() })
+}
+
+func testDecimalStrings(t *testing.T, resFunc func(Decimal) string) {
+	t.Helper()
+
+	initDecimalValues()
+
+	for _, val := range decimalValues {
+		decval := val.Decimal()
+		res := resFunc(decval)
+
+		if decval.isSpecial() {
+			stringres := decval.String()
+			if res != stringres {
+				t.Errorf("%v.StringDecimal() = %s, want %s", val, res, stringres)
+			}
+			continue
+		}
+
+		fmtres := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.6176f", decval), "0"), ".")
+		if fmtres != res {
+			t.Errorf("%v.StringDecimal() = %s, want %s", val, res, fmtres)
+		}
+	}
+}
+
 type devNull struct{}
 
 func (d devNull) Write(b []byte) (int, error) {
@@ -232,6 +268,52 @@ func BenchmarkAppend(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				buf = buf[:0]
 				buf = v.Append(buf, tc.fmt)
+			}
+		})
+	}
+}
+
+func BenchmarkAppendDecimal(b *testing.B) {
+	tests := []struct {
+		name string
+		txt  string
+		want string
+	}{
+		{
+			name: "small number",
+			txt:  "1234.1234",
+			want: "1234.1234",
+		},
+		{
+			name: "large number",
+			txt:  "12345678901234.67890123456789012345",
+			want: "12345678901234.67890123456789012345",
+		},
+		{
+			name: "special",
+			txt:  "nan",
+			want: "NaN",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Ensure correctness of test case before benchmarking.
+			v := MustParse(tc.txt)
+			var buf []byte
+			got := string(v.AppendDecimal(buf))
+			if got != tc.want {
+				b.Fatalf("Unexpected formatted value. got '%s', "+
+					"want '%s'", got, tc.want)
+			}
+
+			// Benchmark.
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				buf = buf[:0]
+				buf = v.AppendDecimal(buf)
 			}
 		})
 	}
@@ -425,6 +507,50 @@ func BenchmarkString(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
 				_ = v.String()
+			}
+		})
+	}
+}
+
+func BenchmarkStringDecimal(b *testing.B) {
+	tests := []struct {
+		name string
+		txt  string
+		want string
+	}{
+		{
+			name: "small number",
+			txt:  "1234.1234",
+			want: "1234.1234",
+		},
+		{
+			name: "large number",
+			txt:  "12345678901234.67890123456789012345",
+			want: "12345678901234.67890123456789012345",
+		},
+		{
+			name: "special",
+			txt:  "nan",
+			want: "NaN",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Ensure correctness of test case before benchmarking.
+			v := MustParse(tc.txt)
+			got := v.StringDecimal()
+			if got != tc.want {
+				b.Fatalf("Unexpected formatted value. got '%s', "+
+					"want '%s'", got, tc.want)
+			}
+
+			// Benchmark.
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				_ = v.StringDecimal()
 			}
 		})
 	}

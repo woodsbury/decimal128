@@ -70,6 +70,23 @@ func (d Decimal) Append(buf []byte, format string) []byte {
 	return d.format(buf, &args)
 }
 
+// AppendDecimal formats the Decimal in decimal notation and
+// appends the result to the provided byte slice, returning the updated byte slice.
+func (d Decimal) AppendDecimal(buf []byte) []byte {
+	if d.isSpecial() {
+		return d.appendSpecial(buf, 0, false, false, false)
+	}
+
+	var digs digits
+	d.digits(&digs)
+	var prec int
+	if digs.exp < 0 {
+		prec = -digs.exp
+	}
+
+	return digs.fmtF(buf, prec, 0, false, false, false, false, false)
+}
+
 // Format implements the [fmt.Formatter] interface. It supports the verbs 'e',
 // 'E', 'f', 'F', 'g', 'G', and 'v', along with the format flags '+', '-', '#',
 // ' ', and '0' and custom width and precision values. Decimal values interpret
@@ -171,6 +188,24 @@ func (d Decimal) String() string {
 
 			buf = digs.fmtF(buf, prec, 0, false, false, false, false, false)
 		}
+	}
+
+	return unsafe.String(unsafe.SliceData(buf), len(buf))
+}
+
+// StringDecimal returns a string representation of the Decimal value in decimal notation only.
+func (d Decimal) StringDecimal() string {
+	var buf []byte
+	if d.isSpecial() {
+		buf = d.appendSpecial(buf, 0, false, false, false)
+	} else {
+		var digs digits
+		d.digits(&digs)
+		var prec int
+		if digs.exp < 0 {
+			prec = -digs.exp
+		}
+		buf = digs.fmtF(buf, prec, 0, false, false, false, false, false)
 	}
 
 	return unsafe.String(unsafe.SliceData(buf), len(buf))
