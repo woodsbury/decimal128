@@ -430,7 +430,7 @@ func (d Decimal) format(buf []byte, args *formatArgs) []byte {
 
 		return digs.fmtF(buf, prec, 0, false, false, false, false, false)
 	default:
-		return append(buf, fmt.Sprintf("%%!%c(decimal128.Decimal=%s)", args.verb, d.String())...)
+		return fmt.Appendf(buf, "%%!%c(decimal128.Decimal=%s)", args.verb, d.String())
 	}
 }
 

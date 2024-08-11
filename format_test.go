@@ -2,6 +2,7 @@ package decimal128
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"testing"
@@ -163,12 +164,6 @@ func TestDecimalString(t *testing.T) {
 	}
 }
 
-type devNull struct{}
-
-func (d devNull) Write(b []byte) (int, error) {
-	return len(b), nil
-}
-
 func BenchmarkAppend(b *testing.B) {
 	tests := []struct {
 		name string
@@ -293,13 +288,12 @@ func BenchmarkFormat(b *testing.B) {
 				b.Fatalf("Unexpected formatted value. got %s, "+
 					"want %s", got, tc.want)
 			}
-			w := devNull{}
 
 			// Benchmark.
 			b.ResetTimer()
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
-				fmt.Fprintf(w, tc.fmt, vptr)
+				fmt.Fprintf(io.Discard, tc.fmt, vptr)
 			}
 		})
 	}
