@@ -40,8 +40,8 @@ var (
 
 // Append formats the Decimal according to the provided format specifier and
 // appends the result to the provided byte slice, returning the updated byte
-// slice. The format specifier can be any value supported by [Decimal.Format], without
-// the leading %.
+// slice. The format specifier can be any value supported by [Decimal.Format],
+// without the leading %.
 func (d Decimal) Append(buf []byte, format string) []byte {
 	var args formatArgs
 	parseFormat(format, &args)
@@ -51,20 +51,17 @@ func (d Decimal) Append(buf []byte, format string) []byte {
 	}
 
 	if d.isSpecial() {
-		pad := 0
+		width := 0
 		padSign := false
 		printSign := false
 		if args.verb != 'v' {
 			printSign = args.printSign
 			padSign = args.padSign
 
-			width, hasWidth := args.width()
-			if hasWidth {
-				pad = width
-			}
+			width = args.width()
 		}
 
-		return d.appendSpecial(buf, pad, printSign, padSign, args.padRight)
+		return d.appendSpecial(buf, width, printSign, padSign, args.padRight)
 	}
 
 	return d.format(buf, &args)
@@ -76,20 +73,20 @@ func (d Decimal) Append(buf []byte, format string) []byte {
 // the format value the same way float32 and float64 does.
 func (d Decimal) Format(f fmt.State, verb rune) {
 	if d.isSpecial() {
-		pad := 0
+		width := 0
 		padSign := false
 		printSign := false
 		if verb != 'v' {
 			printSign = f.Flag('+')
 			padSign = f.Flag(' ')
 
-			width, hasWidth := f.Width()
+			w, hasWidth := f.Width()
 			if hasWidth {
-				pad = width
+				width = w
 			}
 		}
 
-		d.writeSpecial(f, pad, printSign, padSign, f.Flag('-'))
+		d.writeSpecial(f, width, printSign, padSign, f.Flag('-'))
 		return
 	}
 
@@ -100,7 +97,7 @@ func (d Decimal) Format(f fmt.State, verb rune) {
 
 	width, hasWidth := f.Width()
 	if !hasWidth {
-		width = -1
+		width = 0
 	}
 
 	args := formatArgs{
@@ -176,7 +173,7 @@ func (d Decimal) String() string {
 	return unsafe.String(unsafe.SliceData(buf), len(buf))
 }
 
-func (d Decimal) appendSpecial(buf []byte, pad int, printSign, padSign, padRight bool) []byte {
+func (d Decimal) appendSpecial(buf []byte, width int, printSign, padSign, padRight bool) []byte {
 	var value []byte
 	if d.IsNaN() {
 		if printSign {
@@ -200,19 +197,19 @@ func (d Decimal) appendSpecial(buf []byte, pad int, printSign, padSign, padRight
 
 	if cap(buf) == 0 {
 		sizeHint := len(value)
-		if pad > sizeHint {
-			sizeHint = pad
+		if width > sizeHint {
+			sizeHint = width
 		}
 
 		buf = make([]byte, 0, sizeHint)
 	}
 
 	n := len(value)
-	if p := pad - n; p > 0 {
+	if p := width - n; p > 0 {
 		if padRight {
 			buf = append(buf, value...)
 
-			for i := n; i < pad; i++ {
+			for i := n; i < width; i++ {
 				buf = append(buf, ' ')
 			}
 		} else {
@@ -308,7 +305,7 @@ func (d Decimal) format(buf []byte, args *formatArgs) []byte {
 	d.digits(&digs)
 
 	prec, hasPrec := args.precision()
-	width, hasWidth := args.width()
+	width := args.width()
 
 	switch args.verb {
 	case 'e', 'E':
@@ -316,13 +313,8 @@ func (d Decimal) format(buf []byte, args *formatArgs) []byte {
 			prec = 6
 		}
 
-		pad := 0
-		if hasWidth {
-			pad = width
-		}
-
 		digs.round(prec + 1)
-		return digs.fmtE(buf, prec, pad, args.forceDP, args.printSign, args.padSign, true, args.padRight, args.padZero, args.verb)
+		return digs.fmtE(buf, prec, width, args.forceDP, args.printSign, args.padSign, true, args.padRight, args.padZero, args.verb)
 	case 'f', 'F':
 		if !hasPrec {
 			prec = 6
@@ -332,12 +324,7 @@ func (d Decimal) format(buf []byte, args *formatArgs) []byte {
 			digs.round(digs.ndig + digs.exp + prec)
 		}
 
-		pad := 0
-		if hasWidth {
-			pad = width
-		}
-
-		return digs.fmtF(buf, prec, pad, args.forceDP, args.printSign, args.padSign, args.padRight, args.padZero)
+		return digs.fmtF(buf, prec, width, args.forceDP, args.printSign, args.padSign, args.padRight, args.padZero)
 	case 'g', 'G':
 		var maxprec int
 		if args.forceDP {
@@ -382,18 +369,13 @@ func (d Decimal) format(buf []byte, args *formatArgs) []byte {
 
 		exp := digs.exp + eprec
 
-		pad := 0
-		if hasWidth {
-			pad = width
-		}
-
 		if exp < -4 || exp >= maxprec {
 			e := byte('e')
 			if args.verb == 'G' {
 				e = byte('E')
 			}
 
-			return digs.fmtE(buf, prec-1, pad, args.forceDP, args.printSign, args.padSign, true, args.padRight, args.padZero, e)
+			return digs.fmtE(buf, prec-1, width, args.forceDP, args.printSign, args.padSign, true, args.padRight, args.padZero, e)
 		} else {
 			if args.forceDP {
 				prec -= digs.exp
@@ -409,7 +391,7 @@ func (d Decimal) format(buf []byte, args *formatArgs) []byte {
 				}
 			}
 
-			return digs.fmtF(buf, prec, pad, args.forceDP, args.printSign, args.padSign, args.padRight, args.padZero)
+			return digs.fmtF(buf, prec, width, args.forceDP, args.printSign, args.padSign, args.padRight, args.padZero)
 		}
 	case 'v':
 		prec := 0
@@ -434,7 +416,7 @@ func (d Decimal) format(buf []byte, args *formatArgs) []byte {
 	}
 }
 
-func (d Decimal) writeSpecial(f fmt.State, pad int, printSign, padSign, padRight bool) {
+func (d Decimal) writeSpecial(f fmt.State, width int, printSign, padSign, padRight bool) {
 	var value []byte
 	if d.IsNaN() {
 		if printSign {
@@ -457,18 +439,18 @@ func (d Decimal) writeSpecial(f fmt.State, pad int, printSign, padSign, padRight
 	}
 
 	n := len(value)
-	if p := pad - n; p > 0 {
+	if p := width - n; p > 0 {
 		if padRight {
 			f.Write(value)
 
 			i := n
-			for ; i < pad-2; i += 3 {
+			for ; i < width-2; i += 3 {
 				f.Write(spaceText)
 			}
 
-			if i < pad-1 {
+			if i < width-1 {
 				f.Write(spaceText[:2])
-			} else if i < pad {
+			} else if i < width {
 				f.Write(spaceText[:1])
 			}
 		} else {
@@ -497,14 +479,14 @@ type digits struct {
 	ndig int
 }
 
-func (d *digits) fmtE(buf []byte, prec, pad int, forceDP, printSign, padSign, padExp, padRight, padZero bool, e byte) []byte {
+func (d *digits) fmtE(buf []byte, prec, width int, forceDP, printSign, padSign, padExp, padRight, padZero bool, e byte) []byte {
 	if cap(buf) == 0 {
 		// Attempt to pre-size buffer to avoid multiple allocations. This might
 		// overshoot the actual needed size. Calculation is:
 		// sign + decimal point + 'e+/-' + exponent + zero + digits
 		sizeHint := 1 + 1 + 2 + 4 + 1 + d.ndig
-		if pad > sizeHint {
-			sizeHint = pad
+		if width > sizeHint {
+			sizeHint = width
 		}
 
 		buf = make([]byte, 0, sizeHint)
@@ -568,18 +550,18 @@ func (d *digits) fmtE(buf []byte, prec, pad int, forceDP, printSign, padSign, pa
 		buf = append(buf, '0'+byte(exp/1000), '0'+byte(exp/100%10), '0'+byte(exp/10%10), '0'+byte(exp%10))
 	}
 
-	buf = d.pad(buf, pad, printSign, padSign, padRight, padZero)
+	buf = d.pad(buf, width, printSign, padSign, padRight, padZero)
 	return buf
 }
 
-func (d *digits) fmtF(buf []byte, prec, pad int, forceDP, printSign, padSign, padRight, padZero bool) []byte {
+func (d *digits) fmtF(buf []byte, prec, width int, forceDP, printSign, padSign, padRight, padZero bool) []byte {
 	if cap(buf) == 0 {
 		// Attempt to pre-size buffer to avoid multiple allocations. This might
 		// overshoot the actual needed size. Calculation is:
 		// sign + decimal point + zero + digits
 		sizeHint := 1 + 1 + 1 + d.ndig
-		if pad > sizeHint {
-			sizeHint = pad
+		if width > sizeHint {
+			sizeHint = width
 		}
 
 		buf = make([]byte, 0, sizeHint)
@@ -635,12 +617,12 @@ func (d *digits) fmtF(buf []byte, prec, pad int, forceDP, printSign, padSign, pa
 		buf = append(buf, '.')
 	}
 
-	buf = d.pad(buf, pad, printSign, padSign, padRight, padZero)
+	buf = d.pad(buf, width, printSign, padSign, padRight, padZero)
 	return buf
 }
 
-func (d *digits) pad(buf []byte, pad int, printSign, padSign, padRight, padZero bool) []byte {
-	p := pad - len(buf)
+func (d *digits) pad(buf []byte, width int, printSign, padSign, padRight, padZero bool) []byte {
+	p := width - len(buf)
 	if p <= 0 {
 		// No need for padding.
 		return buf
@@ -664,13 +646,13 @@ func (d *digits) pad(buf []byte, pad int, printSign, padSign, padRight, padZero 
 		}
 
 		// Grow buf until it fits the nb + padding.
-		if len(buf) < pad {
-			if cap(buf) < pad {
-				tmp := make([]byte, pad)
+		if len(buf) < width {
+			if cap(buf) < width {
+				tmp := make([]byte, width)
 				copy(tmp, buf)
 				buf = tmp
 			} else {
-				buf = buf[:pad]
+				buf = buf[:width]
 			}
 		}
 
@@ -746,7 +728,6 @@ type formatArgs struct {
 func parseFormat(format string, args *formatArgs) {
 	*args = formatArgs{
 		prec: -1,
-		wid:  -1,
 	}
 
 	var c byte
@@ -790,7 +771,7 @@ parseFlags:
 			if args.wid < 1e5 {
 				args.wid = args.wid*10 + int(c-'0')
 			} else {
-				args.wid = -1
+				args.wid = 0
 			}
 		}
 
@@ -847,10 +828,6 @@ func (args formatArgs) precision() (int, bool) {
 	return args.prec, true
 }
 
-func (args formatArgs) width() (int, bool) {
-	if args.wid < 0 {
-		return 0, false
-	}
-
-	return args.wid, true
+func (args formatArgs) width() int {
+	return args.wid
 }
