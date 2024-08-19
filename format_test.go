@@ -77,9 +77,10 @@ func TestDecimalFormat(t *testing.T) {
 	var appres []byte
 
 	for _, format := range formats {
+		fmtstr := format.String()
+
 		for _, val := range decimalValues {
 			decval := val.Decimal()
-			fmtstr := format.String()
 			res := fmt.Sprintf(fmtstr, decval)
 
 			if strings.Contains(res, "PANIC") {

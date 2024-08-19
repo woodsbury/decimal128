@@ -558,8 +558,8 @@ func (d *digits) fmtF(buf []byte, prec, width int, forceDP, printSign, padSign, 
 	if cap(buf) == 0 {
 		// Attempt to pre-size buffer to avoid multiple allocations. This might
 		// overshoot the actual needed size. Calculation is:
-		// sign + decimal point + zero + digits
-		sizeHint := 1 + 1 + 1 + d.ndig
+		// sign + decimal point + digits + zeros
+		sizeHint := 1 + 1 + d.ndig + d.exp
 		if width > sizeHint {
 			sizeHint = width
 		}
@@ -587,7 +587,12 @@ func (d *digits) fmtF(buf []byte, prec, width int, forceDP, printSign, padSign, 
 			} else {
 				buf = append(buf, d.dig[:d.ndig]...)
 
-				for i := d.ndig; i < dp; i++ {
+				i := dp - d.ndig
+				for ; i > 2; i -= 3 {
+					buf = append(buf, '0', '0', '0')
+				}
+
+				for ; i > 0; i-- {
 					buf = append(buf, '0')
 				}
 			}
