@@ -165,6 +165,39 @@ func TestDecimalString(t *testing.T) {
 	}
 }
 
+func TestFormat(t *testing.T) {
+	t.Parallel()
+
+	initDecimalValues()
+
+	var appres []byte
+
+	for _, format := range []byte{'e', 'E', 'f', 'F', 'g', 'G'} {
+		for _, prec := range []int{-1, 0, 4, 15} {
+			for _, val := range decimalValues {
+				decval := val.Decimal()
+				res := Format(decval, format, prec)
+
+				appres = Append(appres[:0], decval, format, prec)
+				if res != string(appres) {
+					t.Errorf("Append(%v, %c, %d) = %s, want %s", val, format, prec, appres, res)
+				}
+
+				fltval, ok := val.Float64()
+				if !ok {
+					// Skipping for now
+					continue
+				}
+
+				fltres := strconv.FormatFloat(fltval, format, prec, 64)
+				if res != fltres {
+					t.Errorf("Format(%v, %c, %d) = %s, want %s", val, format, prec, res, fltres)
+				}
+			}
+		}
+	}
+}
+
 func BenchmarkAppend(b *testing.B) {
 	tests := []struct {
 		name string
