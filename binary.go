@@ -2,6 +2,32 @@ package decimal128
 
 import "errors"
 
+// AppendBinary implements the [encoding.BinaryAppender] interface. It
+// marshals the Decimal into IEEE 754 format.
+func (d Decimal) AppendBinary(buf []byte) ([]byte, error) {
+	buf = append(
+		buf,
+		byte(d.hi>>56),
+		byte(d.hi>>48),
+		byte(d.hi>>40),
+		byte(d.hi>>32),
+		byte(d.hi>>24),
+		byte(d.hi>>16),
+		byte(d.hi>>8),
+		byte(d.hi),
+		byte(d.lo>>56),
+		byte(d.lo>>48),
+		byte(d.lo>>40),
+		byte(d.lo>>32),
+		byte(d.lo>>24),
+		byte(d.lo>>16),
+		byte(d.lo>>8),
+		byte(d.lo),
+	)
+
+	return buf, nil
+}
+
 // MarshalBinary implements the [encoding.BinaryMarshaler] interface. It
 // marshals the Decimal into IEEE 754 format.
 func (d Decimal) MarshalBinary() ([]byte, error) {

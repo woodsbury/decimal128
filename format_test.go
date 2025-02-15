@@ -284,7 +284,7 @@ func BenchmarkAppend(b *testing.B) {
 	}
 }
 
-func BenchmarkAppendText(b *testing.B) {
+func BenchmarkDecimalAppendText(b *testing.B) {
 	tests := []struct {
 		name string
 		txt  string
@@ -328,7 +328,7 @@ func BenchmarkAppendText(b *testing.B) {
 	}
 }
 
-func BenchmarkFormat(b *testing.B) {
+func BenchmarkDecimalFormat(b *testing.B) {
 	tests := []struct {
 		name string
 		txt  string
@@ -395,7 +395,7 @@ func BenchmarkFormat(b *testing.B) {
 	}
 }
 
-func BenchmarkMarshalText(b *testing.B) {
+func BenchmarkDecimalMarshalText(b *testing.B) {
 	tests := []struct {
 		name string
 		txt  string
@@ -476,7 +476,7 @@ func BenchmarkParseFormat(b *testing.B) {
 	}
 }
 
-func BenchmarkString(b *testing.B) {
+func BenchmarkDecimalString(b *testing.B) {
 	tests := []struct {
 		name string
 		txt  string
