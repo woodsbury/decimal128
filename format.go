@@ -725,7 +725,7 @@ func (d *digits) pad(buf []byte, width int, printSign, padSign, padRight, padZer
 	}
 
 	padChar := byte(' ')
-	if padZero {
+	if padZero && !padRight {
 		padChar = byte('0')
 	}
 
@@ -842,9 +842,8 @@ parseFlags:
 			args.printSign = true
 		case '-':
 			args.padRight = true
-			args.padZero = false
 		case '0':
-			args.padZero = !args.padRight
+			args.padZero = true
 		default:
 			break parseFlags
 		}
