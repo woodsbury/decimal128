@@ -127,6 +127,18 @@ func TestDecimalMarshalText(t *testing.T) {
 		if !(resval.Equal(decval) || resval.IsNaN() && decval.IsNaN()) || err != nil {
 			t.Errorf("Decimal.UnmarshalText(%s) = (%v, %v), want (%v, <nil>)", res, resval, err, decval)
 		}
+
+		res, err = decval.AppendText(res[:0])
+
+		if err != nil {
+			t.Errorf("%v.AppendText() = (%s, %v), want (%s, <nil>)", val, res, err, res)
+		}
+
+		err = resval.UnmarshalText(res)
+
+		if !(resval.Equal(decval) || resval.IsNaN() && decval.IsNaN()) || err != nil {
+			t.Errorf("Decimal.UnmarshalText(%s) = (%v, %v), want (%v, <nil>)", res, resval, err, decval)
+		}
 	}
 }
 
@@ -161,6 +173,12 @@ func TestDecimalString(t *testing.T) {
 
 		if string(mshres) != res || err != nil {
 			t.Errorf("%v.MarshalText() = (%s, %v), want (%s, <nil>)", val, mshres, err, res)
+		}
+
+		mshres, err = decval.AppendText(mshres[:0])
+
+		if string(mshres) != res || err != nil {
+			t.Errorf("%v.AppendText() = (%s, %v), want (%s, <nil>)", val, mshres, err, res)
 		}
 	}
 }
@@ -261,6 +279,50 @@ func BenchmarkAppend(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				buf = buf[:0]
 				buf = v.Append(buf, tc.fmt)
+			}
+		})
+	}
+}
+
+func BenchmarkAppendText(b *testing.B) {
+	tests := []struct {
+		name string
+		txt  string
+		want string
+	}{
+		{
+			name: "small number",
+			txt:  "1234.1234",
+			want: "1234.1234",
+		},
+		{
+			name: "large number",
+			txt:  "12345678901234.67890123456789012345",
+			want: "1.234567890123467890123456789012345e+13",
+		},
+		{
+			name: "special",
+			txt:  "nan",
+			want: "NaN",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		b.Run(tc.name, func(b *testing.B) {
+			// Ensure correctness of test case before benchmarking.
+			v := MustParse(tc.txt)
+			got, err := v.AppendText(nil)
+			if err != nil || string(got) != tc.want {
+				b.Fatalf("Unexpected formatted value. got '%s', "+
+					"want '%s' with %v", got, tc.want, err)
+			}
+
+			// Benchmark.
+			b.ResetTimer()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				v.AppendText(got[:0])
 			}
 		})
 	}
