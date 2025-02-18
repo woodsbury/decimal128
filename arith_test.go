@@ -337,8 +337,7 @@ func BenchmarkArith(b *testing.B) {
 		values = append(values, val.Decimal())
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, lhs := range values {
 			for _, rhs := range values {
 				lhs.Add(rhs)

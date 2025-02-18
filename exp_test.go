@@ -356,7 +356,7 @@ func BenchmarkExp(b *testing.B) {
 	}
 
 	b.Run("Exp", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Exp(decval)
 			}
@@ -364,7 +364,7 @@ func BenchmarkExp(b *testing.B) {
 	})
 
 	b.Run("Exp10", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Exp10(decval)
 			}
@@ -372,7 +372,7 @@ func BenchmarkExp(b *testing.B) {
 	})
 
 	b.Run("Exp2", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Exp2(decval)
 			}
@@ -380,7 +380,7 @@ func BenchmarkExp(b *testing.B) {
 	})
 
 	b.Run("Expm1", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Expm1(decval)
 			}
@@ -397,7 +397,7 @@ func BenchmarkLog(b *testing.B) {
 	}
 
 	b.Run("Log", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Log(decval)
 			}
@@ -405,7 +405,7 @@ func BenchmarkLog(b *testing.B) {
 	})
 
 	b.Run("Log10", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Log10(decval)
 			}
@@ -413,7 +413,7 @@ func BenchmarkLog(b *testing.B) {
 	})
 
 	b.Run("Log1p", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Log1p(decval)
 			}
@@ -421,7 +421,7 @@ func BenchmarkLog(b *testing.B) {
 	})
 
 	b.Run("Log2", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Log2(decval)
 			}
@@ -438,7 +438,7 @@ func BenchmarkRoot(b *testing.B) {
 	}
 
 	b.Run("Cbrt", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Cbrt(decval)
 			}
@@ -446,7 +446,7 @@ func BenchmarkRoot(b *testing.B) {
 	})
 
 	b.Run("Sqrt", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			for _, decval := range decvals {
 				Sqrt(decval)
 			}

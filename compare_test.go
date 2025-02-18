@@ -310,8 +310,7 @@ func BenchmarkDecimalCmp(b *testing.B) {
 		values[i] = val.Decimal()
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, lhs := range values {
 			for _, rhs := range values {
 				lhs.Cmp(rhs)
@@ -328,8 +327,7 @@ func BenchmarkDecimalCmpAbs(b *testing.B) {
 		values[i] = val.Decimal()
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, lhs := range values {
 			for _, rhs := range values {
 				lhs.CmpAbs(rhs)
@@ -346,8 +344,7 @@ func BenchmarkDecimalEqual(b *testing.B) {
 		values[i] = val.Decimal()
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, lhs := range values {
 			for _, rhs := range values {
 				lhs.Equal(rhs)

@@ -75,8 +75,7 @@ func BenchmarkReduce128(b *testing.B) {
 
 	exponents := []int16{exponentBias / 2, exponentBias, exponentBias * 2}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, mode := range roundingModes {
 			for _, val := range uint128Values {
 				for _, exp := range exponents {
@@ -92,8 +91,7 @@ func BenchmarkReduce192(b *testing.B) {
 
 	exponents := []int16{exponentBias / 2, exponentBias, exponentBias * 2}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, mode := range roundingModes {
 			for _, val := range uint192Values {
 				for _, exp := range exponents {
@@ -109,8 +107,7 @@ func BenchmarkReduce256(b *testing.B) {
 
 	exponents := []int16{exponentBias / 2, exponentBias, exponentBias * 2}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, mode := range roundingModes {
 			for _, val := range uint256Values {
 				for _, exp := range exponents {

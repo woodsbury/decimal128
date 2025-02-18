@@ -50,7 +50,7 @@ func BenchmarkDecimalAppendBinary(b *testing.B) {
 	d := New(123456789, 10)
 	var buf []byte
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		buf, _ = d.AppendBinary(buf[:0])
 	}
 }
@@ -60,7 +60,7 @@ func BenchmarkDecimalMarshalBinary(b *testing.B) {
 
 	d := New(123456789, 10)
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		d.MarshalBinary()
 	}
 }

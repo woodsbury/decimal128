@@ -264,6 +264,8 @@ func BenchmarkAppend(b *testing.B) {
 	for _, tc := range tests {
 		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
+			b.ReportAllocs()
+
 			// Ensure correctness of test case before benchmarking.
 			v := MustParse(tc.txt)
 			buf := []byte{}
@@ -273,10 +275,7 @@ func BenchmarkAppend(b *testing.B) {
 					"want %s", buf, tc.want)
 			}
 
-			// Benchmark.
-			b.ResetTimer()
-			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				buf = buf[:0]
 				buf = v.Append(buf, tc.fmt)
 			}
@@ -310,6 +309,8 @@ func BenchmarkDecimalAppendText(b *testing.B) {
 	for _, tc := range tests {
 		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
+			b.ReportAllocs()
+
 			// Ensure correctness of test case before benchmarking.
 			v := MustParse(tc.txt)
 			got, err := v.AppendText(nil)
@@ -318,10 +319,7 @@ func BenchmarkDecimalAppendText(b *testing.B) {
 					"want '%s' with %v", got, tc.want, err)
 			}
 
-			// Benchmark.
-			b.ResetTimer()
-			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				v.AppendText(got[:0])
 			}
 		})
@@ -376,6 +374,8 @@ func BenchmarkDecimalFormat(b *testing.B) {
 	for _, tc := range tests {
 		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
+			b.ResetTimer()
+
 			// Ensure correctness of test case before benchmarking.
 			v := MustParse(tc.txt)
 			vptr := &v // Avoid allocating during Fprintf() call
@@ -385,10 +385,7 @@ func BenchmarkDecimalFormat(b *testing.B) {
 					"want %s", got, tc.want)
 			}
 
-			// Benchmark.
-			b.ResetTimer()
-			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				fmt.Fprintf(io.Discard, tc.fmt, vptr)
 			}
 		})
@@ -421,6 +418,8 @@ func BenchmarkDecimalMarshalText(b *testing.B) {
 	for _, tc := range tests {
 		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
+			b.ResetTimer()
+
 			// Ensure correctness of test case before benchmarking.
 			v := MustParse(tc.txt)
 			got, err := v.MarshalText()
@@ -429,10 +428,7 @@ func BenchmarkDecimalMarshalText(b *testing.B) {
 					"want '%s' with %v", got, tc.want, err)
 			}
 
-			// Benchmark.
-			b.ResetTimer()
-			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				v.MarshalText()
 			}
 		})
@@ -467,9 +463,8 @@ func BenchmarkParseFormat(b *testing.B) {
 	for _, tc := range tests {
 		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
-			// Benchmark.
 			var args formatArgs
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				parseFormat(tc.fmt, &args)
 			}
 		})
@@ -502,6 +497,8 @@ func BenchmarkDecimalString(b *testing.B) {
 	for _, tc := range tests {
 		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
+			b.ResetTimer()
+
 			// Ensure correctness of test case before benchmarking.
 			v := MustParse(tc.txt)
 			got := v.String()
@@ -510,10 +507,7 @@ func BenchmarkDecimalString(b *testing.B) {
 					"want '%s'", got, tc.want)
 			}
 
-			// Benchmark.
-			b.ResetTimer()
-			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				_ = v.String()
 			}
 		})
