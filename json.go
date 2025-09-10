@@ -51,14 +51,26 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 	neg := false
 
 	i := 0
-	if data[0] == '+' {
-		i = 1
-	} else if data[0] == '-' {
-		neg = true
-		i = 1
+	j := len(data)
+
+	// Remove leading and trailing quotes.
+	if len(data) >= 2 && data[i] == '"' && data[j-1] == '"' {
+		i++
+		j--
+	}
+	if i >= j {
+		return nil
 	}
 
-	tmp, err := parseNumber(data[i:], neg, false)
+	switch data[i] {
+	case '+':
+		i++
+	case '-':
+		neg = true
+		i++
+	}
+
+	tmp, err := parseNumber(data[i:j], neg, false)
 	if err != nil {
 		switch err := err.(type) {
 		case parseNumberRangeError:
