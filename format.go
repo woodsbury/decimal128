@@ -292,12 +292,7 @@ func (d Decimal) appendSpecial(buf []byte, width int, printSign, padSign, padRig
 	}
 
 	if cap(buf) == 0 {
-		sizeHint := len(value)
-		if width > sizeHint {
-			sizeHint = width
-		}
-
-		buf = make([]byte, 0, sizeHint)
+		buf = make([]byte, 0, max(width, len(value)))
 	}
 
 	n := len(value)
@@ -425,12 +420,7 @@ func (d Decimal) format(buf []byte, args *formatArgs) []byte {
 		var maxprec int
 		if args.forceDP {
 			if !hasPrec {
-				if digs.ndig < 6 {
-					prec = 6
-				} else {
-					prec = digs.ndig
-				}
-
+				prec = max(digs.ndig, 6)
 				maxprec = 6
 			} else {
 				if prec == 0 {
@@ -580,12 +570,7 @@ func (d *digits) fmtE(buf []byte, prec, width int, forceDP, printSign, padSign, 
 		// Attempt to pre-size buffer to avoid multiple allocations. This might
 		// overshoot the actual needed size. Calculation is:
 		// sign + decimal point + 'e+/-' + exponent + zero + digits
-		sizeHint := 1 + 1 + 2 + 4 + 1 + d.ndig
-		if width > sizeHint {
-			sizeHint = width
-		}
-
-		buf = make([]byte, 0, sizeHint)
+		buf = make([]byte, 0, max(width, 1+1+2+4+1+d.ndig))
 	}
 
 	if d.neg {
@@ -655,12 +640,7 @@ func (d *digits) fmtF(buf []byte, prec, width int, forceDP, printSign, padSign, 
 		// Attempt to pre-size buffer to avoid multiple allocations. This might
 		// overshoot the actual needed size. Calculation is:
 		// sign + decimal point + digits + zeros
-		sizeHint := 1 + 1 + d.ndig + d.exp
-		if width > sizeHint {
-			sizeHint = width
-		}
-
-		buf = make([]byte, 0, sizeHint)
+		buf = make([]byte, 0, max(width, 1+1+d.ndig+d.exp))
 	}
 
 	if d.neg {

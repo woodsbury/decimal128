@@ -62,34 +62,34 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 		case parseNumberRangeError:
 			return &json.UnmarshalTypeError{
 				Value: "number " + string(data),
-				Type:  reflect.TypeOf(Decimal{}),
+				Type:  reflect.TypeFor[Decimal](),
 			}
 		case parseNumberSyntaxError:
 			switch data[0] {
 			case '[':
 				return &json.UnmarshalTypeError{
 					Value: "array",
-					Type:  reflect.TypeOf(Decimal{}),
+					Type:  reflect.TypeFor[Decimal](),
 				}
 			case '{':
 				return &json.UnmarshalTypeError{
 					Value: "object",
-					Type:  reflect.TypeOf(Decimal{}),
+					Type:  reflect.TypeFor[Decimal](),
 				}
 			case 'f', 't':
 				return &json.UnmarshalTypeError{
 					Value: "bool",
-					Type:  reflect.TypeOf(Decimal{}),
+					Type:  reflect.TypeFor[Decimal](),
 				}
 			case '"':
 				return &json.UnmarshalTypeError{
 					Value: "string",
-					Type:  reflect.TypeOf(Decimal{}),
+					Type:  reflect.TypeFor[Decimal](),
 				}
 			default:
 				return &json.UnmarshalTypeError{
 					Value: "number " + string(data),
-					Type:  reflect.TypeOf(Decimal{}),
+					Type:  reflect.TypeFor[Decimal](),
 				}
 			}
 		default:

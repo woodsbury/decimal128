@@ -262,7 +262,6 @@ func BenchmarkAppend(b *testing.B) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
 			b.ReportAllocs()
 
@@ -307,7 +306,6 @@ func BenchmarkDecimalAppendText(b *testing.B) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
 			b.ReportAllocs()
 
@@ -372,7 +370,6 @@ func BenchmarkDecimalFormat(b *testing.B) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
 			b.ResetTimer()
 
@@ -416,7 +413,6 @@ func BenchmarkDecimalMarshalText(b *testing.B) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
 			b.ResetTimer()
 
@@ -461,7 +457,6 @@ func BenchmarkParseFormat(b *testing.B) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
 			var args formatArgs
 			for b.Loop() {
@@ -495,7 +490,6 @@ func BenchmarkDecimalString(b *testing.B) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
 			b.ResetTimer()
 

@@ -67,11 +67,7 @@ func FromFloat64(f float64) Decimal {
 
 	if shift < 0 {
 		shift *= -1
-		zeros := bits.LeadingZeros64(mant)
-
-		if zeros > shift {
-			zeros = shift
-		}
+		zeros := min(bits.LeadingZeros64(mant), shift)
 
 		mant <<= zeros
 		shift -= zeros
@@ -104,11 +100,7 @@ func FromFloat64(f float64) Decimal {
 			}
 		}
 	} else {
-		zeros := bits.TrailingZeros64(mant)
-
-		if zeros > shift {
-			zeros = shift
-		}
+		zeros := min(bits.TrailingZeros64(mant), shift)
 
 		mant >>= zeros
 		shift -= zeros
@@ -128,11 +120,7 @@ func FromFloat64(f float64) Decimal {
 					zeros = bits.LeadingZeros64(sig256[3])
 				}
 
-				max := 4 - zeros
-				if shift < max {
-					max = shift
-				}
-
+				max := min(shift, 4-zeros)
 				zeros = bits.TrailingZeros64(sig256[0])
 
 				if zeros < max {
