@@ -49,9 +49,10 @@ func (d *Decimal) UnmarshalJSON(data []byte) error {
 	neg := false
 
 	i := 0
-	if data[0] == '+' {
+	switch data[0] {
+	case '+':
 		i = 1
-	} else if data[0] == '-' {
+	case '-':
 		neg = true
 		i = 1
 	}

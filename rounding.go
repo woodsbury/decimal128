@@ -634,15 +634,16 @@ func (rm RoundingMode) round(shift, neg bool, sig uint128, exp int16, trunc int8
 		var adjust int
 		switch rm {
 		case ToNearestEven:
-			if trunc == 1 {
+			switch trunc {
+			case 1:
 				if digit >= 5 {
 					adjust = 1
 				}
-			} else if trunc == -1 {
+			case -1:
 				if digit > 5 {
 					adjust = 1
 				}
-			} else {
+			default:
 				if digit > 5 {
 					adjust = 1
 				} else if digit == 5 {

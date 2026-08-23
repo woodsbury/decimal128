@@ -193,18 +193,20 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 	s := d
 	neg := false
 
-	if d[0] == '+' {
+	switch d[0] {
+	case '+':
 		d = d[1:]
-	} else if d[0] == '-' {
+	case '-':
 		neg = true
 		d = d[1:]
 	}
 
 	l := len(d)
 
-	if l == 0 {
+	switch l {
+	case 0:
 		return Decimal{}, &parseSyntaxError{string(s)}
-	} else if l == 3 {
+	case 3:
 		if (d[0] == 'I' || d[0] == 'i') && (d[1] == 'N' || d[1] == 'n') && (d[2] == 'F' || d[2] == 'f') {
 			return inf(neg), nil
 		}
@@ -212,7 +214,7 @@ func parse[D []byte | string](d D, op Payload) (Decimal, error) {
 		if (d[0] == 'N' || d[0] == 'n') && (d[1] == 'A' || d[1] == 'a') && (d[2] == 'N' || d[2] == 'n') {
 			return nan(op, 0, 0), nil
 		}
-	} else if l == 8 {
+	case 8:
 		if (d[0] == 'I' || d[0] == 'i') && (d[1] == 'N' || d[1] == 'n') && (d[2] == 'F' || d[2] == 'f') && (d[3] == 'I' || d[3] == 'i') && (d[4] == 'N' || d[4] == 'n') && (d[5] == 'I' || d[5] == 'i') && (d[6] == 'T' || d[6] == 't') && (d[7] == 'Y' || d[7] == 'y') {
 			return inf(neg), nil
 		}
