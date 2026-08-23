@@ -88,7 +88,11 @@ func New(sig int64, exp int) Decimal {
 		sig *= -1
 	}
 
-	if exp < minUnbiasedExponent+19 {
+	if exp > minUnbiasedExponent && exp < maxUnbiasedExponent {
+		return compose(neg, uint128{uint64(sig), 0}, int16(exp+exponentBias))
+	}
+
+	if exp < minUnbiasedExponent-19 {
 		return zero(neg)
 	}
 

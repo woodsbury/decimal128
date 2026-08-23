@@ -722,6 +722,54 @@ func TestNaN(t *testing.T) {
 	}
 }
 
+func TestNew(t *testing.T) {
+	t.Parallel()
+
+	dec := New(0, 123)
+	if !dec.IsZero() {
+		t.Errorf("New(0, 123).IsZero() = false, want true")
+	}
+
+	dec = New(0, -123)
+	if !dec.IsZero() {
+		t.Errorf("New(0, -123).IsZero() = false, want true")
+	}
+
+	dec = New(1, 123456)
+	if !dec.IsInf(1) {
+		t.Errorf("New(1, 123456).IsInf(1) = false, want true")
+	}
+
+	dec = New(-1, 123456)
+	if !dec.IsInf(-1) {
+		t.Errorf("New(-1, 123456).IsInf(-1) = false, want true")
+	}
+
+	dec = New(1, -123456)
+	if !dec.IsZero() {
+		t.Errorf("New(1, -123456).IsZero() = false, want true")
+	}
+
+	dec = New(-1, -123456)
+	if !dec.IsZero() {
+		t.Errorf("New(-1, -123456).IsZero() = false, want true")
+	}
+
+	if !dec.Signbit() {
+		t.Errorf("New(-1, -123456).Signbit() = false, want true")
+	}
+
+	dec = New(1, 6145)
+	if !dec.Equal(MustParse("1e+6145")) {
+		t.Errorf("New(1, 6145) = %v, want 1e+6145", dec)
+	}
+
+	dec = New(1000000000000000000, -6194)
+	if !dec.Equal(MustParse("1e-6176")) {
+		t.Errorf("New(1000000000000000000, -6194) = %v, want 1e-6176", dec)
+	}
+}
+
 func TestSize(t *testing.T) {
 	t.Parallel()
 
