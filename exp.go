@@ -35,7 +35,7 @@ func Cbrt(d Decimal) Decimal {
 	}
 
 	var trunc int8
-	for i := 0; i < 7; i++ {
+	for range 7 {
 		cub, _ := res.mul(res, int8(0))
 		cub, _ = cub.mul(res, int8(0))
 
@@ -766,7 +766,7 @@ func Sqrt(d Decimal) Decimal {
 		exp: -1,
 	}
 
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		tmp, trunc = nrm.quo(res, trunc)
 		res, trunc = res.add(tmp, trunc)
 		res, trunc = half.mul(res, trunc)

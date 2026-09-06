@@ -47,18 +47,17 @@ func (d Decimal) MarshalJSONTo(enc *jsontext.Encoder) error {
 		buf = append(buf, '"')
 	}
 
-	enc.WriteValue(buf)
-	return nil
+	return enc.WriteValue(buf)
 }
 
 // UnmarshalJSONFrom implements the [encoding/json/v2.UnmarshalerFrom] interface.
 func (d *Decimal) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	data, err := dec.ReadValue()
+	value, err := dec.ReadValue()
 	if err != nil {
 		return err
 	}
 
-	if string(data) == "null" {
+	if value.Kind() == jsontext.KindNull {
 		if legacy, _ := json.GetOption(dec.Options(), jsonv1.MergeWithLegacySemantics); legacy {
 			return nil
 		}
@@ -67,7 +66,7 @@ func (d *Decimal) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 		return nil
 	}
 
-	l := len(data)
+	l := len(value)
 	if l == 0 {
 		if legacy, _ := json.GetOption(dec.Options(), jsonv1.MergeWithLegacySemantics); legacy {
 			return nil
@@ -78,15 +77,15 @@ func (d *Decimal) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	}
 
 	var stringify bool
-	if l >= 2 && data[0] == '"' && data[l-1] == '"' {
+	if l >= 2 && value[0] == '"' && value[l-1] == '"' {
 		stringify, _ = json.GetOption(dec.Options(), json.StringifyNumbers)
 		if !stringify {
 			return &json.SemanticError{
-				JSONKind: '"',
+				JSONKind: jsontext.KindString,
 			}
 		}
 
-		data = data[1 : l-1]
+		value = value[1 : l-1]
 		l -= 2
 
 		if l == 0 {
@@ -102,7 +101,7 @@ func (d *Decimal) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	neg := false
 
 	i := 0
-	switch data[i] {
+	switch value[i] {
 	case '+':
 		i = 1
 	case '-':
@@ -110,17 +109,17 @@ func (d *Decimal) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 		i = 1
 	}
 
-	tmp, err := parseNumber(data[i:], neg, false)
+	tmp, err := parseNumber(value[i:], neg, false)
 	if err != nil {
 		switch err.(type) {
 		case parseNumberRangeError:
 			return &json.SemanticError{
-				JSONKind: '0',
+				JSONKind: jsontext.KindNumber,
 				Err:      strconv.ErrRange,
 			}
 		case parseNumberSyntaxError:
 			return &json.SemanticError{
-				JSONKind: data.Kind(),
+				JSONKind: value.Kind(),
 			}
 		}
 	}

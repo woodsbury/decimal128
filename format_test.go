@@ -49,7 +49,7 @@ func TestDecimalFormat(t *testing.T) {
 	var flagSets [][]rune
 	for i := 0b00000; i <= 0b11111; i++ {
 		var flagSet []rune
-		for j := 0; j < 5; j++ {
+		for j := range 5 {
 			if i&(1<<j) != 0 {
 				flagSet = append(flagSet, flags[j])
 			}

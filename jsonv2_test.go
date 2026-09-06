@@ -80,7 +80,7 @@ func TestDecimalUnmarshalJSONFrom(t *testing.T) {
 	res := num
 	err := json.Unmarshal([]byte("null"), &res)
 	if !res.IsZero() || err != nil {
-		t.Errorf("Decimal.UnmarshalJSONFrom(null) = (%v, %v), want (%v, <nil>)", res, err, num)
+		t.Errorf("Decimal.UnmarshalJSONFrom(null) = (%v, %v), want (0, <nil>)", res, err)
 	}
 
 	res = num

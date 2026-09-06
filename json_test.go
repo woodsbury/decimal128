@@ -63,7 +63,7 @@ func TestDecimalUnmarshalJSON(t *testing.T) {
 
 	num := New(123, -1)
 	res := num
-	err := res.UnmarshalJSON([]byte("null"))
+	err := json.Unmarshal([]byte("null"), &res)
 	if !res.Equal(num) || err != nil {
 		t.Errorf("Decimal.UnmarshalJSON(null) = (%v, %v), want (%v, <nil>)", res, err, num)
 	}
@@ -74,23 +74,23 @@ func TestDecimalUnmarshalJSON(t *testing.T) {
 		t.Errorf("Decimal.UnmarshalJSON(<nil>) = (%v, %v), want (%v, <nil>)", res, err, num)
 	}
 
-	err = res.UnmarshalJSON([]byte("[]"))
+	err = json.Unmarshal([]byte("[]"), &res)
 	jerr := new(json.UnmarshalTypeError)
 	if !errors.As(err, &jerr) || jerr.Value != "array" {
 		t.Errorf("Decimal.UnmarshalJSON([]) = %v, want json.UnmarshalTypeError{array}", err)
 	}
 
-	err = res.UnmarshalJSON([]byte("{}"))
+	err = json.Unmarshal([]byte("{}"), &res)
 	if !errors.As(err, &jerr) || jerr.Value != "object" {
 		t.Errorf("Decimal.UnmarshalJSON({}) = %v, want json.UnmarshalTypeError{array}", err)
 	}
 
-	err = res.UnmarshalJSON([]byte("true"))
+	err = json.Unmarshal([]byte("true"), &res)
 	if !errors.As(err, &jerr) || jerr.Value != "bool" {
 		t.Errorf("Decimal.UnmarshalJSON(true) = %v, want json.UnmarshalTypeError{array}", err)
 	}
 
-	err = res.UnmarshalJSON([]byte("\"\""))
+	err = json.Unmarshal([]byte("\"\""), &res)
 	if !errors.As(err, &jerr) || jerr.Value != "string" {
 		t.Errorf("Decimal.UnmarshalJSON(\"\") = %v, want json.UnmarshalTypeError{array}", err)
 	}

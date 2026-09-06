@@ -304,7 +304,7 @@ func (d Decimal) appendSpecial(buf []byte, width int, printSign, padSign, padRig
 				buf = append(buf, ' ')
 			}
 		} else {
-			for i := 0; i < p; i++ {
+			for range p {
 				buf = append(buf, ' ')
 			}
 
